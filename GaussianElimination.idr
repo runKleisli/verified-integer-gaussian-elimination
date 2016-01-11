@@ -147,6 +147,7 @@ lemma_gcdrecpr = proof
   exact ?subtractionexchangepr
   rewrite sym (gcddef c d)
   -- rewrite sym (sym modeq) is no-opping, but should solve the main thm
+  --    REDO: Maybe we just need to use compute to normalize the goal terms beforehand?
   -- So, we have to add hints, namely factoring through what we call
   -- reachfortheglue and applying cong and trans.
   -- The type of such a maneuver is roughly {a : A} -> {b : A} -> {c : B} -> (a = b) -> { f : A -> B } -> ( f b = c ) -> ( f a = c )
@@ -167,7 +168,23 @@ lemma_gcdrecpr = proof
   exact t_trftgvfg_gf
   exact (?modeqpr c d)
 
-%reflection
+lemma_gcdrecdepparout : (c : Nat) -> (d : Nat) -> (a : Nat) -> (b : Nat)
+	-> ( gcdformknown : a*d+b*(modNat c d) = gcd d (modNat c d))
+	-> ( nn:(Nat,Nat) ** let (a',b')=nn in a'*c+b'*d = gcd c d )
+lemma_gcdrecdepparout = ?lemma_gcdrecdepparoutpr
+
+lemma_gcdrecdepparoutpr = proof
+  intros
+  claim imedeq ( b*c + (a-b*(div (c-(modNat c d)) d))*d = gcd c d )
+  unfocus
+  exact ( (b, (a - b * div (c - modNat c d) d)) ** imedeq )
+  -- here we see the sum in the conclusion of lemma_gcdrec
+  -- differs in term order from that needed
+  rewrite sym (sym $ lemma_gcdrec c d a b gcdformknown)
+  compute
+  rewrite sym ( plusCommutative (mult b c) (mult (minus a (mult b (div (minus c (modNat c d)) d))) d) )
+  exact Refl
+
 bezoutsIdentityNat : (c:Nat) -> (d:Nat)
 	-> ( nn : (Nat,Nat) ** (let (a,b)=nn in a*c+b*d = gcd c d) )
 bezoutsIdentityNat c Z = ((1,0) ** gcdwzero)
