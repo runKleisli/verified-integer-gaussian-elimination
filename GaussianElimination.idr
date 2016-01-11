@@ -28,6 +28,11 @@ See if it can't be done in a more uniform style
 
 Expressions of the plumbing being performed that are more generally are desired
 
+Perhaps we should call what we're proving now the Euclidean division algorithm,
+and call the witness-erased form, corresponding to the existential form of the
+conclusion, the true Bezout's theorem.
+> :apropos Exists
+
 -}
 
 
@@ -168,6 +173,8 @@ lemma_gcdrecpr = proof
   exact t_trftgvfg_gf
   exact (?modeqpr c d)
 
+
+
 lemma_gcdrecdepparout : (c : Nat) -> (d : Nat) -> (a : Nat) -> (b : Nat)
 	-> ( gcdformknown : a*d+b*(modNat c d) = gcd d (modNat c d))
 	-> ( nn:(Nat,Nat) ** let (a',b')=nn in a'*c+b'*d = gcd c d )
@@ -185,6 +192,13 @@ lemma_gcdrecdepparoutpr = proof
   rewrite sym ( plusCommutative (mult b c) (mult (minus a (mult b (div (minus c (modNat c d)) d))) d) )
   exact Refl
 
+{-
+lemma_gcdrecdepparinout : (c : Nat) -> (d : Nat)
+	-> ( nn:(Nat,Nat) ** let (a,b)=nn in a*d+b*(modNat c d) = gcd d (modNat c d) )
+	-> ( nn':(Nat,Nat) ** let (a',b')=nn' in a'*c+b'*d = gcd c d )
+lemma_gcdrecdepparinout = ?lemma_gcdrecdepparinoutpr
+-}
+
 bezoutsIdentityNat : (c:Nat) -> (d:Nat)
 	-> ( nn : (Nat,Nat) ** (let (a,b)=nn in a*c+b*d = gcd c d) )
 bezoutsIdentityNat c Z = ((1,0) ** gcdwzero)
@@ -197,4 +211,105 @@ bezoutsIdentityNat c d = let r = c `modNat` d in
 	where
 		gcdnormally = ?gcdnormallyproof
 -}
+{-
+
+So far in our proof we get stuck at
+
+> intros
+> exact (lemma_gcdrecdepparinout c d (bezoutsIdentityNat d (modNat c d)))
+
+So how do we unpack dependent sums in a way that they can be packed, is the problem.
+
+-}
+{-
+This gives a type mismatch error between the case blocks from the intermediary function and this one.
+
+bezoutsIdentityNat c d = lemma_gcdrecdepparout c d oldaval oldbval oldgcdpr
+	where
+		oldaval = oldaval_pr
+		oldbval = oldbval_pr
+		oldgcdpr = ?oldgcdpr_pr
+-- deppar = (bezoutsIdentityNat d (modNat c d))
+-}
 bezoutsIdentityNat c d = ?gcdnormallyproof
+
+
+
+total
+bezeqty' : Nat -> Nat -> (Nat,Nat) -> Type
+bezeqty' c d (a,b) = a*c+b*d = gcd c d
+
+lemma_gcdrecdepparout' : (c : Nat) -> (d : Nat) -> (a : Nat) -> (b : Nat)
+	-> ( gcdformknown : bezeqty' d (modNat c d) (a,b))
+	-> ( nn:(Nat,Nat) ** bezeqty' c d nn )
+lemma_gcdrecdepparout' = ?lemma_gcdrecdepparoutpr'
+
+{-
+lemma_gcdrecdepparoutpr' = proof
+  intros
+  claim imedeq ( b*c + (a-b*(div (c-(modNat c d)) d))*d = gcd c d )
+  unfocus
+  exact ( (b, (a - b * div (c - modNat c d) d)) ** imedeq )
+  -- here we see the sum in the conclusion of lemma_gcdrec
+  -- differs in term order from that needed
+  rewrite sym (sym $ lemma_gcdrec c d a b gcdformknown)
+  compute
+  rewrite sym ( plusCommutative (mult b c) (mult (minus a (mult b (div (minus c (modNat c d)) d))) d) )
+  exact Refl
+-}
+
+{-
+We might be able to try the same strategy with
+
+bezoutsIdentityNat' : (c:Nat) -> (d:Nat)
+	-> ( nn : (Nat,Nat) ** (\(a,b) => a*c+b*d = gcd c d) nn )
+
+since it doesn't need to match `let`, but `let` is just desugared to a case
+and the cases being parametrized by the name of the function their def is
+scoped to means that is unlikely to succeed. Yeah, same error.
+
+It would be nice if we knew how to use a proof of equality of types to refine a goal.
+Maybe it would use refine.
+We need to prove the type of the goal matches what we have,
+not that we have a value of the goal type.
+-}
+bezoutsIdentityNat' : (c:Nat) -> (d:Nat)
+	-> ( nn : (Nat,Nat) ** bezeqty' c d nn )
+bezoutsIdentityNat' c Z = ((1,0) ** gcdwzero)
+	where
+		gcdwzero = gcdwzeroproof c
+{-
+bezoutsIdentityNat' c d = lemma_gcdrecdepparout' c d oldaval oldbval (Sigma.getProof {a=(Nat,Nat)} {P=bezeqty' d (modNat c d)} deppar)
+	where
+		oldaval = ?oldaval_pr
+		oldbval = ?oldbval_pr
+		deppar = bezoutsIdentityNat' d (modNat c d)
+-}
+{-
+"Dependent pattern matching"
+	clearly wanted, clearly required since foots below shows
+	otherwise you have to wrap your proof in an Exists
+http://docs.idris-lang.org/en/latest/tutorial/views.html
+-}
+bezoutsIdentityNat' c d with (bezoutsIdentityNat' d (modNat c d))
+	| ((a,b) ** oldpr) = lemma_gcdrecdepparout' c d a b oldpr
+
+
+{-
+foots : ( nn : (Nat,Nat) ** bezeqty' c d nn ) -> bezeqty' c d nn
+foots (a ** b) = b
+
+When checking right hand side of foots:
+Type mismatch between
+        (\nn1 => bezeqty' c d nn1) a (Type of b)
+and
+        bezeqty' c d nn (Expected type)
+
+Specifically:
+        Type mismatch between
+                bezeqty' c d a
+        and
+                bezeqty' c d nn
+-}
+foots : ( nn : (Nat,Nat) ** bezeqty' c d nn ) -> Exists (bezeqty' c d)
+foots (a ** b) = Evidence a b
