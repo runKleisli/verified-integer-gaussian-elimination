@@ -296,8 +296,11 @@ bezoutsIdentityNat' c d with (bezoutsIdentityNat' d (modNat c d))
 
 
 {-
-foots : ( nn : (Nat,Nat) ** bezeqty' c d nn ) -> bezeqty' c d nn
-foots (a ** b) = b
+This is how we confirmed Idris doesn't pattern match on a dependent sum value automatically.
+
+< foots : ( nn : (Nat,Nat) ** bezeqty' c d nn ) -> bezeqty' c d nn
+< foots (a ** b) = b
+> :l GaussianElimination.idr
 
 When checking right hand side of foots:
 Type mismatch between

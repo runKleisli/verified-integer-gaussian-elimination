@@ -1,0 +1,162 @@
+==================
+
+Workings out done for
+
+lemma_gcdrecpr
+
+==================
+
+
+
+{hole5} : plus (mult (minus a
+                            (mult b (div (minus c (modNat c d)) d)))
+                     d)
+               (mult b c) =
+          gcd c d
+
+> rewrite sym ( multDistributesOverMinusLeft a (b*(div (c-(modNat c d)) d)) d )
+> multDistributesOverMinusLeft : (left : Nat) ->
+>                                            (centre : Nat) ->
+>                                            (right : Nat) ->
+>                                            (left - centre) * right =
+>                                            left * right - centre * right
+
+{hole106} : plus (minus (mult a d)
+                        (mult (mult b (div (minus c (modNat c d)) d)) d))
+                 (mult b c) =
+            gcd c d
+
+{hole5} : (a-b*(div (c-r) d))*d + b*c = gcd c d
+
+{hole106} : a*d - (b*(div (c-r) d))*d + b*c = gcd c d
+
+> rewrite sym ( subtractionexchange (a*d) ( (b*(div (c-(modNat c d)) d))*d ) ( b*c ) )
+> subtractionexchange : (x : Nat) -> (y : Nat) -> (z : Nat)
+> 	-> plus (minus x y) z = plus x (minus z y)
+
+{hole154} : plus (mult a d)
+                 (minus (mult b c)
+                        (mult (mult b (div (minus c (modNat c d)) d)) d)) =
+            gcd c d
+
+{hole154} : (a*d)+(b*c-(b*(div (c-r) d))*d) = gcd c d
+
+> rewrite sym (sym $ multAssociative b (div (c-(modNat c d)) d) d)
+
+{hole206} : plus (mult a d)
+                 (minus (mult b c)
+                        (mult b (mult (div (minus c (modNat c d)) d) d))) =
+            gcd c d
+
+{hole206} : (a*d) + b*c - (b*((div (c-r) d)*d)) = gcd c d
+
+> rewrite sym (sym $ multDistributesOverMinusRight b c ((div (c-(modNat c d)) d)*d))
+
+{hole233} : a*d + b * (c - ( (div (c-r) d)*d )) = gcd c d
+
+substform : (a - b * div (c - modNat c d) d) * d + b * c = gcd c d
+
+-- I don't know why we thought writing substform like that was what we wanted, since my pre-proof notes did not at all describe that! It was by substituting the remainder equation for (r=modNat c d) into the usual equation that we were supposed to get a substform.
+
+claim substform' (
+		(a*d + b*(c-(div (c-r) d)*d)) = gcd c d
+	)
+
+claim substform' ( (a*d + b*(c-(div (c-r) d)*d)) = gcd c d )
+
+...
+
+----------                 Goal:                  ----------
+modeq : modNat c d = c - div (c - modNat c d) d * d
+
+-GaussianElimination.lemma_gcdrecpr> exact (?modeqpr c d)
+----------              Other goals:              ----------
+subtractionexchange,substform'
+----------              Assumptions:              ----------
+ c : Nat
+ d : Nat
+ a : Nat
+ b : Nat
+ gcdformknown : plus (mult a d) (mult b (modNat c d)) =
+                gcd d (modNat c d)
+----------                 Goal:                  ----------
+substform : (a - b * div (c - modNat c d) d) * d + b * c =
+            gcd c d
+-GaussianElimination.lemma_gcdrecpr> exact (believe_me "Rm this junk")
+----------              Other goals:              ----------
+substform'
+----------              Assumptions:              ----------
+ c : Nat
+ d : Nat
+ a : Nat
+ b : Nat
+ gcdformknown : plus (mult a d) (mult b (modNat c d)) =
+                gcd d (modNat c d)
+----------                 Goal:                  ----------
+subtractionexchange : (x : Nat) ->
+                      (y : Nat) ->
+                      (z : Nat) -> plus (minus x y) z = plus x (minus z y)
+-GaussianElimination.lemma_gcdrecpr> exact ?subtractionexchangepr
+
+----------              Assumptions:              ----------
+ c : Nat
+ d : Nat
+ a : Nat
+ b : Nat
+ gcdformknown : plus (mult a d) (mult b (modNat c d)) =
+                gcd d (modNat c d)
+----------                 Goal:                  ----------
+substform' : a * d + b * (c - div (c - modNat c d) d * d) =
+             gcd c d
+> rewrite sym (gcddef c d)
+----------              Other goals:              ----------
+substform'
+----------              Assumptions:              ----------
+ c : Nat
+ d : Nat
+ a : Nat
+ b : Nat
+ gcdformknown : plus (mult a d) (mult b (modNat c d)) =
+                gcd d (modNat c d)
+----------                 Goal:                  ----------
+{hole333} : a * d + b * (c - div (c - modNat c d) d * d) =
+            gcd d (modNat c d)
+
+
+
+gcdformknown : plus (mult a d) (mult b (modNat c d)) =
+                gcd d (modNat c d)
+{hole333} : a * d + b * (c - div (c - modNat c d) d * d) =
+            gcd d (modNat c d)
+
+...
+
+
+
+going back and recalling modeq, we have
+
+ gcdformknown : plus (mult a d) (mult b (modNat c d)) =
+                gcd d (modNat c d)
+ modeq : modNat c d = c - div (c - modNat c d) d * d
+----------                 Goal:                  ----------
+{hole324} : a * d + b * (c - div (c - modNat c d) d * d) =
+            gcd d (modNat c d)
+
+but rewrite sym (sym modeq) is no-opping!
+I hate it when this happens.
+
+:t trans (cong $ sym modeq) gcdformknown
+Specifically:
+                Type mismatch between
+                        plus (mult a d) (mult b (modNat c d))
+                and
+                        f (modNat c d)
+
+> let reachfortheglue = \v => plus (mult a d) (mult b v)
+> :t trans (cong {f=reachfortheglue} $ sym modeq) gcdformknown
+
+same type mismatch
+
+
+
+Then we looked up pattern matching on a dependent pair the following day and found out about dependent pattern matching!
