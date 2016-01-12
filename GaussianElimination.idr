@@ -8,11 +8,35 @@ NOTES
 
 
 
+Though the assumptions seem so obvious you shouldn't have to prove them,
+either they're wrong together or Idris is very broken, because we've
+proven (6 = 2) by proving (a, b)===(0, 1) satisfies a*4+b*6 = gcd 4 6.
+I suspect the error is `subtractionexchangepr` and subtraction of Nats
+is broken, but it could also be `gcddef`, which shows up in the
+expression for the proof of this fact a few times (and shows up
+in the correct computations we've seen as well).
+
 ===========================================
 
 TODO
 
+
+
+Prove bezoutsIdentityNat rigorously and over ZZ. Find the contradiction.
+
+	> bezoutsIdentityNat 4 6
+
+is false while
+
+	> bezoutsIdentityNat 4 2
+
+is true.
+
+
+
 Remove gcddef by proving this trivial lemma
+
+
 
 Remove junk from lemma_gcdrecpr by inspecting the proof
 See if it can't be done in a more uniform style
@@ -26,24 +50,56 @@ See if it can't be done in a more uniform style
  	wrapped in a function definition with a relative derivation by some other function
  	that rewrite w/ cong will be happy to recognize, such as so factorizing the thm at claim.
 
+
+
 Expressions of the plumbing being performed that are more generally are desired
+
+
 
 Perhaps we should call what we're proving now the Euclidean division algorithm,
 and call the witness-erased form, corresponding to the existential form of the
 conclusion, the true Bezout's theorem.
 > :apropos Exists
 
--}
+===========================================
+
+IMPACT OF LANGUAGE GAPS ON CODE
 
 
 
-{-
-private
---
-For some reason making this private makes bezoutsIdentityNat uncallable.
-It also prevents gcdnormally=?gcdnormallyproof from being able to access
+Here's some semantics errors within rewrite, possibly due to misscoping.
+This was found in lemma_gcdrecpr, right where ?subtractionexchange is made.
+
+> rewrite sym ( ( the ( (a : Nat) -> (b : Nat) -> (c : Nat) -> (a-b)+c = a+(c-b) ) ?subtractionexchange ) $ ( a*d ) $ ( (b*(div (c-r) d))*d ) $ ( b*c ) )
+	Error: Perhaps a is applied to too many arguments
+> rewrite sym ( ( the ( (x : Nat) -> (y : Nat) -> (z : Nat) -> (x-y)+z = x+(z-y) ) ?subtractionexchange ) ( a*d ) ( (b*(div (c-r) d))*d ) ( b*c ) )
+	Error: No such variable x
+
+
+
+Some things can't be made private even though they shouldn't be used outside this module,
+because doing so will change how things in this module that use them typecheck, creating
+a bug which allows a using function's type to be checked but appears undeclared when called.
+This was found by making gcdwzeroproof private and checking the type of bezoutsIdentityNat 1.
+
+Making gcdwzeroproof private also prevents gcdnormally=?gcdnormallyproof from being able to access
 all the variables from the environment that are involved.
+
+
+
+It would be nice if we knew how to use a proof of equality of types to refine a goal.
+Maybe it would use refine.
+We need to prove the type of the goal matches what we have,
+not that we have a value of the goal type.
+
+Then we could replace (bezeqty c d nn) with
+	let (a,b)=nn in a*c+b*d = gcd c d
+or	(\(a,b) => a*c+b*d = gcd c d) nn
+
 -}
+
+
+
 gcdwzeroproof : (cc : Nat) -> plus (plus cc 0) 0 = cc
 gcdwzeroproof = proof
 	intro
@@ -84,12 +140,6 @@ lemma_gcdrec : (c : Nat) -> (d : Nat) -> (a : Nat) -> (b : Nat)
 lemma_gcdrec = ?lemma_gcdrecpr
 
 -- A bunch of this is junk. If we try again, we can cut that out.
-{-
-rewrite sym ( ( the ( (a : Nat) -> (b : Nat) -> (c : Nat) -> (a-b)+c = a+(c-b) ) ?subtractionexchange ) $ ( a*d ) $ ( (b*(div (c-r) d))*d ) $ ( b*c ) )
-	Error: Perhaps a is applied to too many arguments
-rewrite sym ( ( the ( (x : Nat) -> (y : Nat) -> (z : Nat) -> (x-y)+z = x+(z-y) ) ?subtractionexchange ) ( a*d ) ( (b*(div (c-r) d))*d ) ( b*c ) )
-	Error: No such variable x
--}
 lemma_gcdrecpr = proof
   intros
   claim lincombformknown ( a*d+b*(modNat c d) = gcd c d )
@@ -158,16 +208,8 @@ lemma_gcdrecdepparoutpr = proof
   rewrite sym ( plusCommutative (mult b c) (mult (minus a (mult b (div (minus c (modNat c d)) d))) d) )
   exact Refl
 
-{-
-It would be nice if we knew how to use a proof of equality of types to refine a goal.
-Maybe it would use refine.
-We need to prove the type of the goal matches what we have,
-not that we have a value of the goal type.
 
-Then we could replace (bezeqty c d nn) with
-	let (a,b)=nn in a*c+b*d = gcd c d
-or	(\(a,b) => a*c+b*d = gcd c d) nn
--}
+
 bezoutsIdentityNat : (c:Nat) -> (d:Nat)
 	-> ( nn : (Nat,Nat) ** bezeqty c d nn )
 bezoutsIdentityNat c Z = ((1,0) ** gcdwzero)
