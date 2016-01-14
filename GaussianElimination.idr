@@ -16,13 +16,19 @@ is broken, but it could also be `gcddef`, which shows up in the
 expression for the proof of this fact a few times (and shows up
 in the correct computations we've seen as well).
 
+Further, the linear combination can't be right, because the only solutions
+have negative coefficients in them.
+
+Oh! No, it's clearly modeqpr that's wrong. It assumes (+k).(-k) = id.
+But subtractionexchangepr might still be wrong for the same reason.
+
 ===========================================
 
 TODO
 
 
 
-Prove bezoutsIdentityNat rigorously and over ZZ. Find the contradiction.
+Prove bezoutsIdentityNat rigorously and over ZZ. Find the contradiction
 
 	> bezoutsIdentityNat 4 6
 
@@ -31,6 +37,24 @@ is false while
 	> bezoutsIdentityNat 4 2
 
 is true.
+
+But we CAN'T just do it over ZZ, because `gcd` is not defined for it (what??).
+We need to use Int or Integral or (Integral a, Quasigroup a) => a, but be warned
+this algorithm will still fail if the number system has Integral instantiated but
+it is not either one of those two or a Euclidean domain.
+
+	Prelude.Nat.toIntNat : Nat -> Int
+	Tail recursive cast Nat to Int Note that this can overflow
+
+	Prelude.Nat.toIntegerNat : Nat -> Integer
+	Convert a Nat to an Integer
+
+So we want to use Integer instead of Int.
+
+	Prelude.Nat.fromIntegerNat : Integer -> Nat
+	Convert an Integer to a Nat, mapping negative numbers to 0
+
+We can use this to build a nice `abs`.
 
 
 
@@ -60,6 +84,10 @@ Perhaps we should call what we're proving now the Euclidean division algorithm,
 and call the witness-erased form, corresponding to the existential form of the
 conclusion, the true Bezout's theorem.
 > :apropos Exists
+
+
+
+Refactor into modules based on independence of origins.
 
 ===========================================
 
