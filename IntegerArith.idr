@@ -10,6 +10,11 @@ autogen a type which is either a<b or a>b and a proof of it.
 match on the with of the generating function, so that you can have distinct cases of the inequality treated as creating different assumptions about the values a and b.
 use this pattern matching structure in the definition of gcdBigInt itself.
 Reflection shouldn't be needed, then, except maybe for gcdBigInt a 0.
+
+We can implement this inequality type (which mirrors LTE for Nats) using recursion, even though we aren't given a fixed enumeration of Integer, because we have decEq.
+
+	decEq 5 3 = No ( _ 5 3 ) : Dec (5 = 3)
+	decEq 5 5 = Yes Refl : (5=5)
 -}
 
 %reflection
@@ -35,7 +40,8 @@ gcddefBigInt a b = if a*b<0 then the ( gcdBigInt a b = gcdBigInt (abs a) (abs b)
 
 
 
-modeqBigInt : (a : Integer) -> (b : Integer) -> mod a b + (div (a - mod a b) b)*b = a
+modeqBigInt : (a : Integer) -> (b : Integer) -> (nzpr : Not (b=0))
+	-> mod a b + (div (a - mod a b) b)*b = a
 modeqBigInt = ?modeqBigIntHole
 
 
