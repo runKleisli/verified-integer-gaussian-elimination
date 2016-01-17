@@ -49,75 +49,11 @@ class OrdRel A where
 class (OrdRel s) => DecLT s where
 	decLT : (x1 : s) -> (x2 : s) -> Dec ( LT x1 x2 )
 
-{-
-data LTBigInt where
-	-- YLT 0 a : (a eq abs a) -> LTBigInt
-	YLT : (x : Integer) -> {.auto Refl : x = 0} -> (a eq abs a) -> LTBigInt a b
--}
-
 LTZero : Integer -> Type
 LTZero x = Not (x = abs x)
 
-{-
--- Designing this as an Either helped.
-data LTBigInt where
-	YLT : Either (a : Integer ** LTZero a) ( (a,b):(Integer,Integer) ** LTZero (a-b)) -> LTBigInt a b
--}
-
-{-
--- Then there's a reduction from agreement of cases
-data LTBigInt where
-	YLT : ( (a,b):(Integer,Integer) ** LTZero (a-b) ) -> LTBigInt a b
--}
-
-{-
-Then there's a serialization.
-
-Could make the LTZero an implicit argument, if it didn't need a standard proof that exists no matter what `a` and `b` are. A regression occurs, since we don't have something like (Refl) whose construction is closed to those arguments ((x,y)**(x=y)) related by the required property of the list of arguments.
-r
-Maybe we could write
-
-	YLT : T a b -> LTBigInt
-
-where (T a b = Void) if no proof of ( LTZero (a-b) ) exists and
-
-	{.auto stdproof : LTZero (a-b)} -> (a,b) : (Integer,Integer)
-
-otherwise? I don't even know that can really be stated.
--}
-{-
-data LTBigInt : Integer -> Integer -> Type where
-	IsLT : (a : Integer) -> (b : Integer) -> LTZero (a-b) -> LTBigInt a b
--}
-
--- Finally, separation of concerns
 instance OrdRel Integer where
 	LT a b = LTZero (a-b)
-
-{-
--- Don't even need all these layers of indirection. Defn of LT subsumed LTBigInt.
-
-data LTBigInt : Integer -> Integer -> Type where
-	IsLT : (a : Integer) -> (b : Integer) -> LT a b -> LTBigInt a b
--- 	IsLT : (a : Integer) -> (b : Integer) -> LTZero (a-b) -> LTBigInt a b
-
-liftNoLTBigInt : (a : Integer) -> (b : Integer)
--- 	-> (LTZero (a-b) -> Void)
-	-> (LT a b -> Void)
-	-> (LTBigInt a b -> Void)
-liftNoLTBigInt a b proof_absurd (IsLT a b pr) = proof_absurd pr
-
-decLTBigInt : (a : Integer) -> (b : Integer) -> Dec ( LTBigInt a b )
-decLTBigInt a b = case ( decEq (a-b) (abs (a-b)) ) of
-		Yes prPos => No (liftNoLTBigInt a b (_ prPos))
-		No prNeg => Yes (IsLT a b prNeg)
-
-instance DecLT Integer where
--- 	decLT = decLTBigInt -- Can't cause LTBigInt isn't LT as def.d, see above comment
-	decLT a b = case (decLTBigInt a b) of
-			No pr => 
-			Yes pr => 
--}
 
 decLTBigInt : (a : Integer) -> (b : Integer) -> Dec ( LT a b )
 decLTBigInt a b = case ( decEq (a-b) (abs (a-b)) ) of
