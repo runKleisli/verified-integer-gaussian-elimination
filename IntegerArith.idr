@@ -32,6 +32,12 @@ from the (Yes pr : DecLT (a*b) 0) that one is pattern matching on when trying to
 
 Once that (decLT (a*b) 0 = Yes pr) is used to rewrite the case argument of the equality-with-definition generator from (decLT (a*b) 0) to one of the cases (Yes _) of the case expressions in the gcdBigInt definition, we should be able to use compute to collapse the case expression and obtain the desired equality.
 
+=======
+
+Strategy recursion:
+
+gcdBigInt can probably be reduced to a single case expression step followed by the usual gcd on nonnegative numbers, which by not having a case expression can be proved total just like gcd can. So gcdBigInt could be proved total simply by factorization.
+
 -}
 
 
