@@ -1,0 +1,1 @@
+Install (See Idris Tutorial - Ch. 6: Packages) the contrib.ipkg package, located in idris-dev/libs/contrib, for imports such as Data.ZZ and Control.Algebra to work.
