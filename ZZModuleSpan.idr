@@ -100,7 +100,7 @@ or
 -- with rule / dependent pattern matching
 > spansTrans par_orAllxsNrs_prsum par_orAllysNss_prsum = ?prSpansTrans
 
-same applies when the type argument to (spans) is made explicit, not an auto implicit. Should try making the class instance explicit too.
+same applies when the type argument to (spans) is made explicit, not an auto implicit. Should try making the class instance explicit too. On the other hand, it may be because of the missing proof of VerifiedRing for ZZ.
 -}
 
 spansTrans : spans p q -> spans q r -> spans p r
