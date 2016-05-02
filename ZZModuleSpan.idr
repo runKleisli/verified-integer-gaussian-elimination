@@ -226,7 +226,7 @@ Actually, showing each side reduces to what's basically (z*) would be proof enou
 
 Breaking z up into different cases of ZZ value may be sufficient to force a full automation of the proof. However, this loses generality across the ring of coefficients.
 -}
-zippyThm2 (z::[]) ((x0::x0s) :: []) = ?zippyThm2_rhs_1
+zippyThm2 (z::[]) (xs :: []) = zippyLemJ xs
 zippyThm2 (z :: (zt::zts)) ((x0::x0s) :: (xt::xts)) = ?zippyThm2_rhs_2
 -- zippyThm2 = ?zippyThm2Pr
 {-
