@@ -23,6 +23,31 @@ monoidsum = sum'
 
 
 {-
+Trivial theorems
+-}
+
+
+
+total
+zeroVecEq : {a : Vect 0 r} -> {b : Vect 0 r} -> a = b
+zeroVecEq {a=[]} {b=[]} = Refl
+
+
+
+total
+vecSingletonReplicateEq : ((u : a) -> v=u) -> (xs : Vect n a) -> (xs = replicate n v)
+vecSingletonReplicateEq f [] = Refl
+vecSingletonReplicateEq f (x::xs) {v} = rewrite sym (f x) in cong {f=(v::)} (vecSingletonReplicateEq f xs)
+
+
+
+total
+zeroVecVecId : (xs : Vect n (Vect 0 a)) -> (xs = replicate n [])
+zeroVecVecId = vecSingletonReplicateEq (\b => zeroVecEq {a=[]} {b=b})
+
+
+
+{-
 Definitions:
 * Verified module
 * Verified vector space
@@ -212,13 +237,30 @@ zippyLemI' = proof
 zippyLemJ : {z : ZZ} -> (xs : Vect w ZZ) -> (z::[]) <\> (the (Matrix 1 w ZZ) (xs :: [])) =  monoidsum (Data.Vect.zipWith (<#>) (z::[]) (xs::[]))
 zippyLemJ xs = trans (zippyLemH xs) (zippyLemI xs)
 
+-- Modeled after zippyLemH
+{-
+zippyLemK : {z : ZZ} -> {predn : Nat} -> (xs : Vect w ZZ) -> (z::zs) <\> (the (Matrix (S predn) w ZZ) (xs :: xss)) = ?lemKTy -- ?lemKfunc (map (z*) xs) ((z::zs) <\> xss)
+-}
+
+zippyLemL : {z : ZZ} -> (xs : Vect w ZZ) -> (map (z*) xs)++( monoidsum (Data.Vect.zipWith (<#>) zs xss) ) = monoidsum (Data.Vect.zipWith (<#>) (z::zs) (xs::xss))
+zippyLemL [] = ?zippyLemL_rhs_1
+{-
+-- This claimed proof doesn't have to be valid. In particular, it's probably not, but it shows you what the theorem should degenerate to in the case (xs=[]).
+
+zippyLemL_rhs_1 = proof
+  intros
+  rewrite (zeroVecVecId xss)
+  claim lem_unfunction ( (\x => Data.Vect.zipWith (\meth1 => \meth2 => plusZ meth1 meth2) [] x) = id )
+  unfocus
+  rewrite sym lem_unfunction
+  exact Refl
+  exact ?lem_unfunction_tbContd
+-}
+zippyLemL (x0::x0s) = ?zippyLemL_rhs_2
+
 zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2 [] [] = trans zippyLemA zippyLemB
 zippyThm2 (z::zs) ([] :: xs) = zeroVecEq
-	where
-		total
-		zeroVecEq : {a : Vect 0 ZZ} -> {b : Vect 0 ZZ} -> a = b
-		zeroVecEq {a=[]} {b=[]} = Refl
 {-
 Have to reduce this to an intermediate theorem inductive in x@(x0::x0s), reducing to describing the effect of multiplying by z.
 
