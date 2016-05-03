@@ -242,6 +242,20 @@ zippyLemJ xs = trans (zippyLemH xs) (zippyLemI xs)
 zippyLemK : {z : ZZ} -> {predn : Nat} -> (xs : Vect w ZZ) -> (z::zs) <\> (the (Matrix (S predn) w ZZ) (xs :: xss)) = ?lemKTy -- ?lemKfunc (map (z*) xs) ((z::zs) <\> xss)
 -}
 
+{-
+!!!!!!!!!!!
+~~~~~~~~~~~
+Type checker fails to identify from the general case that it is impossible to satisfy zippyLemL in general, since it is impossible to satisfy it in the case w=1.
+~~~~~~~~~~~
+!!!!!!!!!!!
+-}
+
+-- Used to figure out how to prove zippyLemL, of which this is a special case.
+zippyLemL_Mini : {z : ZZ} -> (xs : Vect 1 ZZ) -> (map (z*) xs)::( monoidsum (Data.Vect.zipWith (<#>) zs xss) ) = monoidsum (Data.Vect.zipWith (<#>) (z::zs) (xs::xss))
+zippyLemL_Mini (x::[]) = ?zippyLemMini_rhs
+
+-- Modeled after zippyLemI
+-- Raises a type error if you set w to 1.
 zippyLemL : {z : ZZ} -> (xs : Vect w ZZ) -> (map (z*) xs)++( monoidsum (Data.Vect.zipWith (<#>) zs xss) ) = monoidsum (Data.Vect.zipWith (<#>) (z::zs) (xs::xss))
 zippyLemL [] = ?zippyLemL_rhs_1
 {-
