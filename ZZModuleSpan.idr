@@ -243,12 +243,7 @@ zippyLemK : {z : ZZ} -> {predn : Nat} -> (xs : Vect w ZZ) -> (z::zs) <\> (the (M
 -}
 
 {-
-!!!!!!!!!!!
-~~~~~~~~~~~
-Type checker fails to identify from the general case that it is impossible to satisfy zippyLemL in general, since it is impossible to satisfy it in the case w=1.
-~~~~~~~~~~~
-!!!!!!!!!!!
--}
+-- !!!!~~~ THIS zippyLemL IS ALL BROKEN OKAY ~~~!!!!!!!
 
 -- Used to figure out how to prove zippyLemL, of which this is a special case.
 zippyLemL_Mini : {z : ZZ} -> (xs : Vect 1 ZZ) -> (map (z*) xs)::( monoidsum (Data.Vect.zipWith (<#>) zs xss) ) = monoidsum (Data.Vect.zipWith (<#>) (z::zs) (xs::xss))
@@ -258,7 +253,7 @@ zippyLemL_Mini (x::[]) = ?zippyLemMini_rhs
 -- Raises a type error if you set w to 1.
 zippyLemL : {z : ZZ} -> (xs : Vect w ZZ) -> (map (z*) xs)++( monoidsum (Data.Vect.zipWith (<#>) zs xss) ) = monoidsum (Data.Vect.zipWith (<#>) (z::zs) (xs::xss))
 zippyLemL [] = ?zippyLemL_rhs_1
-{-
+
 -- This claimed proof doesn't have to be valid. In particular, it's probably not, but it shows you what the theorem should degenerate to in the case (xs=[]).
 
 zippyLemL_rhs_1 = proof
@@ -269,8 +264,9 @@ zippyLemL_rhs_1 = proof
   rewrite sym lem_unfunction
   exact Refl
   exact ?lem_unfunction_tbContd
--}
+
 zippyLemL (x0::x0s) = ?zippyLemL_rhs_2
+-}
 
 zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2 [] [] = trans zippyLemA zippyLemB
