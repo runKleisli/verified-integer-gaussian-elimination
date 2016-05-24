@@ -368,41 +368,14 @@ zippyThm_EntryCharizLeft = ?zippyThm_EntryCharizLeft'
 
 -- Reduce addition over (Vect n ZZ) to entrywise addition over ZZ to change (head.monoidsum) into (monoidsum.(map head)).
 zippyThm_EntryCharizRight : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> monoidsum $ zipWith (*) v (map head xs) = head $ monoidsum (zipWith (<#>) v xs)
-zippyThm_EntryCharizRight [] [] = Refl
--- Defining the solution to be Refl reduces it to a problem that can be handled using (lemma_VectAddHead _ _). Namely, I think this is a proof: rewrite sym (lemma_VectAddHead (vv::vvs) (x0::x0s)) in Refl
--- zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = rewrite sym (lemma_VectAddHead (vv::vvs) (_::_)) in Refl
 {-
+Evidence:
 
-
-
--}{-
-Right now, I'm looking to make the sectionized form of lemma_VectAddHead so that it can rewrite foldrImpl (<+>)
-
-Proved theorem on (<+>):
-lemma_VectAddHead : (v, w : Vect (S n) ZZ) -> head(v<+>w) = (head v)<+>(head w)
-
-Stmt of its extensionalization in the 2nd arg:
-\v => ( (<+>) head v ) . head = head . ( (<+>) v )
-
-Theorem on foldr:
-equalFunctionsImpliesEqualFoldrImpl : ((a : _) -> (b : _) -> f a b = g a b) -> foldrImpl f go xs = foldrImpl g go xs
-
-Intermediary to application of theorem on foldr to theorem on (<+>):
-
-a) head(v<+>w) = (head v)<+>(head w)
-b) head(v<+>w) = ((.) (head .) (<+>)) $ v $ w
-c) (head v)<+>(head w) = (curry $ uncurry (<+>) <<< head *** head) $ v $ w = ((. head) . (<+>) . head) $ v $ w
-Therefore d) ((.) (head .) (<+>)) $ v $ w = ((. head) . (<+>) . head) $ v $ w
-
-Unfortunately, (equalFunctionsImpliesEqualFoldrImpl) can't be applied to (lemma_VectAddHead).
-
-Nearer intermediary theorem:
 headOfSumIsSumOfHeads : (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
-
-It's not clear yet that the deconstruction xx --> (xxx::xxxs) is actually necessary yet.
--- zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = ?zippyThm_EntryCharizRight'
 -}
-zippyThm_EntryCharizRight (vv::vvs) ((xxx::xxxs)::xxs) = ?zippyThm_EntryCharizRight'
+zippyThm_EntryCharizRight [] [] = Refl
+zippyThm_EntryCharizRight (vv::vvs) (xx::xxs)
+-- zippyThm_EntryCharizRight (vv::vvs) ((xxx::xxxs)::xxs) = ?zippyThm_EntryCharizRight'
 
 zippyThm_EntryChariz : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = head $ monoidsum (zipWith (<#>) v xs)
 zippyThm_EntryChariz [] [] = Refl
