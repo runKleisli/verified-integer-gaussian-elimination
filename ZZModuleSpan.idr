@@ -94,16 +94,6 @@ lemma_VectAddEntrywise (FS npredi) (vv::vvs) (ww::wws) = lemma_VectAddEntrywise 
 
 
 
-{-
-equalFunctionsImpliesEqualFoldrImpl : ((a : _) -> (b : _) -> f a b = g a b) -> foldrImpl f go xs = foldrImpl g go xs
-
-liftToSquareUnderSumToLiftToAllPowersUnderSum: ((a : _) -> (b : _) -> f (a<+>b) = (g a)<+>(g b)) -> f (monoidsum xs) = monoidsum (map g xs)
-
-liftToSquareUnderSumToLiftToAllPowersUnderSum : {f : _} -> {g : _} -> ((a, b : Vect (S n) ZZ) -> f ZZ (a <+> b) = (g a) <+> (g b)) -> ({xs : Vect (S m) (Vect (S n) ZZ)} -> f (Vect (S m) ZZ) ((with Control.Algebra.Group monoidsum) xs) = (with Control.Algebra.Group monoidsum) (map g xs))
-
-liftToSquareUnderSumToLiftToAllPowersUnderSum2D : {f : _} -> {g : _} -> ((a, b : Vect (S n) ZZ) -> f (a <+> b) = (g a) <+> (g b)) -> ({xs : Vect m (Vect (S n) ZZ)} -> f ((with Control.Algebra.Group monoidsum) xs) = (with Control.Algebra.Group monoidsum) (map g xs))
--}
-
 monoidrec1D : {v : ZZ} -> {vs : Vect n ZZ} -> monoidsum (v::vs) = v <+> monoidsum vs
 
 -- the foldr needs to be converted to a foldl
@@ -407,11 +397,7 @@ Therefore d) ((.) (head .) (<+>)) $ v $ w = ((. head) . (<+>) . head) $ v $ w
 Unfortunately, (equalFunctionsImpliesEqualFoldrImpl) can't be applied to (lemma_VectAddHead).
 
 Nearer intermediary theorem:
-liftToSquareUnderSumToLiftToAllPowersUnderSum : ((a : _) -> (b : _) -> f (a<+>b) = (g a)<+>(g b)) -> f (monoidsum xs) = monoidsum (map g xs)
-
-or rather
-
-liftToSquareUnderSumToLiftToAllPowersUnderSum : ...
+headOfSumIsSumOfHeads : (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
 
 It's not clear yet that the deconstruction xx --> (xxx::xxxs) is actually necessary yet.
 -- zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = ?zippyThm_EntryCharizRight'
