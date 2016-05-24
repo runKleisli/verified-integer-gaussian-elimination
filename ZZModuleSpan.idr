@@ -47,6 +47,11 @@ zeroVecVecId = vecSingletonReplicateEq (\b => zeroVecEq {a=[]} {b=b})
 
 
 
+mapheadrec : with Data.Vect ( map head (v::vs) = (head v) :: (map head vs) )
+mapheadrec = Refl
+
+
+
 -- The theorem below this one should not be a necessary weakening, since the functions have equivalent definitions.
 indexFZIshead : index FZ = Data.Vect.head
 
@@ -109,10 +114,8 @@ headOfSumIsSumOfHeadsArg {m = S m'} {n} pr (v::(vsv::vss)) = conclusion3
 	where
 		vs : Vect (S m') (Vect (S n) ZZ)
 		vs = vsv::vss
-		mapheadrec : map head (v::vs) = (head v) :: (map head vs)
-		mapheadrec = Refl
 		imedform0: monoidsum (map head (v::vs)) = monoidsum ( (head v) :: (map head vs) )
-		imedform0 = cong {f=monoidsum} mapheadrec
+		imedform0 = cong {f=monoidsum} (mapheadrec {v=v} {vs=vs})
 		recappl : monoidsum (map head (v::vs)) = head v <+> monoidsum (map head vs)
 		recappl = trans imedform0 (the (monoidsum ( (head v) :: (map head vs) ) = (head v) <+> monoidsum (map head vs) ) monoidrec1D)
 		imedform1 : head (monoidsum (v::vs)) = head ( v <+> monoidsum vs )
@@ -375,7 +378,36 @@ headOfSumIsSumOfHeads : (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs)
 -}
 zippyThm_EntryCharizRight [] [] = Refl
 zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = ?zippyThm_EntryCharizRight'
--- zippyThm_EntryCharizRight (vv::vvs) ((xxx::xxxs)::xxs) = ?zippyThm_EntryCharizRight'
+{-
+Writing the proof as direct processing of equalities, rather than in the shell, resulted in tragedy.
+
+zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = sym $ reductComposition putHeadInside reduceMultUnderHeadTo1D
+	where
+		putHeadInside : Data.Vect.head (monoidsum (zipWith (<#>) (vv::vvs) (xx::xxs))) = monoidsum (map head (zipWith (<#>) (vv::vvs) (xx::xxs)))
+		putHeadInside = headOfSumIsSumOfHeads (zipWith (<#>) (vv::vvs) (xx::xxs))
+		reduceMultUnderHeadTo1D : map head (zipWith (<#>) (vv::vvs) (xx::xxs)) = zipWith (*) (vv::vvs) (map head (xx::xxs))
+		reduceMultUnderHeadTo1D = ?reduceMultUnderHeadTo1D'
+		reductComposition : head (monoidsum (zipWith (<#>) (vv::vvs) (xx::xxs))) = monoidsum (map head (zipWith (<#>) (vv::vvs) (xx::xxs))) -> map head (zipWith (<#>) (vv::vvs) (xx::xxs)) = zipWith (*) (vv::vvs) (map head (xx::xxs)) -> head (monoidsum (zipWith (<#>) (vv::vvs) (xx::xxs))) = monoidsum (zipWith (*) (vv::vvs) (map head (xx::xxs)))
+		reductComposition pr0 pr1 = ?reductComposition'
+		{-
+		For some reason, trying any of these proofs makes Idris claim (vv) is expected to be a (Nat).
+
+		composeReducts = rewrite sym reduceMultUnderHeadTo1D in putHeadInside
+		composeReducts = trans putHeadInside (cong {f=monoidsum} reduceMultUnderHeadTo1D)
+		-}
+		-- composeReducts : head (monoidsum (zipWith (<#>) (vv::vvs) (xx::xxs))) = monoidsum (zipWith (*) (vv::vvs) (map head (xx::xxs)))
+		-- composeReducts = reductComposition putHeadInside reduceMultUnderHeadTo1D
+-}
+
+zippyThm_EntryCharizRight' = proof
+  intros
+  claim putHeadInside head (monoidsum (zipWith (<#>) (vv::vvs) (xx::xxs))) = monoidsum (map head (zipWith (<#>) (vv::vvs) (xx::xxs)))
+  unfocus
+  claim reduceMultUnderHeadTo1D (map head (zipWith (<#>) (vv::vvs) (xx::xxs)) = zipWith (*) (vv::vvs) (map head (xx::xxs)))
+  unfocus
+  exact sym $ trans putHeadInside (cong {f=monoidsum} reduceMultUnderHeadTo1D)
+  exact headOfSumIsSumOfHeads (zipWith (<#>) (vv::vvs) (xx::xxs))
+  exact ?reduceMultUnderHeadTo1D'
 
 zippyThm_EntryChariz : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = head $ monoidsum (zipWith (<#>) v xs)
 zippyThm_EntryChariz [] [] = Refl
