@@ -405,25 +405,33 @@ zippyThm_EntryCharizRight' = proof
   exact ?reduceMultUnderHeadTo1D'
 
 zippyThm_EntryChariz : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = head $ monoidsum (zipWith (<#>) v xs)
-zippyThm_EntryChariz [] [] = Refl
-zippyThm_EntryChariz (vv::vvs) (xx::xxs) = ?zippyThm_EntryChariz'
+zippyThm_EntryChariz v xs = trans (zippyThm_EntryCharizLeft v xs) (zippyThm_EntryCharizRight v xs)
 
 zippyThm2_Mini : (v : Vect 2 ZZ) -> (xs : Matrix 2 w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2_Mini (za :: zb :: []) (xa :: xb :: []) = ?zippyThm2_Mini_Pr
 
+{-
+Evidence for zippyThm2:
+
+chiefly: zippyThm_EntryChariz
+
+sum' = foldr (<+>) neutral
+(w <:> v) = foldr (<+>) neutral (zipWith (<.>) w v)
+(r <\> m) = map (\ARG => (r <:> ARG)) (transpose m)
+-}
 zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2 [] [] = trans zippyLemA zippyLemB
+-- !!!PROPOSED!!! zippyThm2 (z::zs) (x::xs) = ?zippyThm2_rhs_1
 zippyThm2 (z::zs) ([] :: xs) = zeroVecEq
+-- !!!PROPOSED!!! zippyThm2 (z::zs) ((xx::xxs)::xs) = ?zippyThm2_rhs_2
+zippyThm2 (z::[]) (xs :: []) = zippyLemJ xs
+zippyThm2 (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' -- see attd substitution proof
 {-
 Have to reduce this to an intermediate theorem inductive in x@(x0::x0s), reducing to describing the effect of multiplying by z.
 
 Actually, showing each side reduces to what's basically (z*) would be proof enough.
-
-Breaking z up into different cases of ZZ value may be sufficient to force a full automation of the proof. However, this loses generality across the ring of coefficients.
 -}
-zippyThm2 (z::[]) (xs :: []) = zippyLemJ xs
-zippyThm2 (z :: (zt::zts)) ((x0::x0s) :: (xt::xts)) = ?zippyThm2_rhs_2
--- zippyThm2 = ?zippyThm2Pr
+-- !!!PROPOSED!!! zippyThm2 (z :: (zt::zts)) ((x0::x0s) :: (xt::xts)) = ?zippyThm2_rhs_2
 {-
 Beginnings of a substitution proof... abandoned cause nontrivial to look at.
 Should probably just use induction, splitting the cases automatically.
@@ -434,13 +442,6 @@ zippyThm2 = ?zippyThm2Pr
 		eq2 : ( \v => \xs => map (\ARG => (v <:> ARG)) (transpose xs) ) = ( \v => \xs => map (\ARG => (v (foldr (<+>) neutral (zipWith (<.>) w v)) ARG)) (transpose xs) )
 		eq2 = cong {f=\k => \v => \xs => map (\ARG => (v `k` ARG)) (transpose xs)} Refl
 		eq3 : map (\ARG => (v (foldr (<+>) neutral (zipWith (<.>) w v)) ARG)) (transpose xs) = map (\ARG => (v (monoidsum (zipWith (<.>) w v)) ARG)) (transpose xs)
--}
-{-
-Evidence for zippyThm2:
-
-sum' = foldr (<+>) neutral
-(w <:> v) = foldr (<+>) neutral (zipWith (<.>) w v)
-(r <\> m) = map (\ARG => (r <:> ARG)) (transpose m)
 -}
 
 {-
