@@ -374,7 +374,7 @@ Evidence:
 headOfSumIsSumOfHeads : (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
 -}
 zippyThm_EntryCharizRight [] [] = Refl
-zippyThm_EntryCharizRight (vv::vvs) (xx::xxs)
+zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = ?zippyThm_EntryCharizRight'
 -- zippyThm_EntryCharizRight (vv::vvs) ((xxx::xxxs)::xxs) = ?zippyThm_EntryCharizRight'
 
 zippyThm_EntryChariz : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = head $ monoidsum (zipWith (<#>) v xs)
