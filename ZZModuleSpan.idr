@@ -47,6 +47,116 @@ zeroVecVecId = vecSingletonReplicateEq (\b => zeroVecEq {a=[]} {b=b})
 
 
 
+-- The theorem below this one should not be a necessary weakening, since the functions have equivalent definitions.
+indexFZIshead : index FZ = Data.Vect.head
+
+total
+indexFZIsheadValued : index FZ xs = head xs
+indexFZIsheadValued {xs=x :: xs} = Refl
+
+
+
+lemma_VectAddHead : (v, w : Vect (S n) ZZ) -> head(v<+>w) = (head v)<+>(head w)
+lemma_VectAddHead (vv::vvs) (ww::wws) = Refl
+
+lemma_VectAddEntrywise : .{n : Nat} -> (ni : Fin n) -> (v, w : Vect n ZZ) -> index ni (v<+>w) = (index ni v)<+>(index ni w)
+{-
+-- -- This proof follows the structure of `index`'s definition
+--
+-- without ni arg: (.) void FinZAbsurd; >> No such variable __pi_arg7; seems a silly failure of type inference
+lemma_VectAddEntrywise {n=Z} ni = void $ FinZAbsurd ni
+lemma_VectAddEntrywise FZ = ?lemma_VectAddEntrywise_rhs_1
+lemma_VectAddEntrywise (FS npredi) = ?lemma_VectAddEntrywise_rhs_2
+lemma_VectAddEntrywise_rhs_1 = proof
+  intros
+  rewrite sym (indexFZIsheadValued {xs=v})
+  rewrite sym (indexFZIsheadValued {xs=w})
+  exact (rewrite (indexFZIsheadValued {xs=v<+>w}) in (lemma_VectAddHead v w))
+lemma_VectAddEntrywise_rhs_2 = proof
+	intros
+	claim indpred ( (r : ZZ) -> (rs : Vect k ZZ) -> index (FS npredi) (r::rs) = index npredi rs )
+	-- ^ trivial
+	unfocus
+	{-
+	-- No-opping stuff demonstrating the problem how the thm fails
+	rewrite sym ( indpred (head $ v<+>w) (tail $ v<+>w) )
+	rewrite sym ( indpred (head v) (tail v) )
+	rewrite sym ( indpred (head w) (tail w) )
+	-}
+	rewrite sym ( the (v = (head v)::(tail v)) Refl )
+	>> When checking argument value to function Prelude.Basics.the:
+        Unifying v and head v :: tail v would lead to infinite value
+-}
+-- -- Alternative proof (>points):
+lemma_VectAddEntrywise {n=Z} ni v w = void $ FinZAbsurd ni
+lemma_VectAddEntrywise FZ (vv::vvs) (ww::wws) = Refl
+lemma_VectAddEntrywise (FS npredi) (vv::vvs) (ww::wws) = lemma_VectAddEntrywise npredi vvs wws
+
+
+
+{-
+equalFunctionsImpliesEqualFoldrImpl : ((a : _) -> (b : _) -> f a b = g a b) -> foldrImpl f go xs = foldrImpl g go xs
+
+liftToSquareUnderSumToLiftToAllPowersUnderSum: ((a : _) -> (b : _) -> f (a<+>b) = (g a)<+>(g b)) -> f (monoidsum xs) = monoidsum (map g xs)
+
+liftToSquareUnderSumToLiftToAllPowersUnderSum : {f : _} -> {g : _} -> ((a, b : Vect (S n) ZZ) -> f ZZ (a <+> b) = (g a) <+> (g b)) -> ({xs : Vect (S m) (Vect (S n) ZZ)} -> f (Vect (S m) ZZ) ((with Control.Algebra.Group monoidsum) xs) = (with Control.Algebra.Group monoidsum) (map g xs))
+
+liftToSquareUnderSumToLiftToAllPowersUnderSum2D : {f : _} -> {g : _} -> ((a, b : Vect (S n) ZZ) -> f (a <+> b) = (g a) <+> (g b)) -> ({xs : Vect m (Vect (S n) ZZ)} -> f ((with Control.Algebra.Group monoidsum) xs) = (with Control.Algebra.Group monoidsum) (map g xs))
+-}
+
+monoidrec1D : {v : ZZ} -> {vs : Vect n ZZ} -> monoidsum (v::vs) = v <+> monoidsum vs
+
+-- the foldr needs to be converted to a foldl
+monoidrec2D : {v : Vect m ZZ} -> {vs : Vect n (Vect m ZZ)} -> monoidsum (v::vs) = v <+> (monoidsum vs)
+monoidrec2D {v} {vs=[]} = Refl
+-- monoidrec {v} {vs=(vsv::vss)} = rewrite (the ( foldrImpl (<+>) neutral (v::vs) = foldrImpl (<+>) (neutral . (v <+>)) vs ) Refl) in (monoidrec {v=vsv} {vs=vss})
+monoidrec2D {v} {vs=(vsv::vss)} = ?monoidrec'
+
+headOfSumIsSumOfHeadsArg : ((v : Vect (S n) ZZ) ->
+                    (w : Vect (S n) ZZ) -> head (v <+> w) = head v <+> head w) -> (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
+headOfSumIsSumOfHeadsArg {n} pr (v::[]) = rewrite sym (pr v (replicate (S n) (Pos 0))) in Refl
+headOfSumIsSumOfHeadsArg {m = S m'} {n} pr (v::(vsv::vss)) = conclusion3
+	where
+		vs : Vect (S m') (Vect (S n) ZZ)
+		vs = vsv::vss
+		mapheadrec : with Data.Vect (
+				map head (v::vs) = (head v) :: (map head vs)
+			)
+		mapheadrec = Refl
+		imedform0: with Data.Vect (
+				monoidsum (map head (v::vs)) = monoidsum ( (head v) :: (map head vs) )
+			)
+		imedform0 = cong {f=monoidsum} mapheadrec
+		recappl : with Data.Vect (
+				monoidsum (map head (v::vs)) = head v <+> monoidsum (map head vs)
+			)
+		recappl = trans imedform0 (the (monoidsum ( (head v) :: (map head vs) ) = (head v) <+> monoidsum (map head vs) ) monoidrec1D)
+		imedform1 : head (monoidsum (v::vs)) = head ( v <+> monoidsum vs )
+		{-
+		original: imedform1 = cong {f=head} monoidrec2D
+		Spurious type mismatch error results. monoidrec2D is assumed the wrong implicit args, perhaps, or else one of the foldrImpl gets one recursion rewrite instead of none.
+		-}
+		imedform1 = cong {f=head} (monoidrec2D {v=v} {vs=vs})
+		homomorphismapply : head (monoidsum (v::vs)) = head v <+> (head (monoidsum vs))
+		homomorphismapply = trans imedform1 (lemma_VectAddHead v (monoidsum vs))
+		conclusion0 : (head (monoidsum (v::vs)) = head v <+> (head (monoidsum vs)), head v <+> monoidsum (map head vs) = monoidsum (map head (v::vs)))
+		conclusion0 = (homomorphismapply, sym recappl)
+		conclusion1 : head (monoidsum vs) = monoidsum (map head vs) -> (head (monoidsum (v::vs)) = head v <+> monoidsum (map head vs), head v <+> monoidsum (map head vs) = monoidsum (map head (v::vs)))
+		conclusion1 pr = (rewrite sym pr in homomorphismapply, sym recappl)
+		conclusion2 : head (monoidsum vs) = monoidsum (map head vs) -> head (monoidsum (v::vs)) = monoidsum (map head (v::vs))
+		conclusion2 pr = uncurry trans (conclusion1 pr)
+		-- bizarrely, this does not work
+		-- conclusion2 pr = trans (rewrite sym pr in homomorphismapply) (sym recappl)
+		proof0 : head (monoidsum vs) = monoidsum (map head vs)
+		proof0 = headOfSumIsSumOfHeadsArg pr vs
+		conclusion3 : head (monoidsum (v::vs)) = monoidsum (map head (v::vs))
+		conclusion3 = conclusion2 proof0
+
+headOfSumIsSumOfHeads : (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
+headOfSumIsSumOfHeads = headOfSumIsSumOfHeadsArg lemma_VectAddHead
+
+
+
 {-
 Definitions:
 * Verified module
@@ -190,6 +300,7 @@ zippyLemF = ?zippyLemF'
 zippyLemF' = proof
   intros
   rewrite sym zippyLemE
+  -- Might be simplifiable using Data.Vect.vectConsCong
   exact cong {f=(:: ( map (\ARG => ( (z::[]) <:> ARG )) $ zipWith (::) ( the (Vect predw ZZ) x0s ) (replicate predw []) ))} zippyLemFnHalf
   -- Junk holes that were generated by the interactive prover
   -- Errors are like "Can't infer argument predw to S, Can't infer argument z to zippyLemE". w.r.t. "Can't infer argument predw to zipWith", this may explain why the (Data.Vect) namespace must be explicitly stated for zipWith.
@@ -267,6 +378,58 @@ zippyLemL_rhs_1 = proof
 
 zippyLemL (x0::x0s) = ?zippyLemL_rhs_2
 -}
+
+zippyThm_EntryCharizLeft : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = monoidsum $ zipWith (*) v (map head xs)
+zippyThm_EntryCharizLeft = ?zippyThm_EntryCharizLeft'
+
+-- Reduce addition over (Vect n ZZ) to entrywise addition over ZZ to change (head.monoidsum) into (monoidsum.(map head)).
+zippyThm_EntryCharizRight : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> monoidsum $ zipWith (*) v (map head xs) = head $ monoidsum (zipWith (<#>) v xs)
+zippyThm_EntryCharizRight [] [] = Refl
+-- Defining the solution to be Refl reduces it to a problem that can be handled using (lemma_VectAddHead _ _). Namely, I think this is a proof: rewrite sym (lemma_VectAddHead (vv::vvs) (x0::x0s)) in Refl
+-- zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = rewrite sym (lemma_VectAddHead (vv::vvs) (_::_)) in Refl
+{-
+
+
+
+-}{-
+Right now, I'm looking to make the sectionized form of lemma_VectAddHead so that it can rewrite foldrImpl (<+>)
+
+Proved theorem on (<+>):
+lemma_VectAddHead : (v, w : Vect (S n) ZZ) -> head(v<+>w) = (head v)<+>(head w)
+
+Stmt of its extensionalization in the 2nd arg:
+\v => ( (<+>) head v ) . head = head . ( (<+>) v )
+
+Theorem on foldr:
+equalFunctionsImpliesEqualFoldrImpl : ((a : _) -> (b : _) -> f a b = g a b) -> foldrImpl f go xs = foldrImpl g go xs
+
+Intermediary to application of theorem on foldr to theorem on (<+>):
+
+a) head(v<+>w) = (head v)<+>(head w)
+b) head(v<+>w) = ((.) (head .) (<+>)) $ v $ w
+c) (head v)<+>(head w) = (curry $ uncurry (<+>) <<< head *** head) $ v $ w = ((. head) . (<+>) . head) $ v $ w
+Therefore d) ((.) (head .) (<+>)) $ v $ w = ((. head) . (<+>) . head) $ v $ w
+
+Unfortunately, (equalFunctionsImpliesEqualFoldrImpl) can't be applied to (lemma_VectAddHead).
+
+Nearer intermediary theorem:
+liftToSquareUnderSumToLiftToAllPowersUnderSum : ((a : _) -> (b : _) -> f (a<+>b) = (g a)<+>(g b)) -> f (monoidsum xs) = monoidsum (map g xs)
+
+or rather
+
+liftToSquareUnderSumToLiftToAllPowersUnderSum : ...
+
+It's not clear yet that the deconstruction xx --> (xxx::xxxs) is actually necessary yet.
+-- zippyThm_EntryCharizRight (vv::vvs) (xx::xxs) = ?zippyThm_EntryCharizRight'
+-}
+zippyThm_EntryCharizRight (vv::vvs) ((xxx::xxxs)::xxs) = ?zippyThm_EntryCharizRight'
+
+zippyThm_EntryChariz : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = head $ monoidsum (zipWith (<#>) v xs)
+zippyThm_EntryChariz [] [] = Refl
+zippyThm_EntryChariz (vv::vvs) (xx::xxs) = ?zippyThm_EntryChariz'
+
+zippyThm2_Mini : (v : Vect 2 ZZ) -> (xs : Matrix 2 w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
+zippyThm2_Mini (za :: zb :: []) (xa :: xb :: []) = ?zippyThm2_Mini_Pr
 
 zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2 [] [] = trans zippyLemA zippyLemB
