@@ -119,17 +119,11 @@ headOfSumIsSumOfHeadsArg {m = S m'} {n} pr (v::(vsv::vss)) = conclusion3
 	where
 		vs : Vect (S m') (Vect (S n) ZZ)
 		vs = vsv::vss
-		mapheadrec : with Data.Vect (
-				map head (v::vs) = (head v) :: (map head vs)
-			)
+		mapheadrec : map head (v::vs) = (head v) :: (map head vs)
 		mapheadrec = Refl
-		imedform0: with Data.Vect (
-				monoidsum (map head (v::vs)) = monoidsum ( (head v) :: (map head vs) )
-			)
+		imedform0: monoidsum (map head (v::vs)) = monoidsum ( (head v) :: (map head vs) )
 		imedform0 = cong {f=monoidsum} mapheadrec
-		recappl : with Data.Vect (
-				monoidsum (map head (v::vs)) = head v <+> monoidsum (map head vs)
-			)
+		recappl : monoidsum (map head (v::vs)) = head v <+> monoidsum (map head vs)
 		recappl = trans imedform0 (the (monoidsum ( (head v) :: (map head vs) ) = (head v) <+> monoidsum (map head vs) ) monoidrec1D)
 		imedform1 : head (monoidsum (v::vs)) = head ( v <+> monoidsum vs )
 		{-
