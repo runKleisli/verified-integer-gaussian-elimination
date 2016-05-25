@@ -156,6 +156,7 @@ dotproductRewrite : {v : Vect _ ZZ} -> v <:> w = monoidsum (zipWith (<.>) v w)
 dotproductRewrite = Refl
 
 compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
+-- rewrite sym zippyThm_EntryCharizRight
 
 
 
@@ -422,8 +423,57 @@ zippyThm_EntryCharizRight' = proof
 zippyThm_EntryChariz : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = head $ monoidsum (zipWith (<#>) v xs)
 zippyThm_EntryChariz v xs = trans (zippyThm_EntryCharizLeft v xs) (zippyThm_EntryCharizRight v xs)
 
-zippyThm2_Mini : (v : Vect 2 ZZ) -> (xs : Matrix 2 w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
-zippyThm2_Mini (za :: zb :: []) (xa :: xb :: []) = ?zippyThm2_Mini_Pr
+
+
+{-
+transParaphrase0General : Data.Vect.transpose (v::vs) = zipWith (::) v (transpose vs)
+transParaphrase0General = Refl
+
+transParaphrase1General : {xs : Matrix _ _ ZZ} -> zipWith (::) (head xs) (Data.Vect.transpose $ tail xs) = (head $ transpose xs) :: (transpose (tail xs))
+-- transParaphrase1General {xx::xxs} = Refl
+-}
+
+transParaphraseGeneral0 : (vs : Matrix n (S predw) ZZ) -> transpose vs = (head $ transpose vs) :: (tail $ transpose vs)
+transParaphraseGeneral0 vs = headtails (transpose vs)
+	where
+		headtails : (v : Vect (S predk) _) -> v = (head v) :: (tail v)
+		headtails (vv::vvs) = Refl
+
+transposeNTail2 : {xs : Matrix n (S predw) ZZ} -> tail $ transpose xs = transpose $ map tail xs
+transposeNTail2 = ?transposeNTail2'
+transposeNTail2' = proof
+  intros
+  rewrite sym (sym $ transposeIsInvolution {xs=tail (transpose xs)})
+  exact cong {f=transpose} transposeNTail
+
+transParaphraseGeneral1 : (vs : Matrix n (S predw) ZZ) -> transpose vs = (map Data.Vect.head vs) :: ( transpose $ map Data.Vect.tail vs )
+transParaphraseGeneral1 {n} {predw} vs = ?transParaphraseGeneral1'
+
+transParaphraseGeneral1' = proof
+  intros
+  rewrite sym (transParaphraseGeneral0 vs)
+  rewrite sym (transposeNTail2 {xs=vs})
+  rewrite sym (transposeNHead {xs=vs})
+  exact Refl
+
+observationTransposeFormInMult0 : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = map (\ARG => scals <:> ARG) ( (map Data.Vect.head vects) :: ( transpose $ map Data.Vect.tail vects ) )
+observationTransposeFormInMult0 {scals} {vects} = cong {f=map (\ARG => scals <:> ARG)} (transParaphraseGeneral1 vects)
+
+observationTransposeFormInMult1 : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = ( scals <:> (map Data.Vect.head vects) ) :: map (\ARG => scals <:> ARG) ( transpose $ map Data.Vect.tail vects )
+observationTransposeFormInMult1 = observationTransposeFormInMult0
+
+transposeEliminatedRecursionGeneral : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects )
+transposeEliminatedRecursionGeneral = ?transposeEliminatedRecursionGeneral'
+-- transposeEliminatedRecursionGeneral = rewrite sym (sym transposeIsInvolution) in observationTransposeFormInMult1
+{-
+Here's a start you can try if you want:
+
+transposeEliminatedRecursionGeneral' = proof
+  intros
+  rewrite sym observationTransposeFormInMult1
+  claim hollera ( map (\ARG => scals <:> ARG) ( transpose $ map Data.Vect.tail vects ) = scals <\> (map Data.Vect.tail vects) )
+  unfocus
+-}
 
 {-
 Evidence for zippyThm2:
@@ -478,7 +528,7 @@ zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' --
 		transposeEliminatedRecursion1 : (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> (xx::map head xs) ) :: ( (z::zs) <\> (xxs::map tail xs) )
 		-- transposeEliminatedRecursion1 = rewrite transposeNHead in transposeEliminatedRecursion0
 		-- Lets you recurse in the inner dimension of the matrix! Hence, reduces to the case ( zippyThm2 (_::_) ([] :: _) ), and achieves totality.
-		transposeEliminatedRecursionGeneral : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = (scals <:> map head vects) :: ( scals <\> map tail vects )
+		-- transposeEliminatedRecursionGeneral : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = (scals <:> map head vects) :: ( scals <\> map tail vects )
 		recursionStep0 : (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> map head ((xx::xxs)::xs) ) :: monoidsum ( zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) ) )
 		-- recursionStep0 = rewrite sym ( zippyThm2 (z::zs) (map tail ((xx::xxs)::xs)) ) in (transposeEliminatedRecursionGeneral {scals=z::zs} {vects=(xx::xxs)::xs})
 		recursionStep1 : (z::zs) <\> ((xx::xxs)::xs) = monoidsum ( zipWith (<.>) (z::zs) ( map head ((xx::xxs)::xs) ) ) :: ( monoidsum (zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) )) )
