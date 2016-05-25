@@ -152,6 +152,13 @@ transposeIsInvolution : with Data.Vect ( transpose $ transpose xs = xs )
 
 
 
+dotproductRewrite : {v : Vect _ ZZ} -> v <:> w = monoidsum (zipWith (<.>) v w)
+dotproductRewrite = Refl
+
+compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
+
+
+
 {-
 Definitions:
 * Verified module
@@ -474,11 +481,8 @@ zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' --
 		transposeEliminatedRecursionGeneral : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = (scals <:> map head vects) :: ( scals <\> map tail vects )
 		recursionStep0 : (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> map head ((xx::xxs)::xs) ) :: monoidsum ( zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) ) )
 		-- recursionStep0 = rewrite sym ( zippyThm2 (z::zs) (map tail ((xx::xxs)::xs)) ) in (transposeEliminatedRecursionGeneral {scals=z::zs} {vects=(xx::xxs)::xs})
-		dotproductRewrite : {v : Vect _ ZZ} -> v <:> w = monoidsum (zipWith (<.>) v w)
-		dotproductRewrite = Refl
 		recursionStep1 : (z::zs) <\> ((xx::xxs)::xs) = monoidsum ( zipWith (<.>) (z::zs) ( map head ((xx::xxs)::xs) ) ) :: ( monoidsum (zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) )) )
 		-- recursionStep1 = rewrite sym dotproductRewrite in recursionStep0
-		compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
 		compressionStep : monoidsum ( zipWith (<.>) (z::zs) (map head ((xx::xxs)::xs)) ) :: monoidsum ( zipWith (<#>) (z::zs) (map Data.Vect.tail ((xx::xxs)::xs)) ) = monoidsum ( zipWith (<#>) (z::zs) ((xx::xxs)::xs) )
 		compressionStep = compressMonoidsum {scals=z::zs} {vects=(xx::xxs)::xs}
 {-
