@@ -50,6 +50,9 @@ zeroVecVecId = vecSingletonReplicateEq (\b => zeroVecEq {a=[]} {b=b})
 mapheadrec : with Data.Vect ( map head (v::vs) = (head v) :: (map head vs) )
 mapheadrec = Refl
 
+headtails : (v : Vect (S predk) _) -> v = (head v) :: (tail v)
+headtails (vv::vvs) = Refl
+
 
 
 -- The theorem below this one should not be a necessary weakening, since the functions have equivalent definitions.
@@ -424,9 +427,6 @@ zippyThm_EntryChariz v xs = trans (zippyThm_EntryCharizLeft v xs) (zippyThm_Entr
 
 transParaphraseGeneral0 : (vs : Matrix n (S predw) ZZ) -> transpose vs = (head $ transpose vs) :: (tail $ transpose vs)
 transParaphraseGeneral0 vs = headtails (transpose vs)
-	where
-		headtails : (v : Vect (S predk) _) -> v = (head v) :: (tail v)
-		headtails (vv::vvs) = Refl
 
 transposeNTail2 : {xs : Matrix n (S predw) ZZ} -> tail $ transpose xs = transpose $ map tail xs
 transposeNTail2 = ?transposeNTail2'
@@ -469,12 +469,17 @@ compressMonoidsum = ?compressMonoidsum'
 
 compressMonoidsum' = proof
 	intros
-	exact trans compressMonoidsum_lem1 ?compressMonoidsum_lem2
+	exact trans (compressMonoidsum_lem1 {scals=scals} {vects=vects}) ?compressMonoidsum_lem2
 -- 	where
 		-- possibility: rewrite sym monoidrec2D, where (the (Vect _ _ ZZ -> Matrix _ _ ZZ -> Matrix _ _ ZZ) (<+>) = ...)
 		-- need a formula for ( zipWith (<#>) _ (x::xs) ) breaking it off into terms in (x) and in (xs), so that we can rewrite to a tailform value.
 		-- compressMonoidsum_lem2 : {vects : Matrix n (S predm) ZZ} -> {scals : Vect n ZZ} -> Data.Vect.tail $ monoidsum $ zipWith (<#>) scals vects = monoidsum $ zipWith (<#>) scals (map Data.Vect.tail vects)
 		-- keeps complaining about type mismatch w/ predm & (S predm).
+
+{-
+compressMonoidsum_lem2 = proof
+	rewrite sym 
+-}
 
 
 
