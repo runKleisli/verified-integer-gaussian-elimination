@@ -462,6 +462,10 @@ observationTransposeFormInMult0 {scals} {vects} = cong {f=map (\ARG => scals <:>
 observationTransposeFormInMult1 : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = ( scals <:> (map Data.Vect.head vects) ) :: map (\ARG => scals <:> ARG) ( transpose $ map Data.Vect.tail vects )
 observationTransposeFormInMult1 = observationTransposeFormInMult0
 
+{-
+Recurses over the inner dimension of the matrix.
+Hence, reduces (zippyThm2 scals vects) to the cases ( zippyThm2 (_::_) ([] :: _) )
+-}
 transposeEliminatedRecursionGeneral : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects )
 transposeEliminatedRecursionGeneral = ?transposeEliminatedRecursionGeneral'
 -- transposeEliminatedRecursionGeneral = rewrite sym (sym transposeIsInvolution) in observationTransposeFormInMult1
@@ -494,41 +498,6 @@ zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' --
 	where
 		xs : Matrix (S n') (S w') ZZ
 		xs = xsx::xss
-		transParaphrase0: Data.Vect.transpose ((xx::xxs)::xs) = zipWith (::) (xx::xxs) (transpose xs)
-		transParaphrase0 = Refl
-		-- : transpose (xsx::xss) = zipWith (::) xsx (transpose xss)
-		transParaphrase1: zipWith (::) (xx::xxs) (transpose xs) = (xx::(head $ transpose xs)) :: (zipWith (::) xxs (tail $ transpose xs))
-		-- transParaphrase1 = Refl
-		-- observation_foo2: head $ transpose xs = map head xs
-		-- observation_foo3 : transpose $ tail $ transpose xs = map tail xs
-		conclusion0 : transpose ((xx::xxs)::xs) = (xx::(head $ transpose xs)) :: (zipWith (::) xxs (tail $ transpose xs))
-		conclusion0 = trans transParaphrase0 transParaphrase1
-		--
-		conclusion1 : (z::zs) <\> ((xx::xxs)::xs) = map (\ARG => ((z::zs) <:> ARG)) ( (xx::(head $ transpose xs)) :: (zipWith (::) xxs (tail $ transpose xs)) )
-		conclusion1 = trans (the ((z::zs) <\> ((xx::xxs)::xs) = map (\ARG => ((z::zs) <:> ARG)) (transpose ((xx::xxs)::xs))) Refl) (cong {f=map (\ARG => ((z::zs) <:> ARG))} conclusion0)
-		conclusion2 : (z::zs) <\> ((xx::xxs)::xs) = (\ARG => ((z::zs) <:> ARG)) (xx::(head $ transpose xs)) :: map (\ARG => ((z::zs) <:> ARG)) (zipWith (::) xxs (tail $ transpose xs))
-		conclusion2 = conclusion1
-		conclusion3 : (z::zs) <\> ((xx::xxs)::xs) = ((z::zs) <:> (xx::(head $ transpose xs))) :: map (\ARG => ((z::zs) <:> ARG)) (zipWith (::) xxs (tail $ transpose xs))
-		conclusion3 = conclusion2
-		observation_transposeForm0 : (ys : _) -> ( tail $ transpose xs = transpose ys ) -> map (\ARG => ((z::zs) <:> ARG)) (zipWith (::) xxs (tail $ transpose xs)) = (z::zs) <\> (xxs::ys)
-		observation_transposeForm0 _ pr = rewrite sym pr in Refl
-		observation_transposeForm1 : (ys : _) -> ( tail $ transpose xs = transpose ys ) -> (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> (xx::(head $ transpose xs)) ) :: ( (z::zs) <\> (xxs::ys) )
-		observation_transposeForm1 ys pr = rewrite sym (observation_transposeForm0 ys pr) in conclusion3
-		observation_transposeForm2 : (ys : _) -> ( tail $ transpose xs = transpose ys ) -> (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> (xx::(head $ transpose xs)) ) :: ( (z::zs) <\> (xxs::(transpose $ tail $ transpose xs)) )
-		observation_transposeForm2 ys pr = rewrite sym (the (ys=transpose $ tail $ transpose xs) $ sym $ trans (cong {f=transpose} pr) (transposeIsInvolution {xs=ys})) in (observation_transposeForm1 ys pr)
-		observation_transposeForm3 : (ys : _) -> ( tail $ transpose xs = transpose ys ) -> (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> (xx::(head $ transpose xs)) ) :: ( (z::zs) <\> (xxs::map tail xs) )
-		-- observation_transposeForm3 ys pr = rewrite sym transposeNTail in (observation_transposeForm2 ys pr)
-		specialMatPr : tail $ transpose xs = transpose (map tail xs)
-		specialMatPr = rewrite sym (transposeIsInvolution {xs=tail $ transpose xs}) in the (transpose $ transpose $ tail $ transpose xs = transpose $ map tail xs) (cong {f=transpose} $ transposeNTail {xs=xs})
-		transposeEliminatedRecursion0 : (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> (xx::(head $ transpose xs)) ) :: ( (z::zs) <\> (xxs::map tail xs) )
-		-- transposeEliminatedRecursion0 = observation_transposeForm3 (map tail xs) specialMatPr
-		-- construction (specialMatPr) has to be made quantified over all vectors
-		-- transposeEliminatedRecursion0 = observation_transposeForm1 (map tail xs) specialMatPr
-		-- probably need to write (with Data.Vect) around the types or something.
-		transposeEliminatedRecursion1 : (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> (xx::map head xs) ) :: ( (z::zs) <\> (xxs::map tail xs) )
-		-- transposeEliminatedRecursion1 = rewrite transposeNHead in transposeEliminatedRecursion0
-		-- Lets you recurse in the inner dimension of the matrix! Hence, reduces to the case ( zippyThm2 (_::_) ([] :: _) ), and achieves totality.
-		-- transposeEliminatedRecursionGeneral : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = (scals <:> map head vects) :: ( scals <\> map tail vects )
 		recursionStep0 : (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> map head ((xx::xxs)::xs) ) :: monoidsum ( zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) ) )
 		-- recursionStep0 = rewrite sym ( zippyThm2 (z::zs) (map tail ((xx::xxs)::xs)) ) in (transposeEliminatedRecursionGeneral {scals=z::zs} {vects=(xx::xxs)::xs})
 		recursionStep1 : (z::zs) <\> ((xx::xxs)::xs) = monoidsum ( zipWith (<.>) (z::zs) ( map head ((xx::xxs)::xs) ) ) :: ( monoidsum (zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) )) )
