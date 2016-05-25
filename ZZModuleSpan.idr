@@ -433,7 +433,7 @@ zippyThm2 [] [] = trans zippyLemA zippyLemB
 zippyThm2 (z::zs) ([] :: xs) = zeroVecEq
 -- !!!PROPOSED!!! zippyThm2 (z::zs) ((xx::xxs)::xs) = ?zippyThm2_rhs_2
 zippyThm2 (z::[]) (xs :: []) = zippyLemJ xs
-zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' -- see attd substitution proof
+zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' -- trans recursionStep1 compressionStep -- replace with shell-based proof, as with previous problems
 	where
 		xs : Matrix (S n') (S w') ZZ
 		xs = xsx::xss
@@ -478,6 +478,9 @@ zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' --
 		dotproductRewrite = Refl
 		recursionStep1 : (z::zs) <\> ((xx::xxs)::xs) = monoidsum ( zipWith (<.>) (z::zs) ( map head ((xx::xxs)::xs) ) ) :: ( monoidsum (zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) )) )
 		-- recursionStep1 = rewrite sym dotproductRewrite in recursionStep0
+		compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
+		compressionStep : monoidsum ( zipWith (<.>) (z::zs) (map head ((xx::xxs)::xs)) ) :: monoidsum ( zipWith (<#>) (z::zs) (map Data.Vect.tail ((xx::xxs)::xs)) ) = monoidsum ( zipWith (<#>) (z::zs) ((xx::xxs)::xs) )
+		compressionStep = compressMonoidsum {scals=z::zs} {vects=(xx::xxs)::xs}
 {-
 Have to reduce this to an intermediate theorem inductive in x@(x0::x0s), reducing to describing the effect of multiplying by z.
 
