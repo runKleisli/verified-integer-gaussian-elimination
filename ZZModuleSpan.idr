@@ -462,7 +462,6 @@ timesVectMatAsHeadTail_ByTransposeElimination = observationTransposeFormInMult1
 
 compressMonoidsum_lem1 : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = ( head $ monoidsum ( zipWith (<#>) scals vects ) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
 compressMonoidsum_lem1 {scals} {vects} = cong {f=(:: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) )} (zippyThm_EntryCharizRight scals vects)
--- rewrite sym (cong $ zippyThm_EntryCharizRight scals vects)
 
 compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum = ?compressMonoidsum'
@@ -477,8 +476,18 @@ compressMonoidsum' = proof
 		-- keeps complaining about type mismatch w/ predm & (S predm).
 
 {-
-compressMonoidsum_lem2 = proof
-	rewrite sym 
+-- Uncommenting what's below creates this warning: 
+-- Type checking ./ZZModuleSpan.idr
+-- src/Idris/Coverage.hs:(469,16)-(476,51): Non-exhaustive patterns in case
+
+compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> Data.Vect.(::) (Data.Vect.head _) _ = _
+compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
+-}
+
+{-
+compressMonoidsum_lem2' = proof
+	rewrite sym (headtails $ monoidsum ( zipWith (<#>) scals vects ))
+	exact trans (vectConsCong ( head (monoidsum (zipWith (<#>) scals vects)) ) _ _ ?compressMonoidsum_lem3) (headtails $ monoidsum ( zipWith (<#>) scals vects ))
 -}
 
 
