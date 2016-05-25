@@ -471,6 +471,8 @@ compressMonoidsum_lem2' = proof
 	rewrite sym (headtails $ monoidsum ( zipWith (<#>) scals vects ))
 	exact (vectConsCong ( head (monoidsum (zipWith (<#>) scals vects)) ) _ _ ?compressMonoidsum_lem3)
 
+compressMonoidsum_lem3 : _
+
 compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum = ?compressMonoidsum'
 
