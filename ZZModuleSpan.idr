@@ -475,14 +475,12 @@ compressMonoidsum' = proof
 		-- compressMonoidsum_lem2 : {vects : Matrix n (S predm) ZZ} -> {scals : Vect n ZZ} -> Data.Vect.tail $ monoidsum $ zipWith (<#>) scals vects = monoidsum $ zipWith (<#>) scals (map Data.Vect.tail vects)
 		-- keeps complaining about type mismatch w/ predm & (S predm).
 
-{-
 -- Uncommenting what's below creates this warning: 
 -- Type checking ./ZZModuleSpan.idr
 -- src/Idris/Coverage.hs:(469,16)-(476,51): Non-exhaustive patterns in case
 
-compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> Data.Vect.(::) (Data.Vect.head _) _ = _
+compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> Data.Vect.(::) (Data.Vect.head $ monoidsum ( zipWith (<#>) scals vects )) ( monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
--}
 
 {-
 compressMonoidsum_lem2' = proof
