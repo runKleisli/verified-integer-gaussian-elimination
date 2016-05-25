@@ -479,11 +479,6 @@ compressMonoidsum = ?compressMonoidsum'
 compressMonoidsum' = proof
 	intros
 	exact trans (compressMonoidsum_lem1 {scals=scals} {vects=vects}) compressMonoidsum_lem2
--- 	where
-		-- possibility: rewrite sym monoidrec2D, where (the (Vect _ _ ZZ -> Matrix _ _ ZZ -> Matrix _ _ ZZ) (<+>) = ...)
-		-- need a formula for ( zipWith (<#>) _ (x::xs) ) breaking it off into terms in (x) and in (xs), so that we can rewrite to a tailform value.
-		-- compressMonoidsum_lem2 : {vects : Matrix n (S predm) ZZ} -> {scals : Vect n ZZ} -> Data.Vect.tail $ monoidsum $ zipWith (<#>) scals vects = monoidsum $ zipWith (<#>) scals (map Data.Vect.tail vects)
-		-- keeps complaining about type mismatch w/ predm & (S predm).
 
 
 
