@@ -155,9 +155,6 @@ transposeIsInvolution : with Data.Vect ( transpose $ transpose xs = xs )
 dotproductRewrite : {v : Vect _ ZZ} -> v <:> w = monoidsum (zipWith (<.>) v w)
 dotproductRewrite = Refl
 
-compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
--- rewrite sym zippyThm_EntryCharizRight
-
 
 
 {-
@@ -463,6 +460,24 @@ timesVectMatAsHeadTail_ByTransposeElimination = observationTransposeFormInMult1
 
 
 
+compressMonoidsum_lem1 : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = ( head $ monoidsum ( zipWith (<#>) scals vects ) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
+compressMonoidsum_lem1 {scals} {vects} = cong {f=(:: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) )} (zippyThm_EntryCharizRight scals vects)
+-- rewrite sym (cong $ zippyThm_EntryCharizRight scals vects)
+
+compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
+compressMonoidsum = ?compressMonoidsum'
+
+compressMonoidsum' = proof
+	intros
+	exact trans compressMonoidsum_lem1 ?compressMonoidsum_lem2
+-- 	where
+		-- possibility: rewrite sym monoidrec2D, where (the (Vect _ _ ZZ -> Matrix _ _ ZZ -> Matrix _ _ ZZ) (<+>) = ...)
+		-- need a formula for ( zipWith (<#>) _ (x::xs) ) breaking it off into terms in (x) and in (xs), so that we can rewrite to a tailform value.
+		-- compressMonoidsum_lem2 : {vects : Matrix n (S predm) ZZ} -> {scals : Vect n ZZ} -> Data.Vect.tail $ monoidsum $ zipWith (<#>) scals vects = monoidsum $ zipWith (<#>) scals (map Data.Vect.tail vects)
+		-- keeps complaining about type mismatch w/ predm & (S predm).
+
+
+
 {-
 Evidence for zippyThm2:
 
@@ -487,7 +502,7 @@ zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' --
 		-- recursionStep0 = rewrite sym ( zippyThm2 (z::zs) (map tail ((xx::xxs)::xs)) ) in (timesVectMatAsHeadTail_ByTransposeElimination {scals=z::zs} {vects=(xx::xxs)::xs})
 		recursionStep1 : (z::zs) <\> ((xx::xxs)::xs) = monoidsum ( zipWith (<.>) (z::zs) ( map head ((xx::xxs)::xs) ) ) :: ( monoidsum (zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) )) )
 		-- recursionStep1 = rewrite sym dotproductRewrite in recursionStep0
-		compressionStep : monoidsum ( zipWith (<.>) (z::zs) (map head ((xx::xxs)::xs)) ) :: monoidsum ( zipWith (<#>) (z::zs) (map Data.Vect.tail ((xx::xxs)::xs)) ) = monoidsum ( zipWith (<#>) (z::zs) ((xx::xxs)::xs) )
+		compressionStep : monoidsum ( zipWith (<.>) (z::zs) (map Data.Vect.head ((xx::xxs)::xs)) ) :: monoidsum ( zipWith (<#>) (z::zs) (map Data.Vect.tail ((xx::xxs)::xs)) ) = monoidsum ( zipWith (<#>) (z::zs) ((xx::xxs)::xs) )
 		compressionStep = compressMonoidsum {scals=z::zs} {vects=(xx::xxs)::xs}
 {-
 Have to reduce this to an intermediate theorem inductive in x@(x0::x0s), reducing to describing the effect of multiplying by z.
