@@ -463,22 +463,6 @@ timesVectMatAsHeadTail_ByTransposeElimination = observationTransposeFormInMult1
 compressMonoidsum_lem1 : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = ( head $ monoidsum ( zipWith (<#>) scals vects ) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
 compressMonoidsum_lem1 {scals} {vects} = cong {f=(:: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) )} (zippyThm_EntryCharizRight scals vects)
 
-compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
-compressMonoidsum = ?compressMonoidsum'
-
-compressMonoidsum' = proof
-	intros
-	exact trans (compressMonoidsum_lem1 {scals=scals} {vects=vects}) ?compressMonoidsum_lem2
--- 	where
-		-- possibility: rewrite sym monoidrec2D, where (the (Vect _ _ ZZ -> Matrix _ _ ZZ -> Matrix _ _ ZZ) (<+>) = ...)
-		-- need a formula for ( zipWith (<#>) _ (x::xs) ) breaking it off into terms in (x) and in (xs), so that we can rewrite to a tailform value.
-		-- compressMonoidsum_lem2 : {vects : Matrix n (S predm) ZZ} -> {scals : Vect n ZZ} -> Data.Vect.tail $ monoidsum $ zipWith (<#>) scals vects = monoidsum $ zipWith (<#>) scals (map Data.Vect.tail vects)
-		-- keeps complaining about type mismatch w/ predm & (S predm).
-
--- Uncommenting what's below creates this warning: 
--- Type checking ./ZZModuleSpan.idr
--- src/Idris/Coverage.hs:(469,16)-(476,51): Non-exhaustive patterns in case
-
 compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> Data.Vect.(::) (Data.Vect.head $ monoidsum ( zipWith (<#>) scals vects )) ( monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
@@ -487,6 +471,18 @@ compressMonoidsum_lem2' = proof
 	rewrite sym (headtails $ monoidsum ( zipWith (<#>) scals vects ))
 	exact trans (vectConsCong ( head (monoidsum (zipWith (<#>) scals vects)) ) _ _ ?compressMonoidsum_lem3) (headtails $ monoidsum ( zipWith (<#>) scals vects ))
 -}
+
+compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
+compressMonoidsum = ?compressMonoidsum'
+
+compressMonoidsum' = proof
+	intros
+	exact trans (compressMonoidsum_lem1 {scals=scals} {vects=vects}) compressMonoidsum_lem2
+-- 	where
+		-- possibility: rewrite sym monoidrec2D, where (the (Vect _ _ ZZ -> Matrix _ _ ZZ -> Matrix _ _ ZZ) (<+>) = ...)
+		-- need a formula for ( zipWith (<#>) _ (x::xs) ) breaking it off into terms in (x) and in (xs), so that we can rewrite to a tailform value.
+		-- compressMonoidsum_lem2 : {vects : Matrix n (S predm) ZZ} -> {scals : Vect n ZZ} -> Data.Vect.tail $ monoidsum $ zipWith (<#>) scals vects = monoidsum $ zipWith (<#>) scals (map Data.Vect.tail vects)
+		-- keeps complaining about type mismatch w/ predm & (S predm).
 
 
 
