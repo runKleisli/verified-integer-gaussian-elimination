@@ -466,12 +466,12 @@ compressMonoidsum_lem1 {scals} {vects} = cong {f=(:: monoidsum ( zipWith (<#>) s
 compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> Data.Vect.(::) (Data.Vect.head $ monoidsum ( zipWith (<#>) scals vects )) ( monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
+compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> _ = tail $ monoidsum ( zipWith (<#>) scals vects )
+
 compressMonoidsum_lem2' = proof
 	intros
 	rewrite sym (headtails $ monoidsum ( zipWith (<#>) scals vects ))
-	exact (vectConsCong ( head (monoidsum (zipWith (<#>) scals vects)) ) _ _ ?compressMonoidsum_lem3)
-
-compressMonoidsum_lem3 : _
+	exact (vectConsCong ( head (monoidsum (zipWith (<#>) scals vects)) ) _ _ compressMonoidsum_lem3)
 
 compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum = ?compressMonoidsum'
