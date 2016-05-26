@@ -256,18 +256,15 @@ zippyIntermed = (<\>)
 
 timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = (Data.Vect.head vs) <\> xs
 
+total
 zippyLemA : (the (Vect 0 ZZ) []) <\> (the (Matrix 0 w ZZ) []) = replicate w (Pos 0)
 zippyLemA {w = Z} = Refl
-zippyLemA {w = S n} = ?zippyLemA_induct
-zippyLemA_induct = proof
-	intro
-	exact (cong zippyLemA)
+zippyLemA {w = S n} = cong (zippyLemA {w=n})
+
+total
 zippyLemB : replicate w (Pos 0) = monoidsum (zipWith (<#>) (the (Vect 0 ZZ) []) (the (Matrix 0 w ZZ) []))
 zippyLemB {w = Z} = Refl
-zippyLemB {w = S n} = ?zippyLemB_induct
-zippyLemB_induct = proof
-	intro
-	exact (cong zippyLemB)
+zippyLemB {w = S n} = cong (zippyLemB {w=n})
 
 {-
 -- The following proofs are a matter of making a readable train of thought behind the proof details. That is, they explain why one expects the illegible final goal to be solved in the efficient way that it is.
