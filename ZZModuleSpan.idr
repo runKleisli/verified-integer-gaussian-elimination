@@ -482,15 +482,6 @@ compressMonoidsum' = proof
 
 
 
-{-
-Evidence for zippyThm2:
-
-chiefly: zippyThm_EntryChariz
-
-sum' = foldr (<+>) neutral
-(w <:> v) = foldr (<+>) neutral (zipWith (<.>) w v)
-(r <\> m) = map (\ARG => (r <:> ARG)) (transpose m)
--}
 zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2 [] [] = trans zippyLemA zippyLemB
 -- zippyThm2 (z::zs) (x::xs) = ?zippyThm2_rhs_1
@@ -512,28 +503,6 @@ zippyThm2_analysis1' = proof
   compute
   exact (vectConsCong (monoidsum (zipWith (<.>) scals (map head vects))) _ _ (zippyThm2 scals (map Data.Vect.tail vects)))
 
-{-
-zippyThm2_analysis1' = proof
-  intros
-  claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
-  unfocus
-  exact trans (cong {f=(flip Data.Vect.(::)) _} headequality) _
-  exact dotproductRewrite
-  compute
-  -- exact (zippyThm2 scals (map Data.Vect.tail vects))
-  -- here it's assuming it needs an equality of (S predw) vectors instead of between (predw) vectors, which is a shame.
-  exact believe_me (zippyThm2 scals {w=predw} (map Data.Vect.tail vects))
--}
-
-{-
-zippyThm2_analysis1' = proof
-	intros
-	claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
-	unfocus
-	rewrite sym headequality
-	exact (vectConsCong ( monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) ) _ _ (zippyThm2 scals (map Data.Vect.tail vects)) )
--}
-
 zippyThm2_analysis0' = proof
   intros
   exact trans zippyThm2_analysis1 (compressMonoidsum {scals=scals} {vects=vects})
@@ -542,48 +511,7 @@ zippyThm2_rhs_2 = proof
   intros
   exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (zippyThm2_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
 
-{-
-The proof I want:
 
-zippyThm2_rhs_2 = proof
-  intros
-  exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) _ )
-  rewrite sym (cong $ zippyThm2 (z::zs) ( map tail ((xx::xxs)::xs) ))
-  rewrite sym (cong dotproductRewrite)
-  exact compressMonoidsum
--}
-
-{-
-zippyThm2 (z::[]) (xs :: []) = zippyLemJ xs
-zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' -- trans recursionStep1 compressionStep -- replace with shell-based proof, as with previous problems
-	where
-		xs : Matrix (S n') (S w') ZZ
-		xs = xsx::xss
-		recursionStep0 : (z::zs) <\> ((xx::xxs)::xs) = ( (z::zs) <:> map head ((xx::xxs)::xs) ) :: monoidsum ( zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) ) )
-		recursionStep0 = ?recursionStep0'
-		-- recursionStep0 = rewrite sym ( zippyThm2 (z::zs) (map tail ((xx::xxs)::xs)) ) in (timesVectMatAsHeadTail_ByTransposeElimination {scals=z::zs} {vects=(xx::xxs)::xs})
-		recursionStep1 : (z::zs) <\> ((xx::xxs)::xs) = monoidsum ( zipWith (<.>) (z::zs) ( map head ((xx::xxs)::xs) ) ) :: ( monoidsum (zipWith (<#>) (z::zs) ( map tail ((xx::xxs)::xs) )) )
-		-- recursionStep1 = rewrite sym dotproductRewrite in recursionStep0
-		compressionStep : monoidsum ( zipWith (<.>) (z::zs) (map Data.Vect.head ((xx::xxs)::xs)) ) :: monoidsum ( zipWith (<#>) (z::zs) (map Data.Vect.tail ((xx::xxs)::xs)) ) = monoidsum ( zipWith (<#>) (z::zs) ((xx::xxs)::xs) )
-		compressionStep = compressMonoidsum {scals=z::zs} {vects=(xx::xxs)::xs}
--}
-{-
-Have to reduce this to an intermediate theorem inductive in x@(x0::x0s), reducing to describing the effect of multiplying by z.
-
-Actually, showing each side reduces to what's basically (z*) would be proof enough.
--}
--- !!!PROPOSED!!! zippyThm2 (z :: (zt::zts)) ((x0::x0s) :: (xt::xts)) = ?zippyThm2_rhs_2
-{-
-Beginnings of a substitution proof... abandoned cause nontrivial to look at.
-Should probably just use induction, splitting the cases automatically.
-
-zippyThm2 = ?zippyThm2Pr
-	where
-		eq1 : v <\> xs = map (\ARG => (v <:> ARG)) (transpose xs)
-		eq2 : ( \v => \xs => map (\ARG => (v <:> ARG)) (transpose xs) ) = ( \v => \xs => map (\ARG => (v (foldr (<+>) neutral (zipWith (<.>) w v)) ARG)) (transpose xs) )
-		eq2 = cong {f=\k => \v => \xs => map (\ARG => (v `k` ARG)) (transpose xs)} Refl
-		eq3 : map (\ARG => (v (foldr (<+>) neutral (zipWith (<.>) w v)) ARG)) (transpose xs) = map (\ARG => (v (monoidsum (zipWith (<.>) w v)) ARG)) (transpose xs)
--}
 
 {-
 Labels (xs, ys) aren't depended on for values, they're just hints, used cause
