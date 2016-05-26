@@ -254,7 +254,7 @@ zippyScale = (<>)
 zippyIntermed : Vect n ZZ -> Matrix n w ZZ -> Vect w ZZ
 zippyIntermed = (<\>)
 
-zippyThm1 : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = (Data.Vect.head vs) <\> xs
+timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = (Data.Vect.head vs) <\> xs
 
 zippyLemA : (the (Vect 0 ZZ) []) <\> (the (Matrix 0 w ZZ) []) = replicate w (Pos 0)
 zippyLemA {w = Z} = Refl
