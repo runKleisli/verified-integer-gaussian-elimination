@@ -503,6 +503,28 @@ zippyThm2_analysis0 = ?zippyThm2_analysis0'
 zippyThm2_analysis1 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
 zippyThm2_analysis1 = ?zippyThm2_analysis1'
 
+zippyThm2_analysis1' = proof
+  intros
+  claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
+  unfocus
+  exact trans (cong {f=(flip Data.Vect.(::)) _} headequality) _
+  exact dotproductRewrite
+  compute
+  exact (vectConsCong (monoidsum (zipWith (<.>) scals (map head vects))) _ _ (zippyThm2 scals (map Data.Vect.tail vects)))
+
+{-
+zippyThm2_analysis1' = proof
+  intros
+  claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
+  unfocus
+  exact trans (cong {f=(flip Data.Vect.(::)) _} headequality) _
+  exact dotproductRewrite
+  compute
+  -- exact (zippyThm2 scals (map Data.Vect.tail vects))
+  -- here it's assuming it needs an equality of (S predw) vectors instead of between (predw) vectors, which is a shame.
+  exact believe_me (zippyThm2 scals {w=predw} (map Data.Vect.tail vects))
+-}
+
 {-
 zippyThm2_analysis1' = proof
 	intros
