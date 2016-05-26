@@ -484,9 +484,8 @@ compressMonoidsum' = proof
 
 zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2 [] [] = trans zippyLemA zippyLemB
--- zippyThm2 (z::zs) (x::xs) = ?zippyThm2_rhs_1
 zippyThm2 (z::zs) ([] :: xs) = zeroVecEq
-zippyThm2 (z::zs) ((xx::xxs)::xs) = ?zippyThm2_rhs_2
+zippyThm2 (z::zs) ((xx::xxs)::xs) = ?zippyThm2'
 
 zippyThm2_analysis0 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum (zipWith (<#>) scals vects)
 zippyThm2_analysis0 = ?zippyThm2_analysis0'
@@ -507,7 +506,7 @@ zippyThm2_analysis0' = proof
   intros
   exact trans zippyThm2_analysis1 (compressMonoidsum {scals=scals} {vects=vects})
 
-zippyThm2_rhs_2 = proof
+zippyThm2' = proof
   intros
   exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (zippyThm2_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
 
