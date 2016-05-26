@@ -1,0 +1,7 @@
+# verified-integer-gaussian-elimination
+
+Idris package looking to define, implement, and verify naiive Gaussian elimination over the integers in some system of linear algebra.
+
+Currently implemented and verified:
+* Partial proof of definition of vector-matrix multiplication as a linear combination where the vectors are rows of the matrix and the scalar weights are the vector entries of the same index.
+* Some definitions related to linear spans.
