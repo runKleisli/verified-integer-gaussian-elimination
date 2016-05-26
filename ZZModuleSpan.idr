@@ -493,9 +493,45 @@ sum' = foldr (<+>) neutral
 -}
 zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 zippyThm2 [] [] = trans zippyLemA zippyLemB
--- !!!PROPOSED!!! zippyThm2 (z::zs) (x::xs) = ?zippyThm2_rhs_1
+-- zippyThm2 (z::zs) (x::xs) = ?zippyThm2_rhs_1
 zippyThm2 (z::zs) ([] :: xs) = zeroVecEq
--- !!!PROPOSED!!! zippyThm2 (z::zs) ((xx::xxs)::xs) = ?zippyThm2_rhs_2
+zippyThm2 (z::zs) ((xx::xxs)::xs) = ?zippyThm2_rhs_2
+
+zippyThm2_analysis0 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum (zipWith (<#>) scals vects)
+zippyThm2_analysis0 = ?zippyThm2_analysis0'
+
+zippyThm2_analysis1 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
+zippyThm2_analysis1 = ?zippyThm2_analysis1'
+
+{-
+zippyThm2_analysis1' = proof
+	intros
+	claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
+	unfocus
+	rewrite sym headequality
+	exact (vectConsCong ( monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) ) _ _ (zippyThm2 scals (map Data.Vect.tail vects)) )
+-}
+
+zippyThm2_analysis0' = proof
+  intros
+  exact trans zippyThm2_analysis1 (compressMonoidsum {scals=scals} {vects=vects})
+
+zippyThm2_rhs_2 = proof
+  intros
+  exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (zippyThm2_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
+
+{-
+The proof I want:
+
+zippyThm2_rhs_2 = proof
+  intros
+  exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) _ )
+  rewrite sym (cong $ zippyThm2 (z::zs) ( map tail ((xx::xxs)::xs) ))
+  rewrite sym (cong dotproductRewrite)
+  exact compressMonoidsum
+-}
+
+{-
 zippyThm2 (z::[]) (xs :: []) = zippyLemJ xs
 zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' -- trans recursionStep1 compressionStep -- replace with shell-based proof, as with previous problems
 	where
@@ -508,6 +544,7 @@ zippyThm2 {n=S (S n')} {w=S w'} (z::zs) ((xx::xxs)::(xsx::xss)) = ?zippyThm2' --
 		-- recursionStep1 = rewrite sym dotproductRewrite in recursionStep0
 		compressionStep : monoidsum ( zipWith (<.>) (z::zs) (map Data.Vect.head ((xx::xxs)::xs)) ) :: monoidsum ( zipWith (<#>) (z::zs) (map Data.Vect.tail ((xx::xxs)::xs)) ) = monoidsum ( zipWith (<#>) (z::zs) ((xx::xxs)::xs) )
 		compressionStep = compressMonoidsum {scals=z::zs} {vects=(xx::xxs)::xs}
+-}
 {-
 Have to reduce this to an intermediate theorem inductive in x@(x0::x0s), reducing to describing the effect of multiplying by z.
 
