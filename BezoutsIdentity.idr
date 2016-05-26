@@ -1,4 +1,4 @@
-module GaussianElimination
+module BezoutsIdentity
 
 import Data.Vect
 

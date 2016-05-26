@@ -1,0 +1,4 @@
+Install (See Idris Tutorial - Ch. 6: Packages) the contrib.ipkg package, located in idris-dev/libs/contrib, for imports such as Data.ZZ and Control.Algebra to work.
+- Is this installed by default?
+- Start Idris with `idris -p contrib` to have access to the package from files loaded in Idris.
+-- In REPL, then enter `:module Control.Algebra`
