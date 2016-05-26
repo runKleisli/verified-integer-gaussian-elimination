@@ -56,7 +56,7 @@ headtails (vv::vvs) = Refl
 
 
 -- The theorem below this one should not be a necessary weakening, since the functions have equivalent definitions.
-indexFZIshead : index FZ = Data.Vect.head
+-- indexFZIshead : index FZ = Data.Vect.head
 
 total
 indexFZIsheadValued : index FZ xs = head xs
