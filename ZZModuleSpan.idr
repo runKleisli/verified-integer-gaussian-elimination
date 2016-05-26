@@ -453,7 +453,7 @@ observationTransposeFormInMult1 = observationTransposeFormInMult0
 
 {-
 Recurses over the inner dimension of the matrix.
-Hence, reduces (zippyThm2 scals vects) to the cases ( zippyThm2 (_::_) ([] :: _) )
+Hence, reduces (timesVectMatAsLinearCombination scals vects) to the cases ( timesVectMatAsLinearCombination (_::_) ([] :: _) )
 -}
 timesVectMatAsHeadTail_ByTransposeElimination : {vects : Matrix n (S predw) ZZ} -> scals <\> vects = (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects )
 timesVectMatAsHeadTail_ByTransposeElimination = observationTransposeFormInMult1
@@ -482,33 +482,33 @@ compressMonoidsum' = proof
 
 
 
-zippyThm2 : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
-zippyThm2 [] [] = trans zippyLemA zippyLemB
-zippyThm2 (z::zs) ([] :: xs) = zeroVecEq
-zippyThm2 (z::zs) ((xx::xxs)::xs) = ?zippyThm2'
+timesVectMatAsLinearCombination : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
+timesVectMatAsLinearCombination [] [] = trans zippyLemA zippyLemB
+timesVectMatAsLinearCombination (z::zs) ([] :: xs) = zeroVecEq
+timesVectMatAsLinearCombination (z::zs) ((xx::xxs)::xs) = ?timesVectMatAsLinearCombination'
 
-zippyThm2_analysis0 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum (zipWith (<#>) scals vects)
-zippyThm2_analysis0 = ?zippyThm2_analysis0'
+timesVectMatAsLinearCombination_analysis0 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum (zipWith (<#>) scals vects)
+timesVectMatAsLinearCombination_analysis0 = ?timesVectMatAsLinearCombination_analysis0'
 
-zippyThm2_analysis1 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
-zippyThm2_analysis1 = ?zippyThm2_analysis1'
+timesVectMatAsLinearCombination_analysis1 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
+timesVectMatAsLinearCombination_analysis1 = ?timesVectMatAsLinearCombination_analysis1'
 
-zippyThm2_analysis1' = proof
+timesVectMatAsLinearCombination_analysis1' = proof
   intros
   claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
   unfocus
   exact trans (cong {f=(flip Data.Vect.(::)) _} headequality) _
   exact dotproductRewrite
   compute
-  exact (vectConsCong (monoidsum (zipWith (<.>) scals (map head vects))) _ _ (zippyThm2 scals (map Data.Vect.tail vects)))
+  exact (vectConsCong (monoidsum (zipWith (<.>) scals (map head vects))) _ _ (timesVectMatAsLinearCombination scals (map Data.Vect.tail vects)))
 
-zippyThm2_analysis0' = proof
+timesVectMatAsLinearCombination_analysis0' = proof
   intros
-  exact trans zippyThm2_analysis1 (compressMonoidsum {scals=scals} {vects=vects})
+  exact trans timesVectMatAsLinearCombination_analysis1 (compressMonoidsum {scals=scals} {vects=vects})
 
-zippyThm2' = proof
+timesVectMatAsLinearCombination' = proof
   intros
-  exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (zippyThm2_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
+  exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (timesVectMatAsLinearCombination_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
 
 
 
