@@ -146,8 +146,46 @@ headOfSumIsSumOfHeadsArg {m = S m'} {n} pr (v::(vsv::vss)) = conclusion3
 		conclusion3 : head (monoidsum (v::vs)) = monoidsum (map head (v::vs))
 		conclusion3 = conclusion2 proof0
 
-headOfSumIsSumOfHeads : (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
-headOfSumIsSumOfHeads = headOfSumIsSumOfHeadsArg lemma_VectAddHead
+headOfSumIsSumOfHeads : (xs : Vect m (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
+headOfSumIsSumOfHeads {m=Z} [] = Refl
+headOfSumIsSumOfHeads {m=S m} xs = headOfSumIsSumOfHeadsArg lemma_VectAddHead xs
+{-
+-- This should work but is picky.
+headOfSumIsSumOfHeads {m=Z} xs = trans zveqpr (sym $ trans bandy bundy)
+	where
+		bandy : (the (Vect Z ZZ -> ZZ) monoidsum) (map head xs) = monoidsum (map head Data.Vect.Nil)
+		-- bandy = trans ( sym $ trans ( cong {f=monoidsum . (map head)} (the ([]=xs) zeroVecEq) ) ( the ((monoidsum . (map head)) $ xs = monoidsum (map head xs)) Refl ) ) (the ((monoidsum . map head) [] = monoidsum (map Data.Vect.head Data.Vect.Nil)) Refl)
+		bundy : monoidsum (map Data.Vect.head Data.Vect.Nil) = Pos Z
+		bundy = Refl
+		zveqpr : Data.Vect.head $ monoidsum xs = monoidsum (map Data.Vect.head xs)
+		zveqpr = ?zveqpr'
+		zveqpr' = proof
+			rewrite sym (the (xs=[]) zeroVecEq)
+			trivial
+-}
+{-
+-- Works in REPL
+headOfSumIsSumOfHeads {m=Z} = ?headOfSumIsSumOfHeads_Z_pr
+headOfSumIsSumOfHeads_Z_pr = proof
+  intros
+  let bandy = trans ( sym $ trans ( cong {f=monoidsum . (map head)} (the ([]=xs) zeroVecEq) ) ( the ((monoidsum . (map head)) $ xs = monoidsum (map head xs)) Refl ) ) (the ((monoidsum . map head) [] = monoidsum (map Data.Vect.head Data.Vect.Nil)) Refl)
+  unfocus
+  unfocus
+  unfocus
+  unfocus
+  unfocus
+  search
+  search
+  search
+  let bundy = the (monoidsum (map Data.Vect.head Data.Vect.Nil) = Pos Z) $ Refl
+  exact trans _ (sym $ trans bandy bundy)
+  unfocus
+  unfocus
+  rewrite sym (the (xs=[]) zeroVecEq)
+  trivial
+  exact n
+  exact n
+-}
 
 
 
@@ -377,11 +415,27 @@ compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {v
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
 compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = tail $ monoidsum ( zipWith (<#>) scals vects )
+compressMonoidsum_lem3 {predw=Z} = zeroVecEq
+compressMonoidsum_lem3 {predw=S predpredw} = ?compressMonoidsum_lem3'
 
 compressMonoidsum_lem2' = proof
 	intros
 	rewrite sym (headtails $ monoidsum ( zipWith (<#>) scals vects ))
 	exact (vectConsCong ( head (monoidsum (zipWith (<#>) scals vects)) ) _ _ compressMonoidsum_lem3)
+
+{-
+-- Works in REPL, but IRL wants us to fill one of the arguments to trans we have a hole for here.
+-- Should leave one reduced hole, dep1.
+
+compressMonoidsum_lem3' = proof
+  intros
+  exact trans ( headtails $ monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) _
+  exact trans (cong {f=((Data.Vect.head (monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ))) ::)} $ sym $ compressMonoidsum_lem3) _
+  compute
+  exact trans _ (sym $ headtails _)
+  rewrite sym (headOfSumIsSumOfHeads (zipWith (<#>) scals (map Data.Vect.tail vects)))
+  exact ?dep1
+-}
 
 compressMonoidsum : {vects : Matrix n (S predw) ZZ} -> monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum = ?compressMonoidsum'
