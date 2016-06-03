@@ -483,38 +483,6 @@ compressMonoidsum_lem3_rhs_majZ = proof
   rewrite sym $ the (vects=[]) zeroVecEq
   trivial
 
-{-
--- Works in REPL, but IRL wants us to fill one of the arguments to trans we have a hole for here.
--- Should leave one reduced hole, dep1'.
-
-compressMonoidsum_lem3 {predw=S predpredw} = ?compressMonoidsum_lem3'
-compressMonoidsum_lem3' = proof
-  intros
-  exact trans ( headtails $ monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) _
-  exact trans (cong {f=((Data.Vect.head (monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ))) ::)} $ sym $ compressMonoidsum_lem3) _
-  compute
-  exact trans _ (sym $ headtails _)
-  rewrite sym (headOfSumIsSumOfHeads (zipWith (<#>) scals (map Data.Vect.tail vects)))
-  claim dep1 monoidsum (map Data.Vect.head (zipWith (<#>) scals (map tail vects))) :: monoidsum (Data.Vect.zipWith (<#>) scals (map tail $ map tail vects)) = Data.Vect.head (tail $ monoidsum ( zipWith (<#>) scals vects )) :: Data.Vect.tail (tail $ monoidsum ( zipWith (<#>) scals vects ))
-  unfocus
-  exact dep1
-  exact dep1'
-
--- Same as above, except the hole doesn't have a (head/tails) split, as this version skips that rewrite for a more clear proposition.
--- Should leave one reduced hole, dep2'.
-
-compressMonoidsum_lem3 {predw=S predpredw} = ?compressMonoidsum_lem3'
-compressMonoidsum_lem3' = proof
-  intros
-  exact trans ( headtails $ monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) _
-  exact trans (cong {f=((Data.Vect.head (monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ))) ::)} $ sym $ compressMonoidsum_lem3) _
-  compute
-  claim dep2 monoidsum (map Data.Vect.head (zipWith (<#>) scals (map tail vects))) :: monoidsum (Data.Vect.zipWith (<#>) scals (map tail $ map tail vects)) = tail $ monoidsum ( zipWith (<#>) scals vects )
-  unfocus
-  exact dep2
-  exact ?dep2'
--}
-
 compressMonoidsum_lem2' = proof
 	intros
 	rewrite sym (headtails $ monoidsum ( zipWith (<#>) scals vects ))
