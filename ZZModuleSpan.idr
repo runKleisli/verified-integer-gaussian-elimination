@@ -417,14 +417,73 @@ compressMonoidsum_lem1 {scals} {vects} = cong {f=(:: monoidsum ( zipWith (<#>) s
 compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> Data.Vect.(::) (Data.Vect.head $ monoidsum ( zipWith (<#>) scals vects )) ( monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
+rewriteZipWithUnderTail : {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ} -> map Data.Vect.tail $ Data.Vect.zipWith (<#>) scals vects = Data.Vect.zipWith (<#>) scals (map Data.Vect.tail vects)
+
+-- Note that rewriteMonoidsumUnderTail and monoidsumOverTailChariz depend on each other recursively.
+
+rewriteMonoidsumUnderTail : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
+rewriteMonoidsumUnderTail {vs=[]} = Refl
+rewriteMonoidsumUnderTail {vs=v::vs} = ?rewriteMonoidsumUnderTail'
+
+{-
+rewriteMonoidsumUnderTail' = proof
+  intros
+  exact trans (cong {f=tail} monoidrec2D) _
+  rewrite sym (headtails v)
+  rewrite sym (headtails $ monoidsum vs)
+  compute
+  claim newb zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
+  unfocus
+  exact newb -- i.e., exact monoidsumOverTailChariz
+  exact ?newb'
+-}
+
+monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
+monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ rewriteMonoidsumUnderTail {vs=vs} ) $
+		sym $ monoidrec2D {v=Data.Vect.tail v} {vs=map Data.Vect.tail vs}
+
+{-
+-- Works in REPL, but complains on loading, as usual.
+monoidsumOverTailChariz = ?monoidsumOverTailChariz'
+monoidsumOverTailChariz' = proof
+  intros
+  exact trans _ $ sym $ monoidrec2D {v=Data.Vect.tail v} {vs=map Data.Vect.tail vs}
+  exact cong {f=zipWith (+) (tail v)} _
+  claim newbrec tail (monoidsum vs) = monoidsum (map tail vs)
+  unfocus
+  exact newbrec
+  exact ?newbrec'
+-}
+
+{-
+-- Works in REPL but complains on loading, as usual
+rewriteMonoidsumUnderTail {vs=v::vs} = ?rewriteMonoidsumUnderTail'
+rewriteMonoidsumUnderTail' = proof
+  intros
+  exact trans (cong {f=Data.Vect.tail} monoidrec2D) _
+  rewrite sym (headtails v)
+  rewrite sym (headtails $ monoidsum vs)
+  exact monoidsumOverTailChariz
+-}
+
+rewriteMonoidsumZipWithUnderTail: {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ} -> tail $ monoidsum $ Data.Vect.zipWith (<#>) scals vects = monoidsum $ map Data.Vect.tail $ Data.Vect.zipWith (<#>) scals vects
+
 compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = tail $ monoidsum ( zipWith (<#>) scals vects )
-compressMonoidsum_lem3 {predw=Z} = zeroVecEq
-compressMonoidsum_lem3 {predw=S predpredw} = ?compressMonoidsum_lem3'
+compressMonoidsum_lem3 {predw=Z} {n} = zeroVecEq
+compressMonoidsum_lem3 {predw=S predpredw} {n=Z} = ?compressMonoidsum_lem3_rhs_majZ
+compressMonoidsum_lem3 {predw=S predpredw} {n=S predn} {scals} {vects} = trans (cong {f=monoidsum} $ sym rewriteZipWithUnderTail) (sym rewriteMonoidsumZipWithUnderTail)
+{-
+compressMonoidsum_lem3_rhs_majSminArb = proof
+  intros
+  exact trans (cong {f=monoidsum} $ sym $ rewriteZipWithUnderTail {scals=scals} {vects=vects}) _
+  exact believe_me "assas
+-}
 
 {-
 -- Works in REPL, but IRL wants us to fill one of the arguments to trans we have a hole for here.
 -- Should leave one reduced hole, dep1'.
 
+compressMonoidsum_lem3 {predw=S predpredw} = ?compressMonoidsum_lem3'
 compressMonoidsum_lem3' = proof
   intros
   exact trans ( headtails $ monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) _
@@ -440,6 +499,7 @@ compressMonoidsum_lem3' = proof
 -- Same as above, except the hole doesn't have a (head/tails) split, as this version skips that rewrite for a more clear proposition.
 -- Should leave one reduced hole, dep2'.
 
+compressMonoidsum_lem3 {predw=S predpredw} = ?compressMonoidsum_lem3'
 compressMonoidsum_lem3' = proof
   intros
   exact trans ( headtails $ monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) _
