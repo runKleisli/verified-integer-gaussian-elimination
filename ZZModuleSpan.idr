@@ -477,6 +477,12 @@ compressMonoidsum_lem3_rhs_majSminArb = proof
   exact believe_me "assas
 -}
 
+compressMonoidsum_lem3_rhs_majZ = proof
+  intros
+  rewrite sym $ the (scals=[]) zeroVecEq
+  rewrite sym $ the (vects=[]) zeroVecEq
+  trivial
+
 {-
 -- Works in REPL, but IRL wants us to fill one of the arguments to trans we have a hole for here.
 -- Should leave one reduced hole, dep1'.
