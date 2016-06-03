@@ -189,14 +189,14 @@ headOfSumIsSumOfHeads_Z_pr = proof
   exact n
 -}
 
--- Note that rewriteMonoidsumUnderTail and monoidsumOverTailChariz depend on each other recursively.
+-- Note that tailOfSumIsSumOfTails and monoidsumOverTailChariz depend on each other recursively.
 
-rewriteMonoidsumUnderTail : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
-rewriteMonoidsumUnderTail {vs=[]} = Refl
-rewriteMonoidsumUnderTail {vs=v::vs} = ?rewriteMonoidsumUnderTail'
+tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
+tailOfSumIsSumOfTails {vs=[]} = Refl
+tailOfSumIsSumOfTails {vs=v::vs} = ?tailOfSumIsSumOfTails'
 
 {-
-rewriteMonoidsumUnderTail' = proof
+tailOfSumIsSumOfTails' = proof
   intros
   exact trans (cong {f=tail} monoidrec2D) _
   rewrite sym (headtails v)
@@ -209,7 +209,7 @@ rewriteMonoidsumUnderTail' = proof
 -}
 
 monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
-monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ rewriteMonoidsumUnderTail {vs=vs} ) $
+monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} ) $
 		sym $ monoidrec2D {v=Data.Vect.tail v} {vs=map Data.Vect.tail vs}
 
 {-
@@ -227,8 +227,8 @@ monoidsumOverTailChariz' = proof
 
 {-
 -- Works in REPL but complains on loading, as usual
-rewriteMonoidsumUnderTail {vs=v::vs} = ?rewriteMonoidsumUnderTail'
-rewriteMonoidsumUnderTail' = proof
+tailOfSumIsSumOfTails {vs=v::vs} = ?tailOfSumIsSumOfTails'
+tailOfSumIsSumOfTails' = proof
   intros
   exact trans (cong {f=Data.Vect.tail} monoidrec2D) _
   rewrite sym (headtails v)
@@ -469,7 +469,7 @@ rewriteZipWithUnderTail : {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ}
 compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = tail $ monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem3 {predw=Z} {n} = zeroVecEq
 compressMonoidsum_lem3 {predw=S predpredw} {n=Z} = ?compressMonoidsum_lem3_rhs_majZ
-compressMonoidsum_lem3 {predw=S predpredw} {n=S predn} {scals} {vects} = trans (cong {f=monoidsum} $ sym rewriteZipWithUnderTail) (sym rewriteMonoidsumUnderTail)
+compressMonoidsum_lem3 {predw=S predpredw} {n=S predn} {scals} {vects} = trans (cong {f=monoidsum} $ sym rewriteZipWithUnderTail) (sym tailOfSumIsSumOfTails)
 {-
 compressMonoidsum_lem3_rhs_majSminArb = proof
   intros
