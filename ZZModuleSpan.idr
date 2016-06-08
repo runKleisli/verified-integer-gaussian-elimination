@@ -217,18 +217,18 @@ mutual
 	-- Junk from eta reductions done in REPL but not in normal type checking.
 	-- Type check fails in a etaCon_tailsumMonrecStepExpr1-lvl mismatch b-n alpha-equivalent expressions.
 	etaCon_tailsumMonrecStepExpr1 : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} ?= trans lem2 (trans ?alphaCon_tailsumMonrecStepExpr1 lem3)
+	etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = trans lem2 (trans ?alphaCon_tailsumMonrecStepExpr1 lem3)
 	-- etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = ?etaCon_tailsumMonrecStepExpr1'
 		where
 			f0 : (Vect predw ZZ -> Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
-			f0 x = foldrImpl x (replicate predw (Pos 0)) (\y => zipWith (\meth => \meth => plusZ meth meth) (tail v) y) (map tail vs)
+			f0 x = foldrImpl x (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
 			f1 : (Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
 			f1 x = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) x (map tail vs)
 			lem0 : (\meth1 => \meth2 => Data.Vect.zipWith {n=predw} (\meth3 => \meth4 => plusZ meth3 meth4) meth1 meth2) = Data.Vect.zipWith plusZ
 			lem0 = trans ( trans ( cong {f=\x => \meth1 => \meth2 => Data.Vect.zipWith {n=predw} x meth1 meth2} (sym $ etaBinary plusZ) ) (eta _) ) ( sym $ etaBinary (Data.Vect.zipWith {n=predw} plusZ) )
 			lem1 : (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) = Data.Vect.zipWith {n=predw} plusZ (tail v)
 			lem1 = trans ( sym $ eta $ Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) ) ( trans ( eta _ ) ( cong {f=\x => Data.Vect.zipWith {n=predw} x (tail v)} (sym $ etaBinary plusZ) ) )
-			lem2 : foldrImpl (\meth1 => \meth2 => Data.Vect.zipWith {n=predw} (\meth3 => \meth4 => plusZ meth3 meth4) meth1 meth2) (replicate predw (Pos 0)) (\y => zipWith (\meth => \meth => plusZ meth meth) (tail v) y) (map tail vs) = foldrImpl (Data.Vect.zipWith plusZ) (replicate predw (Pos 0)) (\y => zipWith (\meth => \meth => plusZ meth meth) (tail v) y) (map tail vs)
+			lem2 : foldrImpl (\meth1 => \meth2 => Data.Vect.zipWith {n=predw} (\meth3 => \meth4 => plusZ meth3 meth4) meth1 meth2) (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs) = foldrImpl (Data.Vect.zipWith plusZ) (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
 			lem2 ?= cong {f=f0} lem0
 			lem3 : foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) (map tail vs) = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (Data.Vect.zipWith {n=predw} plusZ (tail v)) (map tail vs)
 			lem3 ?= cong {f=f1} lem1
