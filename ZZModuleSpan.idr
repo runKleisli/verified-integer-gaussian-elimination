@@ -196,12 +196,12 @@ headOfSumIsSumOfHeads_Z_pr = proof
 -}
 
 -- Note that tailOfSumIsSumOfTails and monoidsumOverTailChariz depend on each other recursively.
--- Note the hole ?foolem3' is not filled.
+-- Note the hole ?etaCon_tailsumMonrecStepExpr2' is not filled.
 mutual
 	tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
 	tailOfSumIsSumOfTails {vs=[]} = Refl
 -- 	tailOfSumIsSumOfTails {vs=v::vs} = ?tailOfSumIsSumOfTails'
-	tailOfSumIsSumOfTails {vs=v::vs} {predw} ?= trans (cong {f=Data.Vect.tail} monoidrec2D) (foolem {v=v} {vs=vs})
+	tailOfSumIsSumOfTails {vs=v::vs} {predw} ?= trans (cong {f=Data.Vect.tail} monoidrec2D) (tailsumMonrecStep {v=v} {vs=vs})
 
 	{-
 	-- Works in REPL but complains on loading, as usual
@@ -215,10 +215,10 @@ mutual
 	-}
 
 	-- Junk from eta reductions done in REPL but not in normal type checking.
-	-- Type check fails in a foolem2-lvl mismatch b-n alpha-equivalent expressions.
-	foolem2 : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	-- foolem2 {v} {vs} {predw} = trans lem2 lem3
-	foolem2 {v} {vs} {predw} = ?foolem2'
+	-- Type check fails in a etaCon_tailsumMonrecStepExpr1-lvl mismatch b-n alpha-equivalent expressions.
+	etaCon_tailsumMonrecStepExpr1 : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
+	-- etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = trans lem2 lem3
+	etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = ?etaCon_tailsumMonrecStepExpr1'
 		where
 			f0 : (Vect predw ZZ -> Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
 			f0 x = foldrImpl x (replicate predw (Pos 0)) (\y => zipWith (\meth => \meth => plusZ meth meth) (tail v) y) (map tail vs)
@@ -234,21 +234,21 @@ mutual
 			lem3 ?= cong {f=f1} lem1
 
 	-- Junk from eta reductions done in REPL but not in normal type checking.
-	foolem3 : {vs : Matrix n (S predw) ZZ} -> Data.Vect.zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs)) = Data.Vect.zipWith (+) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs))
-	foolem3 {v} {vs} {predw} ?= cong {f=f} $ trans (sym $ eta (\meth => plusZ meth)) (sym $ eta plusZ)
+	etaCon_tailsumMonrecStepExpr2 : {vs : Matrix n (S predw) ZZ} -> Data.Vect.zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs)) = Data.Vect.zipWith (+) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs))
+	etaCon_tailsumMonrecStepExpr2 {v} {vs} {predw} ?= cong {f=f} $ trans (sym $ eta (\meth => plusZ meth)) (sym $ eta plusZ)
 		where
 			f : (ZZ -> ZZ -> ZZ) -> Vect predw ZZ
 			f x = Data.Vect.zipWith x (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs))
 
-	foolem : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	foolem {v} {vs} {predw} = ?foolem'
-	foolem' = proof
+	tailsumMonrecStep : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
+	tailsumMonrecStep {v} {vs} {predw} = ?tailsumMonrecStep'
+	tailsumMonrecStep' = proof
 		intros
 		rewrite sym (headtails v)
 		rewrite sym (headtails $ monoidsum vs)
 		compute
 		-- This plus eta reductions: exact monoidsumOverTailChariz {v=v} {vs=vs}
-		exact trans ( trans (foolem3 {v=v} {vs=vs}) (monoidsumOverTailChariz {v=v} {vs=vs}) ) (foolem2 {v=v} {vs=vs})
+		exact trans ( trans (etaCon_tailsumMonrecStepExpr2 {v=v} {vs=vs}) (monoidsumOverTailChariz {v=v} {vs=vs}) ) (etaCon_tailsumMonrecStepExpr1 {v=v} {vs=vs})
 
 	monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
 	monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} ) $
