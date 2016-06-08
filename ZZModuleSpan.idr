@@ -196,7 +196,6 @@ headOfSumIsSumOfHeads_Z_pr = proof
 -}
 
 -- Note that tailOfSumIsSumOfTails and monoidsumOverTailChariz depend on each other recursively.
--- Note the hole ?etaCon_tailsumMonrecStepExpr2' is not filled.
 mutual
 	tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
 	tailOfSumIsSumOfTails {vs=[]} = Refl
@@ -215,7 +214,6 @@ mutual
 	-}
 
 	-- Junk from eta reductions done in REPL but not in normal type checking.
-	-- Type check fails in a etaCon_tailsumMonrecStepExpr1-lvl mismatch b-n alpha-equivalent expressions.
 	etaCon_tailsumMonrecStepExpr1 : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
 	etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = trans lem2 lem3
 		where
@@ -265,6 +263,22 @@ mutual
 	  exact newbrec
 	  exact ?newbrec'
 	-}
+
+lem2_lemma_1 = proof
+	intro
+	intro
+	intro
+	intro
+	compute
+	exact id
+
+lem3_lemma_1 = proof
+	intro
+	intro
+	intro
+	intro
+	compute
+	exact id
 
 
 
