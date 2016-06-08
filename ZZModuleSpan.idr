@@ -200,7 +200,7 @@ mutual
 	tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
 	tailOfSumIsSumOfTails {vs=[]} = Refl
 -- 	tailOfSumIsSumOfTails {vs=v::vs} = ?tailOfSumIsSumOfTails'
-	tailOfSumIsSumOfTails {vs=v::vs} {predw} ?= trans (cong {f=Data.Vect.tail} monoidrec2D) (tailsumMonrecStep {v=v} {vs=vs})
+	tailOfSumIsSumOfTails {vs=v::vs} {predw} ?= trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStep {v=v} {vs=vs})
 
 	{-
 	-- Works in REPL but complains on loading, as usual
