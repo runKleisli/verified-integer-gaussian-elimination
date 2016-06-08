@@ -217,8 +217,7 @@ mutual
 	-- Junk from eta reductions done in REPL but not in normal type checking.
 	-- Type check fails in a etaCon_tailsumMonrecStepExpr1-lvl mismatch b-n alpha-equivalent expressions.
 	etaCon_tailsumMonrecStepExpr1 : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = trans lem2 (trans ?alphaCon_tailsumMonrecStepExpr1 lem3)
-	-- etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = ?etaCon_tailsumMonrecStepExpr1'
+	etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = trans lem2 lem3
 		where
 			f0 : (Vect predw ZZ -> Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
 			f0 x = foldrImpl x (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
