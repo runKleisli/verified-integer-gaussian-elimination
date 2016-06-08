@@ -232,10 +232,7 @@ mutual
 
 	-- Junk from eta reductions done in REPL but not in normal type checking.
 	etaCon_tailsumMonrecStepExpr2 : {vs : Matrix n (S predw) ZZ} -> Data.Vect.zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs)) = Data.Vect.zipWith (+) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs))
-	etaCon_tailsumMonrecStepExpr2 {v} {vs} {predw} ?= cong {f=f} $ trans (sym $ eta (\meth => plusZ meth)) (sym $ eta plusZ)
-		where
-			f : (ZZ -> ZZ -> ZZ) -> Vect predw ZZ
-			f x = Data.Vect.zipWith x (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs))
+	etaCon_tailsumMonrecStepExpr2 {v} {vs} {predw} = Refl
 
 	tailsumMonrecStep : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
 	tailsumMonrecStep {v} {vs} {predw} = ?tailsumMonrecStep'
