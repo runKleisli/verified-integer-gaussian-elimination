@@ -230,10 +230,6 @@ mutual
 			lem3 : foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) (map tail vs) = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (Data.Vect.zipWith {n=predw} plusZ (tail v)) (map tail vs)
 			lem3 ?= cong {f=f1} lem1
 
-	-- Junk from eta reductions done in REPL but not in normal type checking.
-	etaCon_tailsumMonrecStepExpr2 : {vs : Matrix n (S predw) ZZ} -> Data.Vect.zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs)) = Data.Vect.zipWith (+) (Data.Vect.tail v) (Data.Vect.tail (monoidsum vs))
-	etaCon_tailsumMonrecStepExpr2 {v} {vs} {predw} = Refl
-
 	tailsumMonrecStep : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
 	tailsumMonrecStep {v} {vs} {predw} = ?tailsumMonrecStep'
 	tailsumMonrecStep' = proof
@@ -242,7 +238,7 @@ mutual
 		rewrite sym (headtails $ monoidsum vs)
 		compute
 		-- This plus eta reductions: exact monoidsumOverTailChariz {v=v} {vs=vs}
-		exact trans ( trans (etaCon_tailsumMonrecStepExpr2 {v=v} {vs=vs}) (monoidsumOverTailChariz {v=v} {vs=vs}) ) (etaCon_tailsumMonrecStepExpr1 {v=v} {vs=vs})
+		exact trans (monoidsumOverTailChariz {v=v} {vs=vs}) (etaCon_tailsumMonrecStepExpr1 {v=v} {vs=vs})
 
 	monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
 	monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} ) $
