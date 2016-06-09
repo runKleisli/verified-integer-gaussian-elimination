@@ -26,6 +26,31 @@ monoidsum = sum'
 Trivial theorems
 -}
 
+-- Eta conversion: https://github.com/idris-lang/Idris-dev/issues/2071
+eta : (f : a -> b) -> f = (\c => f c)
+eta f = sym Refl
+
+flipIsInvolutionExtensional : flip (flip f) = f
+flipIsInvolutionExtensional {f} = ?flipIsInvolutionExtensional'
+
+flipBetaReduction : (f : a -> b -> c) -> (\d => flip (\c => f c) d) = (\e => flip (\c => \d => f c d) e)
+-- exact Refl works in the REPL. What's going on?
+-- flipBetaReduction f = sym Refl
+flipBetaReduction = ?flipBetaReduction'
+
+etaBinary : (f : a -> b -> c) -> f = (\c => \d => f c d)
+etaBinary f = trans (eta f) $ trans baz1 $ trans bar baz2
+	where
+		etaConv_flipBetaRed : flip (\c => f c) = flip (\c => \d => f c d)
+		etaConv_flipBetaRed = trans (eta _) (trans (flipBetaReduction f) (sym $ eta _))
+		-- bar : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
+		bar : flip ( flip (\c => f c) ) = flip ( flip (\c => \d => f c d) )
+		bar = cong {f=flip} etaConv_flipBetaRed
+		baz1 : (\c => f c) = flip ( flip (\c => f c) )
+		baz1 = sym flipIsInvolutionExtensional
+		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
+		baz2 = flipIsInvolutionExtensional
+
 
 
 total
@@ -46,6 +71,10 @@ zeroVecVecId : (xs : Vect n (Vect 0 a)) -> (xs = replicate n [])
 zeroVecVecId = vecSingletonReplicateEq (\b => zeroVecEq {a=[]} {b=b})
 
 
+
+total
+headMapChariz : {xs : Vect (S n) _} -> head $ map f xs = f $ head xs
+headMapChariz {xs=x::xs} = Refl
 
 mapheadrec : with Data.Vect ( map head (v::vs) = (head v) :: (map head vs) )
 mapheadrec = Refl
@@ -110,6 +139,7 @@ monoidrec2D {v} {vs=[]} = Refl
 -- monoidrec {v} {vs=(vsv::vss)} = rewrite (the ( foldrImpl (<+>) neutral (v::vs) = foldrImpl (<+>) (neutral . (v <+>)) vs ) Refl) in (monoidrec {v=vsv} {vs=vss})
 monoidrec2D {v} {vs=(vsv::vss)} = ?monoidrec'
 
+total
 headOfSumIsSumOfHeadsArg : ((v : Vect (S n) ZZ) ->
                     (w : Vect (S n) ZZ) -> head (v <+> w) = head v <+> head w) -> (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
 headOfSumIsSumOfHeadsArg {n} pr (v::[]) = rewrite sym (pr v (replicate (S n) (Pos 0))) in Refl
@@ -142,8 +172,136 @@ headOfSumIsSumOfHeadsArg {m = S m'} {n} pr (v::(vsv::vss)) = conclusion3
 		conclusion3 : head (monoidsum (v::vs)) = monoidsum (map head (v::vs))
 		conclusion3 = conclusion2 proof0
 
-headOfSumIsSumOfHeads : (xs : Vect (S m) (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
-headOfSumIsSumOfHeads = headOfSumIsSumOfHeadsArg lemma_VectAddHead
+total
+headOfSumIsSumOfHeads : (xs : Vect m (Vect (S n) ZZ)) -> head (monoidsum xs) = monoidsum (map head xs)
+headOfSumIsSumOfHeads {m=Z} [] = Refl
+headOfSumIsSumOfHeads {m=S m} xs = headOfSumIsSumOfHeadsArg lemma_VectAddHead xs
+{-
+-- This should work but is picky.
+headOfSumIsSumOfHeads {m=Z} xs = trans zveqpr (sym $ trans bandy bundy)
+	where
+		bandy : (the (Vect Z ZZ -> ZZ) monoidsum) (map head xs) = monoidsum (map head Data.Vect.Nil)
+		-- bandy = trans ( sym $ trans ( cong {f=monoidsum . (map head)} (the ([]=xs) zeroVecEq) ) ( the ((monoidsum . (map head)) $ xs = monoidsum (map head xs)) Refl ) ) (the ((monoidsum . map head) [] = monoidsum (map Data.Vect.head Data.Vect.Nil)) Refl)
+		bundy : monoidsum (map Data.Vect.head Data.Vect.Nil) = Pos Z
+		bundy = Refl
+		zveqpr : Data.Vect.head $ monoidsum xs = monoidsum (map Data.Vect.head xs)
+		zveqpr = ?zveqpr'
+		zveqpr' = proof
+			rewrite sym (the (xs=[]) zeroVecEq)
+			trivial
+-}
+{-
+-- Works in REPL
+headOfSumIsSumOfHeads {m=Z} = ?headOfSumIsSumOfHeads_Z_pr
+headOfSumIsSumOfHeads_Z_pr = proof
+  intros
+  let bandy = trans ( sym $ trans ( cong {f=monoidsum . (map head)} (the ([]=xs) zeroVecEq) ) ( the ((monoidsum . (map head)) $ xs = monoidsum (map head xs)) Refl ) ) (the ((monoidsum . map head) [] = monoidsum (map Data.Vect.head Data.Vect.Nil)) Refl)
+  unfocus
+  unfocus
+  unfocus
+  unfocus
+  unfocus
+  search
+  search
+  search
+  let bundy = the (monoidsum (map Data.Vect.head Data.Vect.Nil) = Pos Z) $ Refl
+  exact trans _ (sym $ trans bandy bundy)
+  unfocus
+  unfocus
+  rewrite sym (the (xs=[]) zeroVecEq)
+  trivial
+  exact n
+  exact n
+-}
+
+-- Note that tailOfSumIsSumOfTails and monoidsumOverTailChariz depend on each other recursively.
+mutual
+	tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
+	tailOfSumIsSumOfTails {vs=[]} = Refl
+	-- tailOfSumIsSumOfTails {vs=v::vs} ?= trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStepHuman {v=v} {vs=vs})
+	tailOfSumIsSumOfTails {vs=v::vs} = trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStep {v=v} {vs=vs})
+
+	{-
+	-- Works in REPL but complains on loading, as usual
+	tailOfSumIsSumOfTails {vs=v::vs} = ?tailOfSumIsSumOfTails'
+	tailOfSumIsSumOfTails' = proof
+	  intros
+	  exact trans (cong {f=Data.Vect.tail} monoidrec2D) _
+	  rewrite sym (headtails v)
+	  rewrite sym (headtails $ monoidsum vs)
+	  exact monoidsumOverTailChariz
+	-}
+
+	-- Junk from eta reductions done in REPL but not in normal type checking.
+	etaCon_tailsumMonrecStepExpr : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
+	etaCon_tailsumMonrecStepExpr {v} {vs} {predw} = trans lem2 lem3
+		where
+			f0 : (Vect predw ZZ -> Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
+			f0 x = foldrImpl x (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
+			f1 : (Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
+			f1 x = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) x (map tail vs)
+			lem0 : (\meth1 => \meth2 => Data.Vect.zipWith {n=predw} (\meth3 => \meth4 => plusZ meth3 meth4) meth1 meth2) = Data.Vect.zipWith plusZ
+			lem0 = trans ( trans ( cong {f=\x => \meth1 => \meth2 => Data.Vect.zipWith {n=predw} x meth1 meth2} (sym $ etaBinary plusZ) ) (eta _) ) ( sym $ etaBinary (Data.Vect.zipWith {n=predw} plusZ) )
+			lem1 : (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) = Data.Vect.zipWith {n=predw} plusZ (tail v)
+			lem1 = trans ( sym $ eta $ Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) ) ( trans ( eta _ ) ( cong {f=\x => Data.Vect.zipWith {n=predw} x (tail v)} (sym $ etaBinary plusZ) ) )
+			lem2 : foldrImpl (\meth1 => \meth2 => Data.Vect.zipWith {n=predw} (\meth3 => \meth4 => plusZ meth3 meth4) meth1 meth2) (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs) = foldrImpl (Data.Vect.zipWith plusZ) (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
+			lem2 ?= cong {f=f0} lem0
+			lem3 : foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) (map tail vs) = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (Data.Vect.zipWith {n=predw} plusZ (tail v)) (map tail vs)
+			lem3 ?= cong {f=f1} lem1
+
+	-- see tailsumMonrecStepHuman for human-readable version of this proposition
+	tailsumMonrecStep : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (\meth3 => \meth4 => zipWith (\meth1 => \meth2 => Data.ZZ.plusZ meth1 meth2) meth3 meth4) (replicate predw (Pos 0)) (\x => zipWith (\meth1 => \meth2 => Data.ZZ.plusZ meth1 meth2) (tail v) x) (map tail vs)
+	tailsumMonrecStep {v} {vs} = ?tailsumMonrecStep'
+	tailsumMonrecStep' = proof
+		intros
+		rewrite sym (headtails v)
+		rewrite sym (headtails $ monoidsum vs)
+		compute
+		exact monoidsumOverTailChariz {v=v} {vs=vs}
+
+	-- human-readable version of tailsumMonrecStep
+	tailsumMonrecStepHuman : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
+	tailsumMonrecStepHuman {v} {vs} = ?tailsumMonrecStepHuman'
+	tailsumMonrecStepHuman' = proof
+		intros
+		rewrite sym (headtails v)
+		rewrite sym (headtails $ monoidsum vs)
+		compute
+		-- This plus eta reductions: exact monoidsumOverTailChariz {v=v} {vs=vs}
+		exact trans (monoidsumOverTailChariz {v=v} {vs=vs}) (etaCon_tailsumMonrecStepExpr {v=v} {vs=vs})
+
+	monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
+	monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} ) $
+			sym $ monoidrec2D {v=Data.Vect.tail v} {vs=map Data.Vect.tail vs}
+
+	{-
+	-- Works in REPL, but complains on loading, as usual.
+	monoidsumOverTailChariz = ?monoidsumOverTailChariz'
+	monoidsumOverTailChariz' = proof
+	  intros
+	  exact trans _ $ sym $ monoidrec2D {v=Data.Vect.tail v} {vs=map Data.Vect.tail vs}
+	  exact cong {f=zipWith (+) (tail v)} _
+	  claim newbrec tail (monoidsum vs) = monoidsum (map tail vs)
+	  unfocus
+	  exact newbrec
+	  exact ?newbrec'
+	-}
+
+lem2_lemma_1 = proof
+	intro
+	intro
+	intro
+	intro
+	compute
+	exact id
+
+lem3_lemma_1 = proof
+	intro
+	intro
+	intro
+	intro
+	compute
+	exact id
 
 
 
@@ -155,6 +313,7 @@ transposeIsInvolution : with Data.Vect ( transpose $ transpose xs = xs )
 
 
 
+total
 dotproductRewrite : {v : Vect _ ZZ} -> v <:> w = monoidsum (zipWith (<.>) v w)
 dotproductRewrite = Refl
 
@@ -296,15 +455,35 @@ timesVectMatAsLinearCombo_EntryCharizRight (vv::vvs) (xx::xxs) = sym $ reductCom
 		-- composeReducts = reductComposition putHeadInside reduceMultUnderHeadTo1D
 -}
 
+reduceMultUnderHeadTo1D : {xxs : Matrix n (S m) ZZ} -> map Data.Vect.head (zipWith (<#>) (vv::vvs) (xx::xxs)) = zipWith (the (ZZ -> ZZ -> ZZ) (*)) (vv::vvs) (map Data.Vect.head (xx::xxs))
+reduceMultUnderHeadTo1D {n=Z} {vv} {xx} = ?reduceMultUnderHeadTo1D_triv
+reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} = ?reduceMultUnderHeadTo1D'
+-- reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} = trans (cong $ headMapChariz {xs=xx}) $ (cong {f=(Data.Vect.(::) $ multZ vv (head xx))} reduceMultUnderHeadTo1D)
+
+reduceMultUnderHeadTo1D_triv = proof
+  intros
+  rewrite sym (the (xxs = []) zeroVecEq)
+  rewrite sym (the (vvs = []) zeroVecEq)
+  compute
+  exact cong {f=(::[])} _
+  exact headMapChariz {xs=xx}
+
+reduceMultUnderHeadTo1D' = proof
+  intros
+  -- Not required in the REPL: {f=multZ vv}
+  exact trans (cong {f=(::(map head $ zipWith (<#>) vvs xxs))} $ headMapChariz {f=multZ vv} {xs=xx}) _
+  compute
+  exact cong {f=(::) (multZ vv (head xx))} _
+  rewrite sym $ headtails vvs
+  rewrite sym $ headtails xxs
+  exact reduceMultUnderHeadTo1D {vv=head vvs} {vvs=tail vvs} {xx=head xxs} {xxs=tail xxs}
+
 timesVectMatAsLinearCombo_EntryCharizRight' = proof
   intros
   claim putHeadInside head (monoidsum (zipWith (<#>) (vv::vvs) (xx::xxs))) = monoidsum (map head (zipWith (<#>) (vv::vvs) (xx::xxs)))
   unfocus
-  claim reduceMultUnderHeadTo1D (map head (zipWith (<#>) (vv::vvs) (xx::xxs)) = zipWith (*) (vv::vvs) (map head (xx::xxs)))
-  unfocus
-  exact sym $ trans putHeadInside (cong {f=monoidsum} reduceMultUnderHeadTo1D)
+  exact sym $ trans putHeadInside (cong {f=monoidsum} $ reduceMultUnderHeadTo1D {vv=vv} {xx=xx})
   exact headOfSumIsSumOfHeads (zipWith (<#>) (vv::vvs) (xx::xxs))
-  exact ?reduceMultUnderHeadTo1D'
 
 timesVectMatAsLinearCombo_EntryChariz : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = head $ monoidsum (zipWith (<#>) v xs)
 timesVectMatAsLinearCombo_EntryChariz v xs = trans (timesVectMatAsLinearCombo_EntryCharizLeft v xs) (timesVectMatAsLinearCombo_EntryCharizRight v xs)
@@ -352,7 +531,25 @@ compressMonoidsum_lem1 {scals} {vects} = cong {f=(:: monoidsum ( zipWith (<#>) s
 compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> Data.Vect.(::) (Data.Vect.head $ monoidsum ( zipWith (<#>) scals vects )) ( monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) ) = monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
+rewriteZipWithUnderTail : {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ} -> map Data.Vect.tail $ Data.Vect.zipWith (<#>) scals vects = Data.Vect.zipWith (<#>) scals (map Data.Vect.tail vects)
+rewriteZipWithUnderTail = ?rewriteZipWithUnderTail'
+
 compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = tail $ monoidsum ( zipWith (<#>) scals vects )
+compressMonoidsum_lem3 {predw=Z} {n} = zeroVecEq
+compressMonoidsum_lem3 {predw=S predpredw} {n=Z} = ?compressMonoidsum_lem3_rhs_majZ
+compressMonoidsum_lem3 {predw=S predpredw} {n=S predn} {scals} {vects} = trans (cong {f=monoidsum} $ sym rewriteZipWithUnderTail) (sym tailOfSumIsSumOfTails)
+{-
+compressMonoidsum_lem3_rhs_majSminArb = proof
+  intros
+  exact trans (cong {f=monoidsum} $ sym $ rewriteZipWithUnderTail {scals=scals} {vects=vects}) _
+  exact believe_me "assas
+-}
+
+compressMonoidsum_lem3_rhs_majZ = proof
+  intros
+  rewrite sym $ the (scals=[]) zeroVecEq
+  rewrite sym $ the (vects=[]) zeroVecEq
+  trivial
 
 compressMonoidsum_lem2' = proof
 	intros
