@@ -31,31 +31,21 @@ eta : (f : a -> b) -> f = (\c => f c)
 eta f = sym Refl
 
 flipIsInvolutionExtensional : flip (flip f) = f
+flipIsInvolutionExtensional {f} = ?flipIsInvolutionExtensional'
 
-miscBetaReduction : (f : a -> b -> c) -> (\d => flip (\c => f c) d) = (\e => flip (\c => \d => f c d) e)
+flipBetaReduction : (f : a -> b -> c) -> (\d => flip (\c => f c) d) = (\e => flip (\c => \d => f c d) e)
 -- exact Refl works in the REPL. What's going on?
--- miscBetaReduction f = sym Refl
-miscBetaReduction = ?miscBetaReduction'
-
-{-
--- INTERNAL ERROR: No trivial solution
-miscBetaReduction' = proof
-	intros
-	trivial
--}
+-- flipBetaReduction f = sym Refl
+flipBetaReduction = ?flipBetaReduction'
 
 etaBinary : (f : a -> b -> c) -> f = (\c => \d => f c d)
-etaBinary f = trans (eta f) $ trans baz1 $ trans bar2 baz2
+etaBinary f = trans (eta f) $ trans baz1 $ trans bar baz2
 	where
-		foo2 : (\e => flip (\c => \d => f c d) e) = flip (\c => \d => f c d)
-		foo2 = sym $ eta _
-		fooTrans : (\d => flip (\c => f c) d) = flip (\c => \d => f c d)
-		fooTrans = trans (miscBetaReduction f) foo2
-		bar : flip (\c => f c) = flip (\c => \d => f c d)
-		bar = trans (eta _) fooTrans
-		-- bar2 : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
-		bar2 : flip ( flip (\c => f c) ) = flip ( flip (\c => \d => f c d) )
-		bar2 = cong {f=flip} bar
+		etaConv_miscBetaRed : flip (\c => f c) = flip (\c => \d => f c d)
+		etaConv_miscBetaRed = trans (eta _) (trans (flipBetaReduction f) (sym $ eta _))
+		-- bar : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
+		bar : flip ( flip (\c => f c) ) = flip ( flip (\c => \d => f c d) )
+		bar = cong {f=flip} etaConv_miscBetaRed
 		baz1 : (\c => f c) = flip ( flip (\c => f c) )
 		baz1 = sym flipIsInvolutionExtensional
 		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
