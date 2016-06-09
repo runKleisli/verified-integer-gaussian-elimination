@@ -32,9 +32,10 @@ eta f = sym Refl
 
 flipIsInvolutionExtensional : flip (flip f) = f
 
-foo : (f : a -> b -> c) -> (\d => flip (\c => f c) d) = (\e => flip (\c => \d => f c d) e)
+miscBetaReduction : (f : a -> b -> c) -> (\d => flip (\c => f c) d) = (\e => flip (\c => \d => f c d) e)
 -- exact Refl works in the REPL. What's going on?
-foo = ?miscBetaReduction'
+-- miscBetaReduction f = sym Refl
+miscBetaReduction = ?miscBetaReduction'
 
 {-
 -- INTERNAL ERROR: No trivial solution
@@ -49,7 +50,7 @@ etaBinary f = trans (eta f) $ trans baz1 $ trans bar2 baz2
 		foo2 : (\e => flip (\c => \d => f c d) e) = flip (\c => \d => f c d)
 		foo2 = sym $ eta _
 		fooTrans : (\d => flip (\c => f c) d) = flip (\c => \d => f c d)
-		fooTrans = trans (foo f) foo2
+		fooTrans = trans (miscBetaReduction f) foo2
 		bar : flip (\c => f c) = flip (\c => \d => f c d)
 		bar = trans (eta _) fooTrans
 		-- bar2 : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
