@@ -199,8 +199,8 @@ headOfSumIsSumOfHeads_Z_pr = proof
 mutual
 	tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
 	tailOfSumIsSumOfTails {vs=[]} = Refl
--- 	tailOfSumIsSumOfTails {vs=v::vs} = ?tailOfSumIsSumOfTails'
-	tailOfSumIsSumOfTails {vs=v::vs} {predw} ?= trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStep {v=v} {vs=vs})
+	-- tailOfSumIsSumOfTails {vs=v::vs} ?= trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStepHuman {v=v} {vs=vs})
+	tailOfSumIsSumOfTails {vs=v::vs} = trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStep {v=v} {vs=vs})
 
 	{-
 	-- Works in REPL but complains on loading, as usual
@@ -230,9 +230,20 @@ mutual
 			lem3 : foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) (map tail vs) = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (Data.Vect.zipWith {n=predw} plusZ (tail v)) (map tail vs)
 			lem3 ?= cong {f=f1} lem1
 
-	tailsumMonrecStep : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	tailsumMonrecStep {v} {vs} {predw} = ?tailsumMonrecStep'
+	-- see tailsumMonrecStepHuman for human-readable version of this proposition
+	tailsumMonrecStep : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (\meth3 => \meth4 => zipWith (\meth1 => \meth2 => Data.ZZ.plusZ meth1 meth2) meth3 meth4) (replicate predw (Pos 0)) (\x => zipWith (\meth1 => \meth2 => Data.ZZ.plusZ meth1 meth2) (tail v) x) (map tail vs)
+	tailsumMonrecStep {v} {vs} = ?tailsumMonrecStep'
 	tailsumMonrecStep' = proof
+		intros
+		rewrite sym (headtails v)
+		rewrite sym (headtails $ monoidsum vs)
+		compute
+		exact monoidsumOverTailChariz {v=v} {vs=vs}
+
+	-- human-readable version of tailsumMonrecStep
+	tailsumMonrecStepHuman : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
+	tailsumMonrecStepHuman {v} {vs} = ?tailsumMonrecStepHuman'
+	tailsumMonrecStepHuman' = proof
 		intros
 		rewrite sym (headtails v)
 		rewrite sym (headtails $ monoidsum vs)
