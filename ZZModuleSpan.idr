@@ -41,11 +41,11 @@ flipBetaReduction = ?flipBetaReduction'
 etaBinary : (f : a -> b -> c) -> f = (\c => \d => f c d)
 etaBinary f = trans (eta f) $ trans baz1 $ trans bar baz2
 	where
-		etaConv_miscBetaRed : flip (\c => f c) = flip (\c => \d => f c d)
-		etaConv_miscBetaRed = trans (eta _) (trans (flipBetaReduction f) (sym $ eta _))
+		etaConv_flipBetaRed : flip (\c => f c) = flip (\c => \d => f c d)
+		etaConv_flipBetaRed = trans (eta _) (trans (flipBetaReduction f) (sym $ eta _))
 		-- bar : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
 		bar : flip ( flip (\c => f c) ) = flip ( flip (\c => \d => f c d) )
-		bar = cong {f=flip} etaConv_miscBetaRed
+		bar = cong {f=flip} etaConv_flipBetaRed
 		baz1 : (\c => f c) = flip ( flip (\c => f c) )
 		baz1 = sym flipIsInvolutionExtensional
 		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
@@ -233,8 +233,8 @@ mutual
 	-}
 
 	-- Junk from eta reductions done in REPL but not in normal type checking.
-	etaCon_tailsumMonrecStepExpr1 : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	etaCon_tailsumMonrecStepExpr1 {v} {vs} {predw} = trans lem2 lem3
+	etaCon_tailsumMonrecStepExpr : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
+	etaCon_tailsumMonrecStepExpr {v} {vs} {predw} = trans lem2 lem3
 		where
 			f0 : (Vect predw ZZ -> Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
 			f0 x = foldrImpl x (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
@@ -268,7 +268,7 @@ mutual
 		rewrite sym (headtails $ monoidsum vs)
 		compute
 		-- This plus eta reductions: exact monoidsumOverTailChariz {v=v} {vs=vs}
-		exact trans (monoidsumOverTailChariz {v=v} {vs=vs}) (etaCon_tailsumMonrecStepExpr1 {v=v} {vs=vs})
+		exact trans (monoidsumOverTailChariz {v=v} {vs=vs}) (etaCon_tailsumMonrecStepExpr {v=v} {vs=vs})
 
 	monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
 	monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} ) $
@@ -532,6 +532,7 @@ compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {v
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
 rewriteZipWithUnderTail : {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ} -> map Data.Vect.tail $ Data.Vect.zipWith (<#>) scals vects = Data.Vect.zipWith (<#>) scals (map Data.Vect.tail vects)
+rewriteZipWithUnderTail = ?rewriteZipWithUnderTail'
 
 compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = tail $ monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem3 {predw=Z} {n} = zeroVecEq
