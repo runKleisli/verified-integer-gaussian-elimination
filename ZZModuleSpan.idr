@@ -32,29 +32,9 @@ eta f = sym Refl
 
 flipIsInvolutionExtensional : flip (flip f) = f
 
--- miscBetaReduction' needs to be proved and it's trivial in the REPL :'(
-etaBinary : (f : a -> b -> c) -> f = (\c => \d => f c d)
-etaBinary f = trans (eta f) $ trans baz1 $ trans bar2 baz2
-	where
-		-- This progression is sloppy. Invert the directionality of foo & foo2.
-		foo : (\e => flip (\c => \d => f c d) e) = (\d => flip (\c => f c) d)
-		-- exact Refl works in the REPL. What's going on?
-		foo = ?miscBetaReduction'
-		foo2 : flip (\c => \d => f c d) = (\e => flip (\c => \d => f c d) e)
-		foo2 = eta _
-		fooTrans : flip (\c => \d => f c d) = (\d => flip (\c => f c) d)
-		fooTrans = trans foo2 foo
-		etaConvdFoo : flip (\c => \d => f c d) = flip (\c => f c)
-		etaConvdFoo = trans fooTrans (eta _)
-		bar : flip (\c => f c) = flip (\c => \d => f c d)
-		bar = sym etaConvdFoo
-		-- bar2 : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
-		bar2 : flip ( flip (\c => f c) ) = flip ( flip (\c => \d => f c d) )
-		bar2 = cong {f=flip} bar
-		baz1 : (\c => f c) = flip ( flip (\c => f c) )
-		baz1 = sym flipIsInvolutionExtensional
-		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
-		baz2 = flipIsInvolutionExtensional
+foo : (f : a -> b -> c) -> (\d => flip (\c => f c) d) = (\e => flip (\c => \d => f c d) e)
+-- exact Refl works in the REPL. What's going on?
+foo = ?miscBetaReduction'
 
 {-
 -- INTERNAL ERROR: No trivial solution
@@ -62,6 +42,23 @@ miscBetaReduction' = proof
 	intros
 	trivial
 -}
+
+etaBinary : (f : a -> b -> c) -> f = (\c => \d => f c d)
+etaBinary f = trans (eta f) $ trans baz1 $ trans bar2 baz2
+	where
+		foo2 : (\e => flip (\c => \d => f c d) e) = flip (\c => \d => f c d)
+		foo2 = sym $ eta _
+		fooTrans : (\d => flip (\c => f c) d) = flip (\c => \d => f c d)
+		fooTrans = trans (foo f) foo2
+		bar : flip (\c => f c) = flip (\c => \d => f c d)
+		bar = trans (eta _) fooTrans
+		-- bar2 : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
+		bar2 : flip ( flip (\c => f c) ) = flip ( flip (\c => \d => f c d) )
+		bar2 = cong {f=flip} bar
+		baz1 : (\c => f c) = flip ( flip (\c => f c) )
+		baz1 = sym flipIsInvolutionExtensional
+		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
+		baz2 = flipIsInvolutionExtensional
 
 
 
