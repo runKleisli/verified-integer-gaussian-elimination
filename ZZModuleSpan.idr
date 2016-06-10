@@ -532,18 +532,26 @@ compressMonoidsum_lem2 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {v
 compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
 rewriteZipWithUnderTail : {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ} -> map Data.Vect.tail $ Data.Vect.zipWith (<#>) scals vects = Data.Vect.zipWith (<#>) scals (map Data.Vect.tail vects)
-rewriteZipWithUnderTail = ?rewriteZipWithUnderTail'
+rewriteZipWithUnderTail {scals=[]} {vects=[]} = Refl
+rewriteZipWithUnderTail {scals=z::zs} {vects=v::vs} = ?rewriteZipWithUnderTail'
+
+rewriteZipWithUnderTail' = proof
+  intros
+  let headv = map (z <.>) (tail v)
+  exact trans _ (cong {f=(headv::)} $ rewriteZipWithUnderTail {scals=zs} {vects=vs})
+  claim headeq tail (map (z<.>) v) = headv
+  compute -- reduce the headv in the proposition to its value for prepping substitution
+  unfocus
+  rewrite sym headeq
+  compute -- apply the (\x => headv::x) from the earlier cong
+  exact Refl
+  rewrite sym $ headtails v
+  exact Refl
 
 compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = tail $ monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem3 {predw=Z} {n} = zeroVecEq
 compressMonoidsum_lem3 {predw=S predpredw} {n=Z} = ?compressMonoidsum_lem3_rhs_majZ
 compressMonoidsum_lem3 {predw=S predpredw} {n=S predn} {scals} {vects} = trans (cong {f=monoidsum} $ sym rewriteZipWithUnderTail) (sym tailOfSumIsSumOfTails)
-{-
-compressMonoidsum_lem3_rhs_majSminArb = proof
-  intros
-  exact trans (cong {f=monoidsum} $ sym $ rewriteZipWithUnderTail {scals=scals} {vects=vects}) _
-  exact believe_me "assas
--}
 
 compressMonoidsum_lem3_rhs_majZ = proof
   intros
