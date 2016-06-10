@@ -552,12 +552,6 @@ compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {v
 compressMonoidsum_lem3 {predw=Z} {n} = zeroVecEq
 compressMonoidsum_lem3 {predw=S predpredw} {n=Z} = ?compressMonoidsum_lem3_rhs_majZ
 compressMonoidsum_lem3 {predw=S predpredw} {n=S predn} {scals} {vects} = trans (cong {f=monoidsum} $ sym rewriteZipWithUnderTail) (sym tailOfSumIsSumOfTails)
-{-
-compressMonoidsum_lem3_rhs_majSminArb = proof
-  intros
-  exact trans (cong {f=monoidsum} $ sym $ rewriteZipWithUnderTail {scals=scals} {vects=vects}) _
-  exact believe_me "assas
--}
 
 compressMonoidsum_lem3_rhs_majZ = proof
   intros
