@@ -428,7 +428,10 @@ zippyLemB {w = S n} = cong (zippyLemB {w=n})
 
 
 timesVectMatAsLinearCombo_EntryCharizLeft : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> head (v <\> xs) = monoidsum $ zipWith (*) v (map head xs)
-timesVectMatAsLinearCombo_EntryCharizLeft = ?timesVectMatAsLinearCombo_EntryCharizLeft'
+timesVectMatAsLinearCombo_EntryCharizLeft [] [] = Refl
+-- Order of definitions issue - below line should be uncommented, line below it eliminated along with proof, and this whole section moved below the definition of timesVectMatAsHeadTail_ByTransposeElimination, requiring many declarations to move.
+-- timesVectMatAsLinearCombo_EntryCharizLeft (vv::vvs) (xx::xxs) = cong {f=head} $ timesVectMatAsHeadTail_ByTransposeElimination {scals=(vv::vvs)} {vects=(xx::xxs)}
+timesVectMatAsLinearCombo_EntryCharizLeft (vv::vvs) (xx::xxs) = ?timesVectMatAsLinearCombo_EntryCharizLeft'
 
 -- Reduce addition over (Vect n ZZ) to entrywise addition over ZZ to change (head.monoidsum) into (monoidsum.(map head)).
 timesVectMatAsLinearCombo_EntryCharizRight : (v : Vect n ZZ) -> (xs : Matrix n (S predw) ZZ) -> monoidsum $ zipWith (*) v (map head xs) = head $ monoidsum (zipWith (<#>) v xs)
@@ -570,6 +573,12 @@ compressMonoidsum = ?compressMonoidsum'
 compressMonoidsum' = proof
 	intros
 	exact trans (compressMonoidsum_lem1 {scals=scals} {vects=vects}) compressMonoidsum_lem2
+
+
+
+timesVectMatAsLinearCombo_EntryCharizLeft' = proof
+  intros
+  exact cong {f=head} $ timesVectMatAsHeadTail_ByTransposeElimination {scals=(vv::vvs)} {vects=(xx::xxs)}
 
 
 
