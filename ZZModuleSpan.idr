@@ -627,6 +627,21 @@ timesVectMatAsLinearCombo' = proof
 
 
 
+timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = monoidsum $ zipWith (<#>) (Data.Vect.head vs) xs
+timesMatMatAsMultipleLinearCombos_EntryChariz vs xs = rewrite sym (timesVectMatAsLinearCombo (head vs) xs) in (timesMatMatAsTVecMat_EntryChariz vs xs)
+
+timesMatMatAsMultipleLinearCombos : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> vs <> xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
+timesMatMatAsMultipleLinearCombos {n'=Z} (v::[]) xs = cong {f=(::[])} (timesMatMatAsMultipleLinearCombos_EntryChariz (v::[]) xs)
+timesMatMatAsMultipleLinearCombos {n'=S predn'} (v::vs) xs = ?timesMatMatAsMultipleLinearCombos'
+
+timesMatMatAsMultipleLinearCombos' = proof
+	intros
+	rewrite sym $ headtails ((v::vs)<>xs)
+	rewrite sym $ timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs
+	exact cong {f=(( monoidsum $ zipWith (<#>) v xs )::)} $ timesMatMatAsMultipleLinearCombos vs xs
+
+
+
 {-
 Labels (xs, ys) aren't depended on for values, they're just hints, used cause
 
