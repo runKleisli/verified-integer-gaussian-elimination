@@ -413,17 +413,17 @@ zippyScale = (<>)
 zippyIntermed : Vect n ZZ -> Matrix n w ZZ -> Vect w ZZ
 zippyIntermed = (<\>)
 
-timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = (Data.Vect.head vs) <\> xs
-timesMatMatAsMultipleLinearCombos_EntryChariz vs [] = ?timesMatMatAsMultipleLinearCombos_EntryCharizTriv
-timesMatMatAsMultipleLinearCombos_EntryChariz vs (xx::xxs) = ?timesMatMatAsMultipleLinearCombos_EntryChariz'
+timesMatMatAsTVecMat_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = (Data.Vect.head vs) <\> xs
+timesMatMatAsTVecMat_EntryChariz vs [] = ?timesMatMatAsTVecMat_EntryCharizTriv
+timesMatMatAsTVecMat_EntryChariz vs (xx::xxs) = ?timesMatMatAsTVecMat_EntryChariz'
 
-timesMatMatAsMultipleLinearCombos_EntryCharizTriv = proof
+timesMatMatAsTVecMat_EntryCharizTriv = proof
   intros
   rewrite sym $ headtails vs
   rewrite sym $ zeroVecVecId vs
   exact Refl
 
-timesMatMatAsMultipleLinearCombos_EntryChariz' = proof
+timesMatMatAsTVecMat_EntryChariz' = proof
   intros
   rewrite sym $ headtails vs
   exact Refl
@@ -624,6 +624,21 @@ timesVectMatAsLinearCombo_analysis0' = proof
 timesVectMatAsLinearCombo' = proof
   intros
   exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (timesVectMatAsLinearCombo_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
+
+
+
+timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = monoidsum $ zipWith (<#>) (Data.Vect.head vs) xs
+timesMatMatAsMultipleLinearCombos_EntryChariz vs xs = rewrite sym (timesVectMatAsLinearCombo (head vs) xs) in (timesMatMatAsTVecMat_EntryChariz vs xs)
+
+timesMatMatAsMultipleLinearCombos : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> vs <> xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
+timesMatMatAsMultipleLinearCombos {n'=Z} (v::[]) xs = cong {f=(::[])} (timesMatMatAsMultipleLinearCombos_EntryChariz (v::[]) xs)
+timesMatMatAsMultipleLinearCombos {n'=S predn'} (v::vs) xs = ?timesMatMatAsMultipleLinearCombos'
+
+timesMatMatAsMultipleLinearCombos' = proof
+	intros
+	rewrite sym $ headtails ((v::vs)<>xs)
+	rewrite sym $ timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs
+	exact cong {f=(( monoidsum $ zipWith (<#>) v xs )::)} $ timesMatMatAsMultipleLinearCombos vs xs
 
 
 
