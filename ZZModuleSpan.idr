@@ -413,17 +413,17 @@ zippyScale = (<>)
 zippyIntermed : Vect n ZZ -> Matrix n w ZZ -> Vect w ZZ
 zippyIntermed = (<\>)
 
-timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = (Data.Vect.head vs) <\> xs
-timesMatMatAsMultipleLinearCombos_EntryChariz vs [] = ?timesMatMatAsMultipleLinearCombos_EntryCharizTriv
-timesMatMatAsMultipleLinearCombos_EntryChariz vs (xx::xxs) = ?timesMatMatAsMultipleLinearCombos_EntryChariz'
+timesMatMatAsTVecMat_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> Data.Vect.head (vs <> xs) = (Data.Vect.head vs) <\> xs
+timesMatMatAsTVecMat_EntryChariz vs [] = ?timesMatMatAsTVecMat_EntryCharizTriv
+timesMatMatAsTVecMat_EntryChariz vs (xx::xxs) = ?timesMatMatAsTVecMat_EntryChariz'
 
-timesMatMatAsMultipleLinearCombos_EntryCharizTriv = proof
+timesMatMatAsTVecMat_EntryCharizTriv = proof
   intros
   rewrite sym $ headtails vs
   rewrite sym $ zeroVecVecId vs
   exact Refl
 
-timesMatMatAsMultipleLinearCombos_EntryChariz' = proof
+timesMatMatAsTVecMat_EntryChariz' = proof
   intros
   rewrite sym $ headtails vs
   exact Refl
