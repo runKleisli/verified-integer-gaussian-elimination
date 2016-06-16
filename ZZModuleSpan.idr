@@ -191,16 +191,65 @@ spansltrans xs ys
 
 
 
+
+-- Something like this, but not.
+spanslzTail : {xs : Matrix (S predn) w ZZ} -> {ys : Matrix (S predn') w ZZ} -> spanslz xs ys -> spanslz (Data.Vect.tail xs) (Data.Vect.tail ys)
+spanslzTail {xs} {ys} (vs ** prvs) = ?spanslzTail'
+	where
+		tailnote : tail ys = map (\zs => monoidsum (zipWith (<#>) zs xs)) (tail vs)
+		tailnote = ?tailnote'
+		{-
+		tailnote' = proof
+		  intros
+		  exact trans (cong {f=Data.Vect.tail} $ sym prvs) _
+		  rewrite sym $ headtails vs
+		  exact Refl
+		-}
+
+spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
+spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
+{-
+spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = cong {f=([]::)} (spannedlzByZeroId (tailedSpan (v::vs) (x::xs) prvs))
+	where
+		tailedSpan : (scals : Matrix (S _) (S _) ZZ) -> (vects : Matrix (S _) (S _) ZZ) -> scals `zippyScale` vects = rslt -> (tail scals) `zippyScale` (tail vects) = tail rslt
+		-- Not coherent! Should recurse somehow, though. Urgh.
+		-- Okay. Well the construction which replaces (xs) with its (tail) and produces a (spanslz) of the tail from one for (xs) would not actually take (v::vs) as an argument, it would take the (spanslz) for xs.
+-}
+{-
+spannedlzByZeroId {m} {xs} (vs ** prvs) with (vs `zippyScale` (the (Matrix _ m ZZ) []))
+	| va = rewrite sym (zeroVecVecId vs) in (the (va = xs) Refl)
+-}
+-- spannedlzByZeroId {xs} (vs ** prvs) = ?spannedlzByZeroId'
+-- spannedlzByZeroId {xs} (vs ** prvs) = rewrite sym (zeroVecVecId vs) in prvs
+
+
+
 {-
 Implicit naturals must be passed to the (spanslz)s in this type signature for the types of (vsx) in (the (spanslz xs ys) (vsx ** prvsx)) and (vsy) in (the (spanslz ys zs) (vsy ** prvsy)) to be inferred, even when these parameters are summoned in the definition.
 -}
 spanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> spanslz {n=na} {n'=ni} xs ys -> spanslz {n=ni} {n'=nu} ys zs -> spanslz xs zs
-spanslztrans {na} {ni} {nu} {m} {xs} {zs} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** spanslztrans_linearcombprop )
+spanslztrans {na=Z} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztrans_trivial_1
+spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** spanslztrans_linearcombprop )
 	where
 		spanslztrans_matrix : Matrix nu na ZZ
 		spanslztrans_matrix = vsy <> vsx
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
 		spanslztrans_linearcombprop = ?spanslztrans_linearcombprop'
+
+{-
+Have to plan the order of the rewrites just right so that you can apply (zeroVecVecId vsx) to the result of the (prvsx) substitution.
+Would be more efficient to show the 0-matrix-spanned theorem required.
+
+spanslztrans_trivial_1 = proof
+  intros
+  rewrite sym $ zeroVecEq {a=xs} {b=[]}
+  exact (replicate nu [] ** _)
+  compute
+  rewrite sym prvsy
+  rewrite sym prvsx
+  exact believe_me "qed"
+-}
+
 {-
 For reference to the types and proof intentions
 
