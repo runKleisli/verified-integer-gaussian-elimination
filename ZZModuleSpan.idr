@@ -155,7 +155,9 @@ spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys)
 Proof of relational properties of span
 
 i.e.,
-Relational: equivalence relation axioms
+Relational:
+* equivalence relation axioms
+* spanned by implies tail spanned by
 Algebraic: gcd and lcm divisibility relationships via Bezout's identity
 -}
 
@@ -191,30 +193,21 @@ spansltrans xs ys
 
 
 
-
--- Something like this, but not.
-spanslzTail : {xs : Matrix (S predn) w ZZ} -> {ys : Matrix (S predn') w ZZ} -> spanslz xs ys -> spanslz (Data.Vect.tail xs) (Data.Vect.tail ys)
-spanslzTail {xs} {ys} (vs ** prvs) = ?spanslzTail'
+spanslzTail : {xs : Matrix n w ZZ} -> {ys : Matrix (S predn') w ZZ} -> spanslz xs ys -> spanslz xs (Data.Vect.tail ys)
+spanslzTail {xs} {ys} (vs ** prvs) = (tail vs ** tailnote)
 	where
-		tailnote : tail ys = map (\zs => monoidsum (zipWith (<#>) zs xs)) (tail vs)
-		tailnote = ?tailnote'
-		{-
-		tailnote' = proof
-		  intros
-		  exact trans (cong {f=Data.Vect.tail} $ sym prvs) _
-		  rewrite sym $ headtails vs
-		  exact Refl
-		-}
+		tailnote : map (\zs => monoidsum (zipWith (<#>) zs xs)) (tail vs) = tail ys
+		tailnote = sym ?tailnote'
+
+tailnote' = proof
+  intros
+  exact trans (cong {f=Data.Vect.tail} $ sym prvs) _
+  rewrite sym $ headtails vs
+  exact Refl
 
 spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
 spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
-{-
-spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = cong {f=([]::)} (spannedlzByZeroId (tailedSpan (v::vs) (x::xs) prvs))
-	where
-		tailedSpan : (scals : Matrix (S _) (S _) ZZ) -> (vects : Matrix (S _) (S _) ZZ) -> scals `zippyScale` vects = rslt -> (tail scals) `zippyScale` (tail vects) = tail rslt
-		-- Not coherent! Should recurse somehow, though. Urgh.
-		-- Okay. Well the construction which replaces (xs) with its (tail) and produces a (spanslz) of the tail from one for (xs) would not actually take (v::vs) as an argument, it would take the (spanslz) for xs.
--}
+-- spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = cong {f=(_::)} (spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
 {-
 spannedlzByZeroId {m} {xs} (vs ** prvs) with (vs `zippyScale` (the (Matrix _ m ZZ) []))
 	| va = rewrite sym (zeroVecVecId vs) in (the (va = xs) Refl)
