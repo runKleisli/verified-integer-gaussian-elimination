@@ -195,11 +195,12 @@ spansltrans xs ys
 Implicit naturals must be passed to the (spanslz)s in this type signature for the types of (vsx) in (the (spanslz xs ys) (vsx ** prvsx)) and (vsy) in (the (spanslz ys zs) (vsy ** prvsy)) to be inferred, even when these parameters are summoned in the definition.
 -}
 spanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> spanslz {n=na} {n'=ni} xs ys -> spanslz {n=ni} {n'=nu} ys zs -> spanslz xs zs
-spanslztrans {na} {ni} {nu} {m} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** ?spanslztrans_linearcombprop )
+spanslztrans {na} {ni} {nu} {m} {xs} {zs} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** spanslztrans_linearcombprop )
 	where
 		spanslztrans_matrix : Matrix nu na ZZ
 		spanslztrans_matrix = vsy <> vsx
--- spanslztrans (vsx ** prvsx) (vsy ** prvsy) = ( vsx <> vsy ** ?wahahaha )
+		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
+		spanslztrans_linearcombprop = ?spanslztrans_linearcombprop'
 {-
 For reference to the types and proof intentions
 
