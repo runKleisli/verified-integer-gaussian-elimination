@@ -205,8 +205,35 @@ tailnote' = proof
   rewrite sym $ headtails vs
   exact Refl
 
+vecHeadtailsEq : {xs,ys : Vect _ _} -> ( headeq : x = y ) -> ( taileq : xs = ys ) -> x::xs = y::ys
+vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq) $ cong {f=(::ys)} headeq
+-- Also a solid proof:
+-- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
+
 spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
 spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
+spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = ?spannedlzByZeroId'
+
+spannedlzByZeroId' = proof
+  intros
+  exact vecHeadtailsEq (trans (sym $ cong {f=head} prvs) _) (spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
+  rewrite sym $ zeroVecEq {a=v} {b=[]}
+  exact Refl
+
+{-
+-- Works in REPL,
+-- if this is a little clearer.
+-- Difference is probably in inferring different implicit arguments to vecHeadtailsEq.
+spannedlzByZeroId' = proof
+  intros
+  exact vecHeadtailsEq _ (spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
+  exact trans (sym $ cong {f=head} prvs) _
+  -- compute
+  rewrite sym $ zeroVecEq {a=v} {b=[]}
+  -- compute
+  exact Refl
+-}
+
 -- spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = cong {f=(_::)} (spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
 {-
 spannedlzByZeroId {m} {xs} (vs ** prvs) with (vs `zippyScale` (the (Matrix _ m ZZ) []))
