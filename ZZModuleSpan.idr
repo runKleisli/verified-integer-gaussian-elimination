@@ -247,12 +247,38 @@ Implicit naturals must be passed to the (spanslz)s in this type signature for th
 -}
 spanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> spanslz {n=na} {n'=ni} xs ys -> spanslz {n=ni} {n'=nu} ys zs -> spanslz xs zs
 spanslztrans {na=Z} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztrans_trivial_1
+	where
+		knwoledge : ys = neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
+		knwoledge = spannedlzByZeroId $ replace {P=\t => spanslz t ys} (zeroVecEq {a=xs} {b=[]}) (vsx ** prvsx)
+		{-
+		-- Don't need this, really, but it took effort to make. Technique precedes that for above.
+		spanxy' : spanslz xs ys
+		spanxy' = ( replicate ni [] ** replace {P=\hah => hah `zippyScale` xs = ys} (zeroVecVecId vsx) prvsx )
+		-}
+
 spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** spanslztrans_linearcombprop )
 	where
 		spanslztrans_matrix : Matrix nu na ZZ
 		spanslztrans_matrix = vsy <> vsx
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
 		spanslztrans_linearcombprop = ?spanslztrans_linearcombprop'
+
+{-
+In spanslztrans_trivial_1:
+
+spanslztrans {na=Z} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztrans_trivial_1
+
+REPL refuses to let us use our knowledge that (vsx = replicate ni 0) based on its type to rewrite the type of prvsx so we can extend this knowledge to a (spanslz) in (replicate ni 0) rather than (vsx).
+
+---
+
+spanslztrans_trivial_1> :t the (spanslz xs ys) ( (replicate ni []) ** replace {P=\hah => hah `zippyScale` xs = ys} (zeroVecVecId vsx) prvsx )
+
+(input):Type mismatch between
+        Vect m ZZ
+and
+        Vect (\ARG => multZ meth ARG) ZZ
+-}
 
 {-
 Have to plan the order of the rewrites just right so that you can apply (zeroVecVecId vsx) to the result of the (prvsx) substitution.
