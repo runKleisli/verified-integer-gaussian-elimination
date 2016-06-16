@@ -13,6 +13,17 @@ import Control.Algebra.NumericInstances
 
 
 {-
+Trivial lemmas
+-}
+
+vecHeadtailsEq : {xs,ys : Vect _ _} -> ( headeq : x = y ) -> ( taileq : xs = ys ) -> x::xs = y::ys
+vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq) $ cong {f=(::ys)} headeq
+-- Also a solid proof:
+-- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
+
+
+
+{-
 Definitions:
 * Verified module
 * Verified vector space
@@ -204,11 +215,6 @@ tailnote' = proof
   exact trans (cong {f=Data.Vect.tail} $ sym prvs) _
   rewrite sym $ headtails vs
   exact Refl
-
-vecHeadtailsEq : {xs,ys : Vect _ _} -> ( headeq : x = y ) -> ( taileq : xs = ys ) -> x::xs = y::ys
-vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq) $ cong {f=(::ys)} headeq
--- Also a solid proof:
--- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
 
 spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
 spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
