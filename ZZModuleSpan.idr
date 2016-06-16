@@ -34,6 +34,8 @@ class (VerifiedRingWithUnity a, VerifiedAbelianGroup b, Module a b) => VerifiedM
 instance [vectModule] Module a b => Module a (Vect n b) where
 	(<#>) r = map (r <#>)
 
+-- instance [matTimesMonoid] VerifiedRing r => VerifiedMonoid (Matrix n n r) where
+
 
 
 {-
@@ -96,24 +98,23 @@ spansl xs ys = (vs : [[ZZ]] ** zipWithShort (<:> xs) vs = ys)
 	where zipWithShort f as bs = let len = minimum (length as length bs) in Data.VectType.Vect.zipWith f (take len as) (take len bs)
 -}
 
-zippyScale : Matrix n' n ZZ -> Matrix n w ZZ -> Matrix n' w ZZ
-zippyScale = (<>)
 
--- Goal here : show that (<>) satisfies the property that the first argument scales the vectors of the second argument in n' various ways.
--- This proof is only a hint at our reason for using (<>) to implement linear combination.
--- Thus, it is a proof for the humans that the definition of linear combination as matrix multiplication is satisfactory, not for the computers.
--- We could have some sort of `because`:=`const` to annotate, though it adds overhead.
-zippyIntermed : Vect n ZZ -> Matrix n w ZZ -> Vect w ZZ
-zippyIntermed = (<\>)
+
+{-
+Same as above, but for lists of ZZ vectors specifically.
+-}
+
+
+
+zippyScale : Matrix n' n ZZ -> Matrix n w ZZ -> Matrix n' w ZZ
+zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
 
 
 
 {-
-Labels (xs, ys) aren't depended on for values, they're just hints, used cause
+This error seems no more. Cause of switching from 0.9.18 to 0.9.20? Cause of changing the definition of zippyScale to use linear combinations instead of (<>)?
 
-	%name Matrix xs, ys
-
-doesn't work.
+---
 
 Type must be given by a proof, because
 
@@ -121,13 +122,32 @@ Type must be given by a proof, because
 	spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys)
 
 alone will just split the (n, n') in the declaration / theorem stmt from some n'1 in the definition / proof.
--}
-spanslz : (xs : Matrix n w ZZ) -> (ys : Matrix n' w ZZ) -> Type
+
+-----
+
+As implemented
+Originally problematic
+---
+spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys)
+
+-----
+
+Proof fix
+---
 spanslz = ?spanslz'
 spanslz' = proof
 	intros
 	exact (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys)
-{- spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys) -}
+
+-----
+
+Alternative fix, untested
+---
+spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** zippyScale {n'=n'} {n=n} vs xs = ys)
+
+-}
+spanslz : (xs : Matrix n w ZZ) -> (ys : Matrix n' w ZZ) -> Type
+spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys)
 
 
 
@@ -169,8 +189,29 @@ spansltrans : spansl xs ys -> spansl ys zs -> spansl xs zs
 spansltrans xs ys
 -}
 
+
+
 {-
-spanslztrans : {n : Nat} -> {n' : Nat} -> {xs : Matrix n m ZZ} -> {ys : Matrix n' m ZZ} -> spanslz xs ys -> spanslz ys zs -> spanslz xs zs
--- spanslztrans (vsx ** prvsx) (vsy ** prvsy) = ?spanslztransPr
+Implicit naturals must be passed to the (spanslz)s in this type signature for the types of (vsx) in (the (spanslz xs ys) (vsx ** prvsx)) and (vsy) in (the (spanslz ys zs) (vsy ** prvsy)) to be inferred, even when these parameters are summoned in the definition.
+-}
+spanslztrans : {xs : Matrix n m ZZ} -> {ys : Matrix n' m ZZ} -> {zs : Matrix n'' m ZZ} -> spanslz {n=n} {n'=n'} xs ys -> spanslz {n=n'} {n'=n''} ys zs -> spanslz xs zs
+spanslztrans {n} {n'} {n''} {m} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** ?spanslztrans_linearcombprop )
+	where
+		spanslztrans_matrix : Matrix n'' n ZZ
+		spanslztrans_matrix = ?spanslztrans_matrix'
+		-- spanslztrans_matrix = vsy <> vsx
+-- spanslztrans (vsx ** prvsx) (vsy ** prvsy) = ( vsx <> vsy ** ?wahahaha )
+{-
+For reference to the types and proof intentions
+
+---
+
+spanslztrans {n} {n'} {n''} {m} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztransPr
+	where
+		vsyTyper : Matrix n'' n' ZZ
+		vsyTyper = vsy
+
+---
+
 spanslztrans {n} {n'} {xs} {ys} (vsx ** prvsx) (vsy ** prvsy) = ( the (Vect n' (Vect n ZZ)) _ ** rewrite sym prvsx in prvsy )
 -}
