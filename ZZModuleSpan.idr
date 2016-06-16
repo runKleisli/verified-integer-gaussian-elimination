@@ -240,14 +240,6 @@ spannedlzByZeroId' = proof
   exact Refl
 -}
 
--- spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = cong {f=(_::)} (spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
-{-
-spannedlzByZeroId {m} {xs} (vs ** prvs) with (vs `zippyScale` (the (Matrix _ m ZZ) []))
-	| va = rewrite sym (zeroVecVecId vs) in (the (va = xs) Refl)
--}
--- spannedlzByZeroId {xs} (vs ** prvs) = ?spannedlzByZeroId'
--- spannedlzByZeroId {xs} (vs ** prvs) = rewrite sym (zeroVecVecId vs) in prvs
-
 
 
 {-
