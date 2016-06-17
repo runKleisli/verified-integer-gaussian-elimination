@@ -45,7 +45,50 @@ class (VerifiedRingWithUnity a, VerifiedAbelianGroup b, Module a b) => VerifiedM
 instance [vectModule] Module a b => Module a (Vect n b) where
 	(<#>) r = map (r <#>)
 
--- instance [matTimesMonoid] VerifiedRing r => VerifiedMonoid (Matrix n n r) where
+
+
+{-
+Definition:
+* Monoid/VerifiedMonoid instance matTimesMonoid/matTimesVerMonoid for matrix multiplication
+As desired in Data.Matrix.Algebraic
+
+-----
+
+When checking right hand side of matTimesVerSemigroup' with expected type
+        VerifiedSemigroup (Vect n (Vect n r))
+
+Can't resolve type class Semigroup (Vect n (Vect n r))
+
+-----
+
+instance [matTimesSemigroup] Ring r => Semigroup (Matrix n n r) where {}
+
+matTimesMonoid : Ring r => with matTimesSemigroup (Monoid (Matrix n n r))
+matTimesMonoid {r} {n} = ?matTimesMonoid'
+
+matTimesVerSemigroup : VerifiedRing r => with matTimesSemigroup (VerifiedSemigroup (Matrix n n r))
+matTimesVerSemigroup {r} {n} = matTimesVerSemigroup'
+	where
+		instance [matTimesVerSemigroup'] VerifiedSemigroup (Matrix n n r) where {
+				semigroupOpIsAssociative = ?semigroupOpIsAssociative_matTimesVerSemigroup
+			}
+
+matTimesVerMonoid : VerifiedRing r => with matTimesVerSemigroup (VerifiedMonoid (Matrix n n r))
+matTimesVerMonoid {r} {n} = matTimesVerMonoid'
+	where
+		instance [matTimesVerMonoid'] VerifiedMonoid (Matrix n n r) where {
+			monoidNeutralIsNeutralL = ?monoidNeutralIsNeutralL_matTimesVerMonoid
+			monoidNeutralIsNeutralR = ?monoidNeutralIsNeutralR_matTimesVerMonoid
+		}
+-}
+
+
+
+{-
+Associative property for matrix multiplication
+-}
+
+timesMatMatIsAssociative : Ring r => {l : Matrix _ _ r} -> {c : Matrix _ _ r} -> {r : Matrix _ _ r} -> l <> (c <> r) = l <> c <> r
 
 
 
