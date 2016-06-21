@@ -292,66 +292,10 @@ spannedlzByZeroId' = proof
 Implicit naturals must be passed to the (spanslz)s in this type signature for the types of (vsx) in (the (spanslz xs ys) (vsx ** prvsx)) and (vsy) in (the (spanslz ys zs) (vsy ** prvsy)) to be inferred, even when these parameters are summoned in the definition.
 -}
 spanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> spanslz {n=na} {n'=ni} xs ys -> spanslz {n=ni} {n'=nu} ys zs -> spanslz xs zs
-{-
-spanslztrans {na=Z} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztrans_trivial_1
-	where
-		knwoledge : ys = neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
-		knwoledge = spannedlzByZeroId $ replace {P=\t => spanslz t ys} (zeroVecEq {a=xs} {b=[]}) (vsx ** prvsx)
-		{-
-		-- Don't need this, really, but it took effort to make. Technique precedes that for above.
-		spanxy' : spanslz xs ys
-		spanxy' = ( replicate ni [] ** replace {P=\hah => hah `zippyScale` xs = ys} (zeroVecVecId vsx) prvsx )
-		-}
--}
+
 spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** spanslztrans_linearcombprop )
 	where
 		spanslztrans_matrix : Matrix nu na ZZ
 		spanslztrans_matrix = vsy <> vsx
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
 		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {xs=vsy} {ys=vsx} {zs=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
-
-{-
-In spanslztrans_trivial_1:
-
-spanslztrans {na=Z} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztrans_trivial_1
-
-REPL refuses to let us use our knowledge that (vsx = replicate ni 0) based on its type to rewrite the type of prvsx so we can extend this knowledge to a (spanslz) in (replicate ni 0) rather than (vsx).
-
----
-
-spanslztrans_trivial_1> :t the (spanslz xs ys) ( (replicate ni []) ** replace {P=\hah => hah `zippyScale` xs = ys} (zeroVecVecId vsx) prvsx )
-
-(input):Type mismatch between
-        Vect m ZZ
-and
-        Vect (\ARG => multZ meth ARG) ZZ
--}
-
-{-
-Have to plan the order of the rewrites just right so that you can apply (zeroVecVecId vsx) to the result of the (prvsx) substitution.
-Would be more efficient to show the 0-matrix-spanned theorem required.
-
-spanslztrans_trivial_1 = proof
-  intros
-  rewrite sym $ zeroVecEq {a=xs} {b=[]}
-  exact (replicate nu [] ** _)
-  compute
-  rewrite sym prvsy
-  rewrite sym prvsx
-  exact believe_me "qed"
--}
-
-{-
-For reference to the types and proof intentions
-
----
-
-spanslztrans {n} {n'} {n''} {m} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztransPr
-	where
-		vsyTyper : Matrix n'' n' ZZ
-		vsyTyper = vsy
-
----
-
-spanslztrans {n} {n'} {xs} {ys} (vsx ** prvsx) (vsy ** prvsy) = ( the (Vect n' (Vect n ZZ)) _ ** rewrite sym prvsx in prvsy )
--}
