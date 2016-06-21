@@ -88,7 +88,7 @@ matTimesVerMonoid {r} {n} = matTimesVerMonoid'
 Associative property for matrix multiplication
 -}
 
-timesMatMatIsAssociative : Ring r => {l : Matrix _ _ r} -> {c : Matrix _ _ r} -> {r : Matrix _ _ r} -> l <> (c <> r) = l <> c <> r
+timesMatMatIsAssociative : Ring a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
 
 
 
@@ -160,11 +160,48 @@ Same as above, but for lists of ZZ vectors specifically.
 
 
 
+rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
+
 zippyScale : Matrix n' n ZZ -> Matrix n w ZZ -> Matrix n' w ZZ
 zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
 
 -- Inherited property from (<>) equality proven in Data.Matrix.LinearCombinations
-zippyScaleIsAssociative : xs `zippyScale` (ys `zippyScale` zs) = (xs `zippyScale` ys) `zippyScale` zs
+zippyScaleIsAssociative : l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
+{-
+zippyScaleIsAssociative = ?zippyScaleIsAssociative'
+-- zippyScaleIsAssociative = rewriteAssociativityUnderEquality timesMatMatAsMultipleLinearCombos
+-}
+zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
+-- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
+zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
+
+{-
+
+Implementations explored:
+
+------------------
+
+zippyScaleIsAssociative {l} {c} {r} = trans (cong {f=zippyScale l} $ sym $ timesMatMatAsMultipleLinearCombos c r) $ trans (sym $ timesMatMatAsMultipleLinearCombos l (c<>r)) $ trans (timesMatMatIsAssociative {l=l} {c=c} {r=r}) $ trans (cong {f=(<> r)} $ timesMatMatAsMultipleLinearCombos l c) $ timesMatMatAsMultipleLinearCombos (l `zippyScale` c) r
+
+------
+
+zippyScaleIsAssociative {l} {c} {r} = trans (cong {f=zippyScale l} $ sym $ timesMatMatAsMultipleLinearCombos c r) $ trans (sym $ timesMatMatAsMultipleLinearCombos l (c<>r)) $ trans (timesMatMatIsAssociative {l=l} {c=c} {r=r}) $ trans (timesMatMatAsMultipleLinearCombos (l <> c) r) $ cong {f=(flip zippyScale) r} $ timesMatMatAsMultipleLinearCombos l c
+
+------
+
+zippyScaleIsAssociative {l} {c} {r} = trans
+		( rewrite sym (timesMatMatAsMultipleLinearCombos l (c `zippyScale` r)) in rewrite sym (timesMatMatAsMultipleLinearCombos c r) in timesMatMatIsAssociative {l=l} {c=c} {r=r}
+		)
+		( rewrite sym (timesMatMatAsMultipleLinearCombos l c) in rewrite sym (timesMatMatAsMultipleLinearCombos (l <> c) r) in timesMatMatIsAssociative {l=l} {c=c} {r=r}
+		)
+
+zippyScaleIsAssociative2 : {l : Matrix _ _ ZZ} -> {c : Matrix _ _ ZZ} -> {r : Matrix _ _ ZZ} -> map (\rs => monoidsum $ zipWith (<#>) rs (map (\rs => monoidsum $ zipWith (<#>) rs r) c)) l = map (\rs => monoidsum $ zipWith (<#>) rs r) (map (\rs => monoidsum $ zipWith (<#>) rs c) l)
+zippyScaleIsAssociative2 {l} {c} {r} = trans
+		( rewrite sym (timesMatMatAsMultipleLinearCombos l (c `zippyScale` r)) in rewrite sym (timesMatMatAsMultipleLinearCombos c r) in timesMatMatIsAssociative {l=l} {c=c} {r=r}
+		)
+		( rewrite sym (timesMatMatAsMultipleLinearCombos l c) in rewrite sym (timesMatMatAsMultipleLinearCombos (l <> c) r) in timesMatMatIsAssociative {l=l} {c=c} {r=r}
+		)
+-}
 
 
 
@@ -298,4 +335,4 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 		spanslztrans_matrix : Matrix nu na ZZ
 		spanslztrans_matrix = vsy <> vsx
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
-		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {xs=vsy} {ys=vsx} {zs=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
+		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {l=vsy} {c=vsx} {r=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
