@@ -8,7 +8,9 @@ Other files show what other kind of theorems are needed, but about the wrong obj
 ## ZZModuleSpan
 
 Contents:
+* Definition of the *linearly spans* relation `spanslz` between two Vects of Vects of integers (where integers means inhabitants of Daata.ZZ).
 * Some definitions related to linear spans.
+* Proof of transitivity of `spanslz` using some unproved but known theorems.
 
 ## Data.Matrix.LinearCombinations
 
