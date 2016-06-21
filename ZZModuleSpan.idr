@@ -163,6 +163,9 @@ Same as above, but for lists of ZZ vectors specifically.
 zippyScale : Matrix n' n ZZ -> Matrix n w ZZ -> Matrix n' w ZZ
 zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
 
+-- Inherited property from (<>) equality proven in Data.Matrix.LinearCombinations
+zippyScaleIsAssociative : xs `zippyScale` (ys `zippyScale` zs) = (xs `zippyScale` ys) `zippyScale` zs
+
 
 
 {-
@@ -289,6 +292,7 @@ spannedlzByZeroId' = proof
 Implicit naturals must be passed to the (spanslz)s in this type signature for the types of (vsx) in (the (spanslz xs ys) (vsx ** prvsx)) and (vsy) in (the (spanslz ys zs) (vsy ** prvsy)) to be inferred, even when these parameters are summoned in the definition.
 -}
 spanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> spanslz {n=na} {n'=ni} xs ys -> spanslz {n=ni} {n'=nu} ys zs -> spanslz xs zs
+{-
 spanslztrans {na=Z} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ?spanslztrans_trivial_1
 	where
 		knwoledge : ys = neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
@@ -298,13 +302,13 @@ spanslztrans {na=Z} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) =
 		spanxy' : spanslz xs ys
 		spanxy' = ( replicate ni [] ** replace {P=\hah => hah `zippyScale` xs = ys} (zeroVecVecId vsx) prvsx )
 		-}
-
+-}
 spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = ( spanslztrans_matrix ** spanslztrans_linearcombprop )
 	where
 		spanslztrans_matrix : Matrix nu na ZZ
 		spanslztrans_matrix = vsy <> vsx
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
-		spanslztrans_linearcombprop = ?spanslztrans_linearcombprop'
+		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {xs=vsy} {ys=vsx} {zs=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
 
 {-
 In spanslztrans_trivial_1:
