@@ -1,3 +1,5 @@
+module ZZGaussianElimination
+
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
 
