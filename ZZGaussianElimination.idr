@@ -15,11 +15,59 @@ import FinOrdering
 
 
 
-rowReduced : (xs : Matrix n m ZZ) -> Type
+downAndNotRightOfEntryImpliesZ : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
+downAndNotRightOfEntryImpliesZ xs nel mel {n} {m} = {i : Fin n} -> {j : Fin m} -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
 {-
-Something built from the same parts as this:
------
-rowReduced xs {n} {m} = {k : Fin n} -> {i, j : Fin m} -> (i `LT` j) -> (indices k i xs = Pos Z) -> (indices k j xs = Pos Z)
+Equivalent properties:
+1) map (take mel) (drop nel xs) = neutral
+2) (nel `LT` i) -> (j `LTE` mel) -> indices i j xs = Pos Z
+	# In pseudocode, because we decided not to use direct LT and LTE of Fins.
 -}
 
-gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs,rowReduced gexs))
+leadingNonzero : (v : Vect n ZZ) -> Type
+leadingNonzero {n} v = Either
+		(nel : Fin n **
+			( {i : Fin n}
+			-> finToNat i `LTRel` finToNat nel
+			-> index i v = Pos Z,
+			Not (index nel v = Pos Z) )
+		)
+		(v = neutral)
+
+leadingNonzeroCalc : (v : Vect n ZZ) -> leadingNonzero v
+
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+{-
+Roughly this, but we get the error
+
+When checking left hand side of with block in ZZGaussianElimination.rowEchelon, ty:
+When checking argument l to constructor Prelude.Either.Left:
+        Attempting concrete match on polymorphic argument: MkSigma leadeln pr
+
+so I guess we have to go through some indirection first.
+---
+
+Also note there is a tricky part to matching on Right.
+
+We might have this
+
+> | Right _ = downAndNotRightOfEntryImpliesZ xs nel (last {n=predm})
+
+but that only works if we guarantee `m` has a predecessor `predm`. Else we should use
+
+> | Right _ = ()
+
+So, we should just simplify things and write
+
+{nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+
+---
+rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
+	where
+		ty : Fin n -> Type
+		ty nel with (leadingNonzeroCalc $ index nel xs)
+			| Left (leadeln ** pr) = downAndNotRightOfEntryImpliesZ xs nel leadeln
+			| Right _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+-}
+
+gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs,rowEchelon gexs))

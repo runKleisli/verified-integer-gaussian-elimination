@@ -7,44 +7,69 @@ import Data.ZZ
 
 -- Note that unlike (=) the types do not inherently need to be ambiguous
 class OrdRel A where
-	LT : A -> A -> Type
+	LTRel : A -> A -> Type
+
+LTERel : OrdRel s => s -> s -> Type
+LTERel a b = Either (LTRel a b) (a=b)
 
 class (OrdRel s) => DecLT s where
-	decLT : (x1 : s) -> (x2 : s) -> Dec ( LT x1 x2 )
+	decLT : (x1 : s) -> (x2 : s) -> Dec ( LTRel x1 x2 )
 
-data FinLTTy : (n : Nat) -> (i, j : Fin n) -> Type where
-	FinLTFZPos : FinLTTy (S (S n)) FZ (FS a)
-	FinLTIncrem : FinLTTy n a b -> FinLTTy (S n) (FS a) (FS b)
+class (OrdRel s) => DecLTE s where
+	decLTE : (x1 : s) -> (x2 : s) -> Dec ( LTERel x1 x2 )
 
-instance OrdRel (Fin n) where
-	LT {n} = FinLTTy n
+implDeclte : (DecLT s, DecEq s) => (a, b: s) -> Dec ( LTERel a b )
+implDeclte a b with (decEq a b)
+	| Yes x = Yes (Right x)
+	| No x with (decLT a b)
+		| Yes y = Yes (Left {b=(a=b)} y)
+		| No y = No (either y x)
 
-total
-decLTFin : (n : Nat) -> (i, j : Fin n) -> Dec ( LT i j )
-decLTFin Z a _ = No (\x => FinZAbsurd a)
-decLTFin (S Z) a b = No cannit
-	where
-		cannit : FinLTTy (S Z) a b -> Void
-		cannit FinLTFZPos impossible
-		cannit (FinLTIncrem FinLTFZPos) impossible
-decLTFin (S (S n)) FZ FZ = No dontDoMeIn
-	where
-		dontDoMeIn : FinLTTy (S (S n)) FZ FZ -> Void
-		dontDoMeIn FinLTFZPos impossible
-		dontDoMeIn (FinLTIncrem t) impossible
-decLTFin (S (S n)) FZ (FS b) = Yes FinLTFZPos
-decLTFin (S (S n)) (FS a) FZ = No itsOver
-	where
-		itsOver : FinLTTy (S (S n)) (FS a) FZ -> Void
-		itsOver FinLTFZPos impossible
-		itsOver (FinLTIncrem t) impossible
-decLTFin (S (S n)) (FS a) (FS b) with (decLTFin (S n) a b)
-	| Yes w = Yes (FinLTIncrem w)
-	| No s = No (s' s)
-	where
-		s' : ( FinLTTy (S n) a b -> Void ) -> ( FinLTTy (S (S n)) (FS a) (FS b) -> Void )
-		s' avo FinLTFZPos impossible
-		s' avo (FinLTIncrem t) = avo t
+{-
+Won't let us work with this at all.
+---
+instance (DecLT s, DecEq s) => DecLTE s where
+	-- decLTE = implDeclte
+	decLTE = ?declte_from_ltNeq
 
+=====
+
+Compiles but doesn't resolve any of the falsely split instances
+---
+instance (OrdRel s, DecLT s, DecEq s) => DecLTE s where
+	decLTE ?= implDeclte {s=s} @{the (DecLT s) %instance} @{the (DecEq s) %instance}
+
+=====
+
+Other things we tried
+---
+
+instance (OrdRel s, DecLT s, DecEq s) => DecLTE s where
+	decLTE ?= implDeclte {s=s} @{the (OrdRel s) %instance} @{the (DecLT s) %instance} @{the (DecEq s) %instance}
+
+instance (OrdRel s, DecLT s, DecEq s) => DecLTE s where
+	decLTE = ?declte_from_ltNeq
+-}
+
+instance OrdRel Nat where
+	LTRel = LT
+
+instance DecLT Nat where
+	decLT a b = isLTE (S a) b
+
+||| Normalizes the notion of decidable LTE provided by Prelude.Nat.isLTE.
+decLTENat : (n, m : Nat) -> Dec ( LTERel n m )
+decLTENat a b with (decEq a b)
+	| Yes pr = Yes (Right pr)
+	| No prneq with (decLT a b)
+		| Yes pr = Yes (Left pr)
+		| No pr = No ( either pr prneq )
+
+instance DecLTE Nat where
+	decLTE = decLTENat
+
+{-
+-- Just use `finToNat`.
 instance DecLT (Fin n) where
 	decLT {n} = decLTFin n
+-}
