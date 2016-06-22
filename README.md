@@ -8,9 +8,10 @@ Other files show what other kind of theorems are needed, but about the wrong obj
 ## ZZModuleSpan
 
 Contents:
-* Definition of the *linearly spans* relation `spanslz` between two Vects of Vects of integers (where integers means inhabitants of Daata.ZZ).
+* Definition of the *linearly spans* relation `spanslz` between two Vects of Vects of integers (where integers means inhabitants of Data.ZZ).
 * Some definitions related to linear spans.
 * Proof of transitivity of `spanslz` using some unproved but known theorems.
+* Sketches of proof of `zippyScale` associativity in terms of the equivalent matrix multiplication associativity. `zippyScale` is shorthand for a form of linear combination of the rows of a matrix over multiple vectors, as dealt with and proved extensionally equal to matrix multiplication in Data.Matrix.LinearCombinations.
 
 ## Data.Matrix.LinearCombinations
 
