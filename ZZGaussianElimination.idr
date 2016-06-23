@@ -47,7 +47,16 @@ leadingNonzeroCalc {n=S predn} (Pos Z::xs) with (leadingNonzeroCalc xs)
 				-> index ii (Pos Z::xs) = Pos Z
 			l_fn' {ii=FZ} precondit = Refl
 			l_fn' {ii=FS j} precondit = trans (l_fn_pr_skipup {v=Pos 0}) $ l_fn (fromLteSucc precondit)
--- leadingNonzeroCalc {n=S predn} (x::xs)
+leadingNonzeroCalc {n=S predn} (Pos (S k)::xs) = Right ( FZ ** ( void . succNotLTEzero, flip (replace {P=distinguish_Z_SZ}) () ) )
+	where
+		distinguish_Z_SZ : ZZ -> Type
+		distinguish_Z_SZ (Pos Z) = Void
+		distinguish_Z_SZ z = ()
+leadingNonzeroCalc {n=S predn} (NegS k::xs) = Right ( FZ ** ( void . succNotLTEzero, flip (replace {P=distinguish_Z_SZ}) () ) )
+	where
+		distinguish_Z_SZ : ZZ -> Type
+		distinguish_Z_SZ (Pos Z) = Void
+		distinguish_Z_SZ z = ()
 
 
 
