@@ -41,18 +41,12 @@ leadingNonzeroCalc {n=S predn} (Pos Z::xs) with (leadingNonzeroCalc xs)
 	| Right ( predel ** (l_fn, r_pr) ) = Right ( FS predel ** (l_fn', r_pr) )
 		where
 			l_fn_pr_skipup : index (FS i) (v::vs) = index i vs
-			l_fn' : {i : Fin (S predn)}
-				-> finToNat i `LTRel` finToNat (FS predel)
-				-> index i (Pos Z::xs) = Pos Z
-			{-
-			-- When checking left hand side of with block in ZZGaussianElimination.leadingNonzeroCalc, l_fn':
-			-- i is not an implicit argument of with block in ZZGaussianElimination.leadingNonzeroCalc, l_fn'
-
-			l_fn' {i=FZ} _ = ?l_fn_pr_rhs_1
-			l_fn' {i=FS j} precondit = trans l_fn_pr_skipup $ l_fn $ fromLteSucc precondit
-
-			-- l_fn (fromLteSucc precondit) : index j xs = Pos 0
-			-}
+			l_fn_pr_skipup = Refl
+			l_fn' : {ii : Fin (S predn)}
+				-> finToNat ii `LTRel` finToNat (FS predel)
+				-> index ii (Pos Z::xs) = Pos Z
+			l_fn' {ii=FZ} precondit = Refl
+			l_fn' {ii=FS j} precondit = trans (l_fn_pr_skipup {v=Pos 0}) $ l_fn (fromLteSucc precondit)
 -- leadingNonzeroCalc {n=S predn} (x::xs)
 
 
