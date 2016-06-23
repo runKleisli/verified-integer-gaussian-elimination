@@ -2,8 +2,15 @@
 
 Idris package looking to define, implement, and verify naiive Gaussian elimination over the integers in some system of linear algebra.
 
-ZZModuleSpan.idr and Data/Matrix/LinearCombinations.idr are the only usable files.
+ZZGaussianElimination.idr, ZZModuleSpan.idr, Data/Matrix/LinearCombinations.idr, & FinOrdering.idr are the only usable files.
 Other files show what other kind of theorems are needed, but about the wrong objects to be correct or to fit the system of linear algebra used in this package.
+
+## ZZGaussianElimination
+
+Contents:
+* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs,rowEchelon gexs))`
+* Implementation of the second property, `rowEchelon`.
+* `leadingNonzeroCalc`, which takes a `Vect n ZZ` to its first index to a nonzero entry or a proof that all entries are zero.
 
 ## ZZModuleSpan
 
@@ -18,3 +25,9 @@ Contents:
 Most significant contents:
 * Proof, from some unproved basic facts, of definition of vector-matrix multiplication as a linear combination where the vectors under combination are rows of the matrix and the scalar weights are the entries of the same index to the vector under multiplication. `timesVectMatAsLinearCombo : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )`.
 * Proof from the above that the definition of matrix multiplication reduces to independent linear combinations of the row vectors of the righthand matrix. `timesMatMatAsMultipleLinearCombos : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> vs <> xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs`.
+
+## FinOrdering
+
+Contents:
+* A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
+* An instance of this for `Nat`, by which `Fin n` will be ordered indirectly through `finToNat`.
