@@ -8,7 +8,7 @@ Other files show what other kind of theorems are needed, but about the wrong obj
 ## ZZGaussianElimination
 
 Contents:
-* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs,rowEchelon gexs))`
+* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (spanslz gexs xs,rowEchelon gexs))`
 * Implementation of the second property, `rowEchelon`.
 * `leadingNonzeroCalc`, which takes a `Vect n ZZ` to its first index to a nonzero entry or a proof that all entries are zero.
 
