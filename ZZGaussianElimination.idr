@@ -26,41 +26,59 @@ Equivalent properties:
 
 leadingNonzero : (v : Vect n ZZ) -> Type
 leadingNonzero {n} v = Either
+		(v = neutral)
 		(nel : Fin n **
 			( {i : Fin n}
 			-> finToNat i `LTRel` finToNat nel
 			-> index i v = Pos Z,
 			Not (index nel v = Pos Z) )
 		)
-		(v = neutral)
 
 leadingNonzeroCalc : (v : Vect n ZZ) -> leadingNonzero v
-leadingNonzeroCalc [] = Right Refl
--- leadingNonzeroCalc (Z::xs) = 
--- leadingNonzeroCalc (a::xs) =
+leadingNonzeroCalc [] = Left Refl
+leadingNonzeroCalc {n=S predn} (Pos Z::xs) with (leadingNonzeroCalc xs)
+	| Left pr = Left $ cong {f=(::) $ Pos Z} pr
+	| Right ( predel ** (l_fn, r_pr) ) = Right ( FS predel ** (l_fn', r_pr) )
+		where
+			l_fn_pr_skipup : index (FS i) (v::vs) = index i vs
+			l_fn' : {i : Fin (S predn)}
+				-> finToNat i `LTRel` finToNat (FS predel)
+				-> index i (Pos Z::xs) = Pos Z
+			{-
+			-- When checking left hand side of with block in ZZGaussianElimination.leadingNonzeroCalc, l_fn':
+			-- i is not an implicit argument of with block in ZZGaussianElimination.leadingNonzeroCalc, l_fn'
+
+			l_fn' {i=FZ} _ = ?l_fn_pr_rhs_1
+			l_fn' {i=FS j} precondit = trans l_fn_pr_skipup $ l_fn $ fromLteSucc precondit
+
+			-- l_fn (fromLteSucc precondit) : index j xs = Pos 0
+			-}
+-- leadingNonzeroCalc {n=S predn} (x::xs)
+
+
 
 {-
-There is a tricky part to matching on Right.
+There is a tricky part to matching on Left.
 
 We might have this
 
-> | Right _ = downAndNotRightOfEntryImpliesZ xs nel (last {n=predm})
+> | Left _ = downAndNotRightOfEntryImpliesZ xs nel (last {n=predm})
 
 but that only works if we guarantee `m` has a predecessor `predm`. Else we should use
 
-> | Right _ = ()
+> | Left _ = ()
 
 So, we just simplify things and write
 
-> | Right _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+> | Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 -}
 rowEchelon : (xs : Matrix n m ZZ) -> Type
 rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 	where
 		ty : Fin n -> Type
 		ty nel with (leadingNonzeroCalc $ index nel xs)
-			| Left someNonZness with someNonZness
+			| Right someNonZness with someNonZness
 				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Right _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 
 gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs,rowEchelon gexs))
