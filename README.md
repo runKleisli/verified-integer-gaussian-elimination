@@ -8,7 +8,9 @@ Other files show what other kind of theorems are needed, but about the wrong obj
 ## ZZGaussianElimination
 
 Contents:
-* Scribbles about properties to be proven of gaussian elimination (the type signature of the function that performs the algorithm).
+* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs,rowEchelon gexs))`
+* Implementation of the second property, `rowEchelon`.
+* `leadingNonzeroCalc`, which takes a `Vect n ZZ` to its first index to a nonzero entry or a proof that all entries are zero.
 
 ## ZZModuleSpan
 
@@ -27,4 +29,5 @@ Most significant contents:
 ## FinOrdering
 
 Contents:
-* A(n) `LT` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LT x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LT x y -> Void`).
+* A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
+* An instance of this for `Nat`, by which `Fin n` will be ordered indirectly through `finToNat`.
