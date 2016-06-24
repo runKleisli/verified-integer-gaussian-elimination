@@ -21,6 +21,10 @@ vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq)
 -- Also a solid proof:
 -- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
 
+multIdLeftNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> Id <> a = a
+
+multIdRightNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> a <> Id = a
+
 
 
 {-
@@ -96,6 +100,34 @@ timesMatMatIsAssociative : Ring a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} ->
 ZZ is a VerifiedRing.
 -}
 
+instance VerifiedSemigroup ZZ where
+	semigroupOpIsAssociative = ?semigroupOpIsAssociative_ZZ
+
+instance VerifiedMonoid ZZ where {
+	monoidNeutralIsNeutralL = ?monoidNeutralIsNeutralL_ZZ
+	monoidNeutralIsNeutralR = ?monoidNeutralIsNeutralR_ZZ
+}
+
+instance VerifiedGroup ZZ where {
+	groupInverseIsInverseL = ?groupInverseIsInverseL_ZZ
+	groupInverseIsInverseR = ?groupInverseIsInverseR_ZZ
+}
+
+instance VerifiedAbelianGroup ZZ where {
+	abelianGroupOpIsCommutative = ?abelianGroupOpIsCommutative_ZZ
+}
+
+instance VerifiedRing ZZ where {
+	ringOpIsAssociative = ?ringOpIsAssociative_ZZ
+	ringOpIsDistributiveL = ?ringOpIsDistributiveL_ZZ
+	ringOpIsDistributiveR = ?ringOpIsDistributiveR_ZZ
+}
+
+instance VerifiedRingWithUnity ZZ where {
+	ringWithUnityIsUnityL = ?ringWithUnityIsUnityL_ZZ
+	ringWithUnityIsUnityR = ?ringWithUnityIsUnityR_ZZ
+}
+
 
 
 {-
@@ -165,7 +197,7 @@ rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a)
 zippyScale : Matrix n' n ZZ -> Matrix n w ZZ -> Matrix n' w ZZ
 zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
 
--- Inherited property from (<>) equality proven in Data.Matrix.LinearCombinations
+-- Inherited properties from (<>) equality proven in Data.Matrix.LinearCombinations
 zippyScaleIsAssociative : l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
 {-
 zippyScaleIsAssociative = ?zippyScaleIsAssociative'
@@ -174,6 +206,12 @@ zippyScaleIsAssociative = ?zippyScaleIsAssociative'
 zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
 -- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
 zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
+
+zippyScaleIdLeftNeutral : (a : Matrix n m ZZ) -> Id `zippyScale` a = a
+zippyScaleIdLeftNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdLeftNeutral _
+
+zippyScaleIdRightNeutral : (a : Matrix _ _ ZZ) -> a `zippyScale` Id = a
+zippyScaleIdRightNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdRightNeutral _
 
 {-
 
@@ -336,3 +374,8 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 		spanslztrans_matrix = vsy <> vsx
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
 		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {l=vsy} {c=vsx} {r=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
+
+
+
+spanslzrefl : spanslz xs xs
+spanslzrefl = ( Id ** zippyScaleIdLeftNeutral _ )
