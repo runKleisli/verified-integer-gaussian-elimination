@@ -41,6 +41,8 @@ These are proofs of equality of two Vects expressed in (x::xs) form, mainly indu
 < rewriteZipWithUnderTail : {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ} -> map Data.Vect.tail $ Data.Vect.zipWith (<#>) scals vects = Data.Vect.zipWith (<#>) scals (map Data.Vect.tail vects)
 < rewriteZipWithUnderTail'
 
+
+
 # vecSingletonReplicateEq
 
 Out of these, `vecSingletonReplicateEq` is the simplest to analyze the replacement.
@@ -56,6 +58,8 @@ this improves the clarity of
 < vecSingletonReplicateEq : ((u : a) -> v=u) -> (xs : Vect n a) -> (xs = replicate n v)
 < vecSingletonReplicateEq f [] = Refl
 < vecSingletonReplicateEq f (x::xs) {v} = rewrite sym (f x) in cong {f=(v::)} (vecSingletonReplicateEq f xs)
+
+
 
 # reduceMultUnderHeadTo1D
 
@@ -103,6 +107,8 @@ The original, however, is comparatively illegible
 <   rewrite sym $ headtails vvs
 <   rewrite sym $ headtails xxs
 <   exact reduceMultUnderHeadTo1D {vv=head vvs} {vvs=tail vvs} {xx=head xxs} {xxs=tail xxs}
+
+
 
 # rewriteZipWithUnderTail
 
