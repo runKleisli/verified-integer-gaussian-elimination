@@ -1,4 +1,4 @@
-> module ZZMSHeadtailsEq
+> module LinCombHeadtailsEq
 
 > import Data.Matrix.LinearCombinations
 > import ZZModuleSpan
