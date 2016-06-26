@@ -26,6 +26,42 @@ multIdLeftNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> Id <> a = a
 
 multIdRightNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> a <> Id = a
 
+rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
+rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = trans (sym stepleft) $ trans prf stepright
+	where
+		stepleft : f l (f c r) = g l (g c r)
+		stepleft = rewrite sym (fneq c r) in fneq l _
+		stepright : f (f l c) r = g (g l c) r
+		stepright = rewrite sym (fneq l c) in fneq _ r
+
+{-
+-- Works both compiled and in the REPL
+
+rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = ?rewriteAssociativityUnderEquality'
+
+rewriteAssociativityUnderEquality' = proof
+  intros
+  claim stepleft f l (f c r) = g l (g c r)
+  claim stepright f (f l c) r = g (g l c) r
+  unfocus
+  unfocus
+  exact trans (sym stepleft) $ trans prf stepright
+  exact rewrite sym (fneq l c) in fneq _ r
+  exact rewrite sym (fneq c r) in fneq l _
+
+-- Works in REPL but not compiled
+
+rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = ?rewriteAssociativityUnderEquality'
+
+rewriteAssociativityUnderEquality' = proof
+  intros
+  exact trans _ $ trans prf _
+  exact trans _ (sym $ fneq l _)
+  exact trans (cong {f=(flip f) r} (fneq l c)) _
+  exact cong (sym $ fneq _ _)
+  exact fneq _ r
+-}
+
 
 
 {-
@@ -158,42 +194,6 @@ Same as above, but for lists of ZZ vectors specifically.
 -}
 
 
-
-rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
-rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = trans (sym stepleft) $ trans prf stepright
-	where
-		stepleft : f l (f c r) = g l (g c r)
-		stepleft = rewrite sym (fneq c r) in fneq l _
-		stepright : f (f l c) r = g (g l c) r
-		stepright = rewrite sym (fneq l c) in fneq _ r
-
-{-
--- Works both compiled and in the REPL
-
-rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = ?rewriteAssociativityUnderEquality'
-
-rewriteAssociativityUnderEquality' = proof
-  intros
-  claim stepleft f l (f c r) = g l (g c r)
-  claim stepright f (f l c) r = g (g l c) r
-  unfocus
-  unfocus
-  exact trans (sym stepleft) $ trans prf stepright
-  exact rewrite sym (fneq l c) in fneq _ r
-  exact rewrite sym (fneq c r) in fneq l _
-
--- Works in REPL but not compiled
-
-rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = ?rewriteAssociativityUnderEquality'
-
-rewriteAssociativityUnderEquality' = proof
-  intros
-  exact trans _ $ trans prf _
-  exact trans _ (sym $ fneq l _)
-  exact trans (cong {f=(flip f) r} (fneq l c)) _
-  exact cong (sym $ fneq _ _)
-  exact fneq _ r
--}
 
 zippyScale : Matrix n' n ZZ -> Matrix n w ZZ -> Matrix n' w ZZ
 zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
