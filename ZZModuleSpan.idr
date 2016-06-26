@@ -9,6 +9,7 @@ import Data.Matrix.LinearCombinations
 
 import Data.ZZ
 import Control.Algebra.NumericInstances
+import Control.Algebra.ZZVerifiedInstances
 
 
 
@@ -93,40 +94,6 @@ Associative property for matrix multiplication
 -}
 
 timesMatMatIsAssociative : Ring a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
-
-
-
-{-
-ZZ is a VerifiedRing.
--}
-
-instance VerifiedSemigroup ZZ where
-	semigroupOpIsAssociative = ?semigroupOpIsAssociative_ZZ
-
-instance VerifiedMonoid ZZ where {
-	monoidNeutralIsNeutralL = ?monoidNeutralIsNeutralL_ZZ
-	monoidNeutralIsNeutralR = ?monoidNeutralIsNeutralR_ZZ
-}
-
-instance VerifiedGroup ZZ where {
-	groupInverseIsInverseL = ?groupInverseIsInverseL_ZZ
-	groupInverseIsInverseR = ?groupInverseIsInverseR_ZZ
-}
-
-instance VerifiedAbelianGroup ZZ where {
-	abelianGroupOpIsCommutative = ?abelianGroupOpIsCommutative_ZZ
-}
-
-instance VerifiedRing ZZ where {
-	ringOpIsAssociative = ?ringOpIsAssociative_ZZ
-	ringOpIsDistributiveL = ?ringOpIsDistributiveL_ZZ
-	ringOpIsDistributiveR = ?ringOpIsDistributiveR_ZZ
-}
-
-instance VerifiedRingWithUnity ZZ where {
-	ringWithUnityIsUnityL = ?ringWithUnityIsUnityL_ZZ
-	ringWithUnityIsUnityR = ?ringWithUnityIsUnityR_ZZ
-}
 
 
 
