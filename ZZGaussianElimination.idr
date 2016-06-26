@@ -8,6 +8,7 @@ import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
 import Data.ZZ
 import Control.Algebra.NumericInstances
+import Control.Algebra.ZZVerifiedInstances
 
 import ZZModuleSpan
 
