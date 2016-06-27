@@ -380,3 +380,16 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 
 spanslzrefl : spanslz xs xs
 spanslzrefl = ( Id ** zippyScaleIdLeftNeutral _ )
+
+
+
+updateAtEquality : {ls : Matrix n k ZZ} -> {rs : Matrix k m ZZ} -> (updi : Fin n) -> (f : (i : Nat) -> Vect i ZZ -> Vect i ZZ) -> (updateAt updi (f k) ls) `zippyScale` rs = updateAt updi (f m) (ls `zippyScale` rs)
+updateAtEquality {ls=[]} updi f = FinZElim updi
+updateAtEquality {ls=l::ls} FZ f = ?updateAtEquality'
+updateAtEquality {ls=l::ls} (FS penupdi) f = vecHeadtailsEq Refl $ updateAtEquality penupdi f
+
+spanRowScalelz : (z : ZZ) -> (updi : Fin n') -> spanslz xs ys -> spanslz xs (updateAt updi (z<#>) ys)
+spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scaleMain $ rewrite sym prvs in Refl)
+	where
+		scaleMain : (updateAt updi (z<#>) vs) `zippyScale` xs = updateAt updi (z<#>) (vs `zippyScale` xs)
+		scaleMain = updateAtEquality updi ( \i => (z<#>) )
