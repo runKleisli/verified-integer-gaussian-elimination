@@ -5,6 +5,7 @@ import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
+import Data.Matrix.AlgebraicVerified
 import Data.Matrix.LinearCombinations
 
 import Data.ZZ
@@ -25,6 +26,12 @@ vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq)
 multIdLeftNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> Id <> a = a
 
 multIdRightNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> a <> Id = a
+
+-- rewriteMultInv : (VerifiedRingWithUnity r, VerifiedModule r a) -> (s : r) -> (x : a) -> (inverse s) <#> x = s <#> (inverse x)
+
+rewriteMultInvVect : VerifiedRingWithUnity r => (s : r) -> (x : Vect _ r) -> (inverse s) <#> x = s <#> (inverse x)
+
+rewriteMultInvMat : VerifiedRingWithUnity r => (s : r) -> (x : Matrix _ _ r) -> (inverse s) <#> x = s <#> (inverse x)
 
 rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
 rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = trans (sym stepleft) $ trans prf stepright
@@ -61,30 +68,6 @@ rewriteAssociativityUnderEquality' = proof
   exact cong (sym $ fneq _ _)
   exact fneq _ r
 -}
-
-
-
-{-
-Definitions:
-* Verified module
-* Verified vector space
-
-Ripped from comments of Classes.Verified, commenting out there coincides with definition of module being in the separate module Control.Algebra.VectorSpace from Control.Algebra.
--}
-
-
-
-class (VerifiedRingWithUnity a, VerifiedAbelianGroup b, Module a b) => VerifiedModule a b where
-  total moduleScalarMultiplyComposition : (x,y : a) -> (v : b) -> x <#> (y <#> v) = (x <.> y) <#> v
-  total moduleScalarUnityIsUnity : (v : b) -> unity {a} <#> v = v
-  total moduleScalarMultDistributiveWRTVectorAddition : (s : a) -> (v, w : b) -> s <#> (v <+> w) = (s <#> v) <+> (s <#> w)
-  total moduleScalarMultDistributiveWRTModuleAddition : (s, t : a) -> (v : b) -> (s <+> t) <#> v = (s <#> v) <+> (t <#> v)
-
---class (VerifiedField a, VerifiedModule a b) => VerifiedVectorSpace a b where {}
-
--- As desired in Data.Matrix.Algebraic
-instance [vectModule] Module a b => Module a (Vect n b) where
-	(<#>) r = map (r <#>)
 
 
 
@@ -393,3 +376,50 @@ spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scal
 	where
 		scaleMain : (updateAt updi (z<#>) vs) `zippyScale` xs = updateAt updi (z<#>) (vs `zippyScale` xs)
 		scaleMain = updateAtEquality updi ( \i => (z<#>) )
+
+
+
+spanScalelz : (z : ZZ) -> spanslz xs ys -> spanslz xs (z<#>ys)
+
+spanAdd : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <+> zs)
+
+spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
+spanSub {xs} {ys} {zs} prxy prxz = ?spanSub'
+
+spanSub' = proof
+  intros
+  let spanAdd' = spanAdd {xs=xs} {ys=ys} {zs = inverse zs}
+  refine spanAdd'
+  exact prxy
+  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity {a=ZZ} (inverse zs) )) spanslzrefl
+
+{-
+-- Works in REPL only
+spanSub' = proof
+  intros
+  refine spanAdd
+  exact prxy
+  exact spanslztrans (spanScalelz (inverse unity) prxz) _
+  exact replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( the ((<#>) (unity {a=ZZ}) (inverse zs) = (inverse zs)) ?moduleIdScalZZ )) spanslzrefl
+-}
+
+{-
+-- I feel like typechecking this shouldn't be a problem for Idris.
+
+
+spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
+spanSub {xs} {ys} {zs} prxy prxz
+	with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse unity)<#>zs} prxy (spanScalelz (inverse unity) prxz) )
+		| (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat unity zs)
+
+
+-- Replacement test code for analyzing the problem:
+
+
+spanSub : {xs : Matrix n w ZZ} -> {ys, zs : Matrix n' w ZZ} -> spanslz {n=n} {n'=n'} {w=w} xs ys -> spanslz {n=n} {n'=n'} {w=w} xs zs -> spanslz {n=n} {n'=n'} {w=w} xs ((the (Matrix n' w ZZ -> Matrix n' w ZZ -> Matrix n' w ZZ) (<->)) ys zs)
+spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
+	with (?akdjna)
+	-- with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse (the ZZ unity))<#>zs} prxy (spanScalelz (inverse (the ZZ unity)) prxz) )
+		| (vs ** pr) = ?ajdnjfka
+		-- | (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat (the ZZ unity) pr)
+-}
