@@ -12,6 +12,8 @@ import Data.ZZ
 import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 
+import Control.Isomorphism
+
 
 
 {-
@@ -286,7 +288,7 @@ Algebraic:
 * gcd and lcm divisibility relationships via Bezout's identity
 * additive updates to the spanning set that preserve span
 Reordering lemmas:
-* Master: (sigma : Bijection (Fin n)) -> spanslz (zipWith (index . (runBijection sigma)) range xs) xs
+* Master: permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigma xs) xs
 * Minimal for above: spanslz (x::y::zs) (y::x::zs)
 ** Requires knowledge that every permutation of (Fin n) is built up from pair swaps and that this corresponds to the special case of Master for such a permutation.
 ** Note that extension of special cases to those for the permutations' composites follows from spanslztrans together with (runBijection (sigma . tau) = (runBijection sigma) . (runBijection tau)).
@@ -515,3 +517,12 @@ spanslzSubtractivePreservation : spanslz (y::xs) ((y<->(z<\>xs))::xs)
 {-
 Implication of bispannability: Transformations of this form preserve the span of the vectors, the span of both sides of the transformation is the same ZZ-submodule of ZZ^n.
 -}
+
+
+
+vectPermTo : Iso (Fin n) (Fin n) -> Vect n a -> Vect n a
+vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . to) range
+
+permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigma xs) xs
+
+permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
