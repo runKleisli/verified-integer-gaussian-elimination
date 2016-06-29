@@ -85,4 +85,4 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
 			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 
-gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs,rowEchelon gexs))
+gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
