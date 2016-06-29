@@ -282,7 +282,17 @@ i.e.,
 Relational:
 * equivalence relation axioms
 * spanned by implies tail spanned by
-Algebraic: gcd and lcm divisibility relationships via Bezout's identity
+Algebraic:
+* gcd and lcm divisibility relationships via Bezout's identity
+* additive updates to the spanning set that preserve span
+Reordering lemmas:
+* Master: (sigma : Bijection (Fin n)) -> spanslz (zipWith (index . (runBijection sigma)) range xs) xs
+* Minimal for above: spanslz (x::y::zs) (y::x::zs)
+** Requires knowledge that every permutation of (Fin n) is built up from pair swaps and that this corresponds to the special case of Master for such a permutation.
+** Note that extension of special cases to those for the permutations' composites follows from spanslztrans together with (runBijection (sigma . tau) = (runBijection sigma) . (runBijection tau)).
+* spanslz (xs++ys) (ys++xs)
+Mixed:
+* compatibility with combining sets spanned or spanning (list concatenation is algebraic)
 -}
 
 
@@ -460,4 +470,40 @@ spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
 
 
 
----
+mergeSpannedLZs : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys++zs)
+
+spanslzRowTimesSelf : spanslz xs [v<\>xs]
+
+extendSpanningLZsByPreconcatTrivially : spanslz xs ys -> spanslz (zs++xs) ys
+
+extendSpanningLZsByPostconcatTrivially : spanslz xs ys -> spanslz (xs++zs) ys
+
+concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
+
+
+
+spanslzAdditiveExchange : spanslz ((y<+>(z<\>xs))::xs) (y::xs)
+
+spanslzSubtractiveExchange : spanslz ((y<->(z<\>xs))::xs) (y::xs)
+
+{-
+Should actually be as follows, as it will make the proof easier:
+
+spanslzAdditiveExchange : spanslz ((y<+>(monoidsum $ zipWith (<#>) z xs))::xs) (y::xs)
+
+spanslzSubtractiveExchange : spanslz ((y<->(monoidsum $ zipWith (<#>) z xs))::xs) (y::xs)
+-}
+
+{-
+Implication: Above can be rewritten in terms of (updateAt FZ).
+
+This characterization is combined with a natural theorem on bijection reorderings to show that for all indices (nel : Fin n), (updateAt nel (<->(monoidsum $ zipWith (<#>) z xs)) xs) `spanslz` xs.
+-}
+
+{-
+-- Not needed for our purposes.
+
+spanslzAdditiveExchange2 : spanslz xs ys -> spanslz ((zs<+>ys)++xs) (zs++xs)
+
+spanslzSubtractiveExchange2 : spanslz xs ys -> spanslz ((zs<->ys)++xs) (zs++xs)
+-}
