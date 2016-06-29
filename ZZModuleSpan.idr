@@ -507,3 +507,11 @@ spanslzAdditiveExchange2 : spanslz xs ys -> spanslz ((zs<+>ys)++xs) (zs++xs)
 
 spanslzSubtractiveExchange2 : spanslz xs ys -> spanslz ((zs<->ys)++xs) (zs++xs)
 -}
+
+spanslzAdditivePreservation : spanslz (y::xs) ((y<+>(z<\>xs))::xs)
+
+spanslzSubtractivePreservation : spanslz (y::xs) ((y<->(z<\>xs))::xs)
+
+{-
+Implication of bispannability: Transformations of this form preserve the span of the vectors, the span of both sides of the transformation is the same ZZ-submodule of ZZ^n.
+-}
