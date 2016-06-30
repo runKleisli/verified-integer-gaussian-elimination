@@ -47,8 +47,12 @@ weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fro
 		to' : Fin n -> Fin n
 		to' nel = runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (FZNotFS . sym)) . sym) (finReduce $ to $ FS nel)) <*> (map sym $ finReduce $ to FZ)
 		from' : Fin n -> Fin n
+		from' = ?weakenIsoByValFZ_from_pr
 		toFrom' : (y : Fin n) -> to' (from' y) = y
+		-- Suggestion: with (to $ FS nel) or perhaps by injectivity of FS.
+		toFrom' = ?weakenIsoByValFZ_toFrom_pr
 		fromTo' : (x : Fin n) -> from' (to' x) = x
+		fromTo' = ?weakenIsoByValFZ_fromTo_pr
 
 -- fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
 -- goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
