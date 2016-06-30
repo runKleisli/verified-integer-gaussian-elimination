@@ -28,7 +28,74 @@ vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq)
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to
 
+finReduce : (snel : Fin (S n)) -> Either (Fin n) (FZ = snel)
+finReduce FZ = Right Refl
+finReduce (FS nel) = Left nel
+
+permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin n) -> (runIso sigma nel1 = nel2) -> Either (Not (runIso sigma nel2 = nel2)) (nel1 = nel2)
+{-
+-- Positive form. Not strong enough for our purposes.
+permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
+-}
+
+permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
+permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
+
 weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
+weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin n -> Fin n
+		to' nel = runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (FZNotFS . sym)) . sym) (finReduce $ to $ FS nel)) <*> (map sym $ finReduce $ to FZ)
+		from' : Fin n -> Fin n
+		toFrom' : (y : Fin n) -> to' (from' y) = y
+		fromTo' : (x : Fin n) -> from' (to' x) = x
+
+-- fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
+-- goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
+-- suffices: (FZ = to $ FS nel) -> Fin n
+-- permDoesntFix_corrolary (MkIso to ...) (FS nel) : Not (FS nel = FZ) -> (to $ FS nel = FZ) -> Not (to FZ = FZ)
+-- permDoesntFix_corrolary (MkIso to ...) (FS nel) (sym FZNotFS) : (to $ FS nel = FZ) -> Not (to FZ = FZ)
+-- map (?above . sym) (finReduce $ to $ FS nel) : Either (Fin n) $ Not (to FZ = FZ)
+-- finReduce $ to FZ: Either (Fin n) (FZ = to FZ)
+-- ?aboveAbove <*> ?above : Either (Fin n) Void
+-- -- aboveAbove with a left value will overwrite any value of above. aboveAbove with a Left value is the predecessor of (to $ FS nel) when (to $ FS nel) is nonzero, so this is appropriate.
+-- runIso eitherBotRight ?above : Fin n
+-- Hence, without using fromEither at all, we arrive at:
+-- runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (sym FZNotFS)) . sym) (finReduce $ to $ FS nel)) <*> (finReduce $ to FZ) : Fin n
+
+{-
+-- Something like this, maybe...
+
+		to' : Fin n -> Fin n
+		to' nel with (finReduce $ to $ FS nel)
+			| Right Refl = (runIso eitherBotRight) $ map (the (FZ = to $ to $ FS nel -> Void) ?weakval_absurdity) $ finReduce $ to $ to $ FS nel
+			| Left (FS nel') = nel'
+-}
+
+
+{-
+-- Can't use this because it won't accept the proof in to', analogous to from_fzfixedAndNotFixed, that FZ can't be fixed by the permutation if it is the value of a (Fin (S n)) other than FZ.
+
+weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
+weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin n -> Fin n
+		to' nel
+			with (to (FS nel))
+				| FZ with (to FZ)
+					| FZ = void . FZNotFS $ trans (trans (sym $ fromTo FZ) $ sym $ cong {f=from} $ the (FZ = to FZ) Refl) (trans (cong {f=from} $ the (FZ = to $ FS nel) Refl) $ fromTo $ FS nel)
+					| FS skipFZ = skipFZ
+				| FS nel' = nel'
+		from' : Fin n -> Fin n
+		from' nel
+			with (from (FS nel))
+				| FZ with (from FZ)
+					| FZ = void ?from_fzfixedAndNotFixed
+					| FS skipFZ = skipFZ
+				| FS nel' = nel'
+		toFrom' : (y : Fin n) -> to' (from' y) = y
+		fromTo' : (x : Fin n) -> from' (to' x) = x
+-}
 
 vectPermTo : Iso (Fin n) (Fin n) -> Vect n a -> Vect n a
 vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . to) range
@@ -558,6 +625,7 @@ headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs
 -- Main idea: sigma can then be used to take (xs) to a ((x'::xs') : Vect _ _) such that (index nel xs = index FZ (x'::xs') = x') and, by analyzing weakenIsoByValFZ, ((vectToPerm $ isoSym $ weakenIsoByValFZ sigma) $ deleteRow nel xs=tail xs').
 -- With weakenIsoByValFZ, we basically want to use a permutation used on a Vect to act on its row-deleted form as if the deleted row at (nel : Fin (S predn)) were sent to a row that were never added and reindex around the deleted row. However, there would also be an element being sent TO that deleted row, and we haven't accounted for that by giving it a new value. Since there are currently no properties that weakenIsoByValFZ must satisfy to make the algorithm correct, we can set that value arbitrarily, except that we'd have to make sure it's a permutation. This is not a regular process to perform!
 -- Why wouldn't it work to just tighten the cycle the deleted row lies in so that it's skipped in order? What properties must weakenIsoByValFZ satisfy for it to allow headOpPreservesSpanslzImpliesUpdateAtDoes to be produced?
+-- We may need ( vectToPerm $ weakenIsoByValFZ $ isoSym sigma ) instead of ( vectToPerm $ isoSym $ weakenIsoByValFZ sigma )
 -}
 
 spanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
