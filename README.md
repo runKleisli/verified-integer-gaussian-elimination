@@ -46,8 +46,8 @@ Contents: Declaration for `instance VerifiedRingWithUnity ZZ`
 ## Data.Matrix.AlgebraicVerified
 
 Definitions:
-** Verified module
-** Verified vector space
+* Verified module
+* Verified vector space
 
 Ripped from comments of Classes.Verified, commenting out there coincides with definition of module being in the separate module Control.Algebra.VectorSpace from Control.Algebra.
 
