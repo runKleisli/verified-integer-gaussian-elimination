@@ -5,15 +5,19 @@ import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
+import Data.Matrix.AlgebraicVerified
 import Data.Matrix.LinearCombinations
 
 import Data.ZZ
 import Control.Algebra.NumericInstances
+import Control.Algebra.ZZVerifiedInstances
+
+import Control.Isomorphism
 
 
 
 {-
-Trivial lemmas
+Trivial lemmas and plumbing
 -}
 
 vecHeadtailsEq : {xs,ys : Vect _ _} -> ( headeq : x = y ) -> ( taileq : xs = ys ) -> x::xs = y::ys
@@ -21,29 +25,151 @@ vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq)
 -- Also a solid proof:
 -- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
 
+runIso : Iso a b -> a -> b
+runIso (MkIso to _ _ _) = to
 
+finReduce : (snel : Fin (S n)) -> Either (Fin n) (FZ = snel)
+finReduce FZ = Right Refl
+finReduce (FS nel) = Left nel
+
+permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin n) -> (runIso sigma nel1 = nel2) -> Either (Not (runIso sigma nel2 = nel2)) (nel1 = nel2)
+{-
+-- Positive form. Not strong enough for our purposes.
+permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
+-}
+
+permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
+permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
+
+weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
+weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin n -> Fin n
+		to' nel = runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (FZNotFS . sym)) . sym) (finReduce $ to $ FS nel)) <*> (map sym $ finReduce $ to FZ)
+		from' : Fin n -> Fin n
+		from' = ?weakenIsoByValFZ_from_pr
+		toFrom' : (y : Fin n) -> to' (from' y) = y
+		-- Suggestion: with (to $ FS nel) or perhaps by injectivity of FS.
+		toFrom' = ?weakenIsoByValFZ_toFrom_pr
+		fromTo' : (x : Fin n) -> from' (to' x) = x
+		fromTo' = ?weakenIsoByValFZ_fromTo_pr
+
+-- fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
+-- goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
+-- suffices: (FZ = to $ FS nel) -> Fin n
+-- permDoesntFix_corrolary (MkIso to ...) (FS nel) : Not (FS nel = FZ) -> (to $ FS nel = FZ) -> Not (to FZ = FZ)
+-- permDoesntFix_corrolary (MkIso to ...) (FS nel) (sym FZNotFS) : (to $ FS nel = FZ) -> Not (to FZ = FZ)
+-- map (?above . sym) (finReduce $ to $ FS nel) : Either (Fin n) $ Not (to FZ = FZ)
+-- finReduce $ to FZ: Either (Fin n) (FZ = to FZ)
+-- ?aboveAbove <*> ?above : Either (Fin n) Void
+-- -- aboveAbove with a left value will overwrite any value of above. aboveAbove with a Left value is the predecessor of (to $ FS nel) when (to $ FS nel) is nonzero, so this is appropriate.
+-- runIso eitherBotRight ?above : Fin n
+-- Hence, without using fromEither at all, we arrive at:
+-- runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (sym FZNotFS)) . sym) (finReduce $ to $ FS nel)) <*> (finReduce $ to FZ) : Fin n
 
 {-
-Definitions:
-* Verified module
-* Verified vector space
+-- Something like this, maybe...
 
-Ripped from comments of Classes.Verified, commenting out there coincides with definition of module being in the separate module Control.Algebra.VectorSpace from Control.Algebra.
+		to' : Fin n -> Fin n
+		to' nel with (finReduce $ to $ FS nel)
+			| Right Refl = (runIso eitherBotRight) $ map (the (FZ = to $ to $ FS nel -> Void) ?weakval_absurdity) $ finReduce $ to $ to $ FS nel
+			| Left (FS nel') = nel'
 -}
 
 
+{-
+-- Can't use this because it won't accept the proof in to', analogous to from_fzfixedAndNotFixed, that FZ can't be fixed by the permutation if it is the value of a (Fin (S n)) other than FZ.
 
-class (VerifiedRingWithUnity a, VerifiedAbelianGroup b, Module a b) => VerifiedModule a b where
-  total moduleScalarMultiplyComposition : (x,y : a) -> (v : b) -> x <#> (y <#> v) = (x <.> y) <#> v
-  total moduleScalarUnityIsUnity : (v : b) -> unity {a} <#> v = v
-  total moduleScalarMultDistributiveWRTVectorAddition : (s : a) -> (v, w : b) -> s <#> (v <+> w) = (s <#> v) <+> (s <#> w)
-  total moduleScalarMultDistributiveWRTModuleAddition : (s, t : a) -> (v : b) -> (s <+> t) <#> v = (s <#> v) <+> (t <#> v)
+weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
+weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin n -> Fin n
+		to' nel
+			with (to (FS nel))
+				| FZ with (to FZ)
+					| FZ = void . FZNotFS $ trans (trans (sym $ fromTo FZ) $ sym $ cong {f=from} $ the (FZ = to FZ) Refl) (trans (cong {f=from} $ the (FZ = to $ FS nel) Refl) $ fromTo $ FS nel)
+					| FS skipFZ = skipFZ
+				| FS nel' = nel'
+		from' : Fin n -> Fin n
+		from' nel
+			with (from (FS nel))
+				| FZ with (from FZ)
+					| FZ = void ?from_fzfixedAndNotFixed
+					| FS skipFZ = skipFZ
+				| FS nel' = nel'
+		toFrom' : (y : Fin n) -> to' (from' y) = y
+		fromTo' : (x : Fin n) -> from' (to' x) = x
+-}
 
---class (VerifiedField a, VerifiedModule a b) => VerifiedVectorSpace a b where {}
+vectPermTo : Iso (Fin n) (Fin n) -> Vect n a -> Vect n a
+vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . to) range
 
--- As desired in Data.Matrix.Algebraic
-instance [vectModule] Module a b => Module a (Vect n b) where
-	(<#>) r = map (r <#>)
+moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
+
+vecDeleteatpermEq : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( deleteAt (runIso sigma FZ) $ vectPermTo sigma xs = vectPermTo (weakenIsoByValFZ sigma) $ deleteAt FZ xs )
+vecDeleteatpermEq sigma@(MkIso to from toFrom fromTo) {xs} = ?vecDeleteatpermEq'
+
+deleteAtAsPermTail : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( xs = vectPermTo sigma (y::ys) ) -> ( deleteAt (runIso sigma FZ) xs = vectPermTo (weakenIsoByValFZ sigma) ys )
+deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::[]} {y} {ys=[]} = ?deleteAtAsPermTail_rhs_1
+	where
+		fin1elIsFZ : (el : Fin 1) -> el=FZ
+		fin1elIsFZ FZ = Refl
+		fin1elIsFZ (FS el) = FinZElim el
+deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::xxs} {y} {ys=yy::yys} = ?deleteAtAsPermTail_rhs_2
+
+multIdLeftNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> Id <> a = a
+
+multIdRightNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> a <> Id = a
+
+{-
+When checking type of ZZModuleSpan.rewriteMultInv:
+When checking an application of function Control.Algebra.VectorSpace.<#>:
+        Can't resolve type class Group r
+
+---
+
+rewriteMultInv : (VerifiedRingWithUnity r, VerifiedModule r a) -> (s : r) -> (x : a) -> (inverse s) <#> x = s <#> (inverse x)
+-}
+
+rewriteMultInvVect : VerifiedRingWithUnity r => (s : r) -> (x : Vect _ r) -> (inverse s) <#> x = s <#> (inverse x)
+
+rewriteMultInvMat : VerifiedRingWithUnity r => (s : r) -> (x : Matrix _ _ r) -> (inverse s) <#> x = s <#> (inverse x)
+
+rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
+rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = trans (sym stepleft) $ trans prf stepright
+	where
+		stepleft : f l (f c r) = g l (g c r)
+		stepleft = rewrite sym (fneq c r) in fneq l _
+		stepright : f (f l c) r = g (g l c) r
+		stepright = rewrite sym (fneq l c) in fneq _ r
+
+{-
+-- Works both compiled and in the REPL
+
+rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = ?rewriteAssociativityUnderEquality'
+
+rewriteAssociativityUnderEquality' = proof
+  intros
+  claim stepleft f l (f c r) = g l (g c r)
+  claim stepright f (f l c) r = g (g l c) r
+  unfocus
+  unfocus
+  exact trans (sym stepleft) $ trans prf stepright
+  exact rewrite sym (fneq l c) in fneq _ r
+  exact rewrite sym (fneq c r) in fneq l _
+
+-- Works in REPL but not compiled
+
+rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = ?rewriteAssociativityUnderEquality'
+
+rewriteAssociativityUnderEquality' = proof
+  intros
+  exact trans _ $ trans prf _
+  exact trans _ (sym $ fneq l _)
+  exact trans (cong {f=(flip f) r} (fneq l c)) _
+  exact cong (sym $ fneq _ _)
+  exact fneq _ r
+-}
 
 
 
@@ -89,12 +215,6 @@ Associative property for matrix multiplication
 -}
 
 timesMatMatIsAssociative : Ring a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
-
-
-
-{-
-ZZ is a VerifiedRing.
--}
 
 
 
@@ -160,12 +280,10 @@ Same as above, but for lists of ZZ vectors specifically.
 
 
 
-rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
-
 zippyScale : Matrix n' n ZZ -> Matrix n w ZZ -> Matrix n' w ZZ
 zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
 
--- Inherited property from (<>) equality proven in Data.Matrix.LinearCombinations
+-- Inherited properties from (<>) equality proven in Data.Matrix.LinearCombinations
 zippyScaleIsAssociative : l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
 {-
 zippyScaleIsAssociative = ?zippyScaleIsAssociative'
@@ -174,6 +292,12 @@ zippyScaleIsAssociative = ?zippyScaleIsAssociative'
 zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
 -- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
 zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
+
+zippyScaleIdLeftNeutral : (a : Matrix n m ZZ) -> Id `zippyScale` a = a
+zippyScaleIdLeftNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdLeftNeutral _
+
+zippyScaleIdRightNeutral : (a : Matrix _ _ ZZ) -> a `zippyScale` Id = a
+zippyScaleIdRightNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdRightNeutral _
 
 {-
 
@@ -252,7 +376,17 @@ i.e.,
 Relational:
 * equivalence relation axioms
 * spanned by implies tail spanned by
-Algebraic: gcd and lcm divisibility relationships via Bezout's identity
+Algebraic:
+* gcd and lcm divisibility relationships via Bezout's identity
+* additive updates to the spanning set that preserve span
+Reordering lemmas:
+* Master: permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigma xs) xs
+* Minimal for above: spanslz (x::y::zs) (y::x::zs)
+** Requires knowledge that every permutation of (Fin n) is built up from pair swaps and that this corresponds to the special case of Master for such a permutation.
+** Note that extension of special cases to those for the permutations' composites follows from spanslztrans together with (runBijection (sigma . tau) = (runBijection sigma) . (runBijection tau)).
+* spanslz (xs++ys) (ys++xs)
+Mixed:
+* compatibility with combining sets spanned or spanning (list concatenation is algebraic)
 -}
 
 
@@ -336,3 +470,178 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 		spanslztrans_matrix = vsy <> vsx
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
 		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {l=vsy} {c=vsx} {r=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
+
+
+
+spanslzrefl : spanslz xs xs
+spanslzrefl = ( Id ** zippyScaleIdLeftNeutral _ )
+
+
+
+updateAtEquality : {ls : Matrix n k ZZ} -> {rs : Matrix k m ZZ} -> (updi : Fin n) -> (f : (i : Nat) -> Vect i ZZ -> Vect i ZZ) -> ( (la : Vect k ZZ) -> (f k la) <\> rs = f m $ la <\> rs ) -> (updateAt updi (f k) ls) `zippyScale` rs = updateAt updi (f m) (ls `zippyScale` rs)
+updateAtEquality {ls=[]} updi f fnpreq = FinZElim updi
+updateAtEquality {ls=l::ls} {rs} FZ f fnpreq = vecHeadtailsEq {xs=tail $ (l::ls) `zippyScale` rs} ( trans (sym $ timesVectMatAsLinearCombo (f _ l) rs) $ trans (fnpreq l) $ cong {f=f _} $ timesVectMatAsLinearCombo l rs ) Refl
+updateAtEquality {ls=l::ls} (FS penupdi) f fnpreq = vecHeadtailsEq Refl $ updateAtEquality penupdi f fnpreq
+
+-- Note the relationship to bilinearity of matrix multiplication
+vectMatLScalingCompatibility : {z : ZZ} -> {rs : Matrix k m ZZ} -> (z <#> la) <\> rs = z <#> (la <\> rs)
+vectMatLScalingCompatibility {z} {la} {rs} = ?vectMatLScalingCompatibility_rhs
+
+{-
+-- Works in REPL, untested otherwise
+vectMatLScalingCompatibility_rhs = proof
+  intros
+  claim vectmatLiftId1 (z <#> la) <\> rs = head $ (row $ z <#> la) <> rs
+  unfocus
+  claim moveScaleOutsideRow row (z <#> la) = z <#> (row la)
+  unfocus
+  claim chScaleOutsideTimes (row (z <#> la)) <> rs = z <#> ((row la) <> rs)
+  unfocus
+  exact trans vectmatLiftId1 $ cong {f=head} chScaleOutsideTimes
+  trivial
+  unfocus
+  exact trans (cong {f=(<> rs)} moveScaleOutsideRow) _
+  trivial
+  compute
+  claim scalMatMatCompat (scal : ZZ) -> {nu, ka, mu : Nat} -> (xs : Matrix nu ka ZZ) -> (ys : Matrix ka mu ZZ) -> (scal <#> xs) <> ys = scal <#> (xs <> ys)
+  unfocus
+  exact scalMatMatCompat z (row la) rs
+  exact ?timesScalarLeftCommutesWithTimesMatRight
+-}
+
+spanRowScalelz : (z : ZZ) -> (updi : Fin n') -> spanslz xs ys -> spanslz xs (updateAt updi (z<#>) ys)
+spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scaleMain $ rewrite sym prvs in Refl)
+	where
+		scaleMain : (updateAt updi (z<#>) vs) `zippyScale` xs = updateAt updi (z<#>) (vs `zippyScale` xs)
+		scaleMain = updateAtEquality updi ( \i => (z<#>) ) ( \la => vectMatLScalingCompatibility {la=la} )
+
+
+
+spanScalelz : (z : ZZ) -> spanslz xs ys -> spanslz xs (z<#>ys)
+
+spanAdd : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <+> zs)
+
+spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
+spanSub {xs} {ys} {zs} prxy prxz = ?spanSub'
+
+spanSub' = proof
+  intros
+  let spanAdd' = spanAdd {xs=xs} {ys=ys} {zs = inverse zs}
+  refine spanAdd'
+  exact prxy
+  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity {a=ZZ} (inverse zs) )) spanslzrefl
+
+{-
+-- Works in REPL only
+spanSub' = proof
+  intros
+  refine spanAdd
+  exact prxy
+  exact spanslztrans (spanScalelz (inverse unity) prxz) _
+  exact replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( the ((<#>) (unity {a=ZZ}) (inverse zs) = (inverse zs)) ?moduleIdScalZZ )) spanslzrefl
+-}
+
+{-
+-- I feel like typechecking this shouldn't be a problem for Idris.
+
+
+spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
+spanSub {xs} {ys} {zs} prxy prxz
+	with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse unity)<#>zs} prxy (spanScalelz (inverse unity) prxz) )
+		| (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat unity zs)
+
+
+-- Replacement test code for analyzing the problem:
+
+
+spanSub : {xs : Matrix n w ZZ} -> {ys, zs : Matrix n' w ZZ} -> spanslz {n=n} {n'=n'} {w=w} xs ys -> spanslz {n=n} {n'=n'} {w=w} xs zs -> spanslz {n=n} {n'=n'} {w=w} xs ((the (Matrix n' w ZZ -> Matrix n' w ZZ -> Matrix n' w ZZ) (<->)) ys zs)
+spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
+	with (?akdjna)
+	-- with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse (the ZZ unity))<#>zs} prxy (spanScalelz (inverse (the ZZ unity)) prxz) )
+		| (vs ** pr) = ?ajdnjfka
+		-- | (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat (the ZZ unity) pr)
+-}
+
+
+
+mergeSpannedLZs : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys++zs)
+
+spanslzRowTimesSelf : spanslz xs [v<\>xs]
+
+extendSpanningLZsByPreconcatTrivially : spanslz xs ys -> spanslz (zs++xs) ys
+
+extendSpanningLZsByPostconcatTrivially : spanslz xs ys -> spanslz (xs++zs) ys
+
+concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
+
+
+
+spanslzAdditiveExchange : spanslz ((y<+>(z<\>xs))::xs) (y::xs)
+
+spanslzSubtractiveExchange : spanslz ((y<->(z<\>xs))::xs) (y::xs)
+
+{-
+Should actually be as follows, as it will make the proof easier:
+
+spanslzAdditiveExchange : spanslz ((y<+>(monoidsum $ zipWith (<#>) z xs))::xs) (y::xs)
+
+spanslzSubtractiveExchange : spanslz ((y<->(monoidsum $ zipWith (<#>) z xs))::xs) (y::xs)
+-}
+
+{-
+Implication: Above can be rewritten in terms of (updateAt FZ).
+
+This characterization is combined with a natural theorem on bijection reorderings to show that for all indices (nel : Fin n), (updateAt nel (<->(monoidsum $ zipWith (<#>) z xs)) xs) `spanslz` xs.
+-}
+
+{-
+-- Not needed for our purposes.
+
+spanslzAdditiveExchange2 : spanslz xs ys -> spanslz ((zs<+>ys)++xs) (zs++xs)
+
+spanslzSubtractiveExchange2 : spanslz xs ys -> spanslz ((zs<->ys)++xs) (zs++xs)
+-}
+
+spanslzAdditivePreservation : spanslz (y::xs) ((y<+>(z<\>xs))::xs)
+
+spanslzSubtractivePreservation : spanslz (y::xs) ((y<->(z<\>xs))::xs)
+
+{-
+Implication of bispannability: Transformations of this form preserve the span of the vectors, the span of both sides of the transformation is the same ZZ-submodule of ZZ^n.
+-}
+
+
+
+permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigma xs) xs
+
+permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
+
+swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (Not (mel=FZ),Not (mel=nel)) -> runIso sigma mel = mel) )
+
+{-
+Recall:
+
+moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
+
+---
+
+deleteAtAsPermTail : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( xs = vectPermTo sigma (y::ys) ) -> ( deleteAt (runIso sigma FZ) xs = vectPermTo (weakenIsoByValFZ sigma) ys )
+-}
+
+headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ} -> ((xx : Vect m ZZ) -> (xxs: Matrix predn m ZZ) -> spanslz (f xx xxs :: xxs) (xx::xxs)) -> (nel : Fin (S predn)) -> (xs: Matrix (S predn) m ZZ) -> spanslz (updateAt nel (\xx => f xx (deleteRow nel xs)) xs) xs
+{-
+-- For starters:
+headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs
+	with (swapFZPerm nel)
+		| ( sigma ** ( fzToNelpr, nelToFZpr, elseToSelfpr ) ) =
+			...
+-- Main idea: sigma can then be used to take (xs) to a ((x'::xs') : Vect _ _) such that (index nel xs = index FZ (x'::xs') = x') and, by analyzing weakenIsoByValFZ, ((vectToPerm $ isoSym $ weakenIsoByValFZ sigma) $ deleteRow nel xs=tail xs').
+-- With weakenIsoByValFZ, we basically want to use a permutation used on a Vect to act on its row-deleted form as if the deleted row at (nel : Fin (S predn)) were sent to a row that were never added and reindex around the deleted row. However, there would also be an element being sent TO that deleted row, and we haven't accounted for that by giving it a new value. Since there are currently no properties that weakenIsoByValFZ must satisfy to make the algorithm correct, we can set that value arbitrarily, except that we'd have to make sure it's a permutation. This is not a regular process to perform!
+-- Why wouldn't it work to just tighten the cycle the deleted row lies in so that it's skipped in order? What properties must weakenIsoByValFZ satisfy for it to allow headOpPreservesSpanslzImpliesUpdateAtDoes to be produced?
+-- We may need ( vectToPerm $ weakenIsoByValFZ $ isoSym sigma ) instead of ( vectToPerm $ isoSym $ weakenIsoByValFZ sigma )
+-}
+
+spanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
+spanslzAdditiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes {f=\argxx => \argxxs => argxx<+>(z<\>argxxs) } (\argxx => \argxxs => spanslzAdditiveExchange {y=argxx} {xs=argxxs} {z=z}) nel xs
+
+spanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<->(z<\>(deleteRow nel xs))) xs) xs
