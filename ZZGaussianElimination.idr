@@ -16,6 +16,12 @@ import FinOrdering
 
 
 
+{-
+Properties of vectors and matrices.
+-}
+
+
+
 downAndNotRightOfEntryImpliesZ : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
 downAndNotRightOfEntryImpliesZ xs nel mel {n} {m} = {i : Fin n} -> {j : Fin m} -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
 {-
@@ -84,5 +90,19 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 			| Right someNonZness with someNonZness
 				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
 			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+
+
+
+{-
+Intermediate or secondary algorithms
+-}
+
+
+
+{-
+Main algorithm
+-}
+
+
 
 gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
