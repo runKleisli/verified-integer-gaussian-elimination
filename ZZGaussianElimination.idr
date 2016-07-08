@@ -14,6 +14,10 @@ import ZZModuleSpan
 
 import FinOrdering
 
+-- For style. ((Reader r a) equivalent to (r -> a))
+import Control.Monad.Identity
+import Control.Monad.Reader
+
 
 
 {-
@@ -102,9 +106,21 @@ Intermediate or secondary algorithms
 quotientOverZZ : ZZ -> ZZ -> Type
 quotientOverZZ x y = ( d : ZZ ** d<.>y=x )
 
-gcdOfVectZZ : (x : Vect n ZZ) -> ( v : Vect n ZZ ** ( i : Fin n ) -> (index i x) `quotientOverZZ` (v <:> x) )
+-- Making argument "k" implicit will not work.
+gcdOfVectAlg : Type
+gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
 
-gaussElimlzIfGCD : (gcdOfVectAlg : {k : Nat} -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )) -> (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
+gaussElimlzIfGCD : Reader gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs)) )
+
+
+
+{-
+Background info
+-}
+
+
+
+gcdOfVectZZ : (x : Vect n ZZ) -> ( v : Vect n ZZ ** ( i : Fin n ) -> (index i x) `quotientOverZZ` (v <:> x) )
 
 
 
@@ -115,4 +131,4 @@ Main algorithm
 
 
 gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
-gaussElimlz = gaussElimlzIfGCD gcdOfVectZZ
+gaussElimlz = runIdentity $ runReaderT gaussElimlzIfGCD (\k => gcdOfVectZZ {n=k})
