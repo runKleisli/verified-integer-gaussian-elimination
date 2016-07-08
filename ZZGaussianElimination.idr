@@ -99,6 +99,15 @@ Intermediate or secondary algorithms
 
 
 
+quotientOverZZ : ZZ -> ZZ -> Type
+quotientOverZZ x y = ( d : ZZ ** d<.>y=x )
+
+gcdOfVectZZ : (x : Vect n ZZ) -> ( v : Vect n ZZ ** ( i : Fin n ) -> (index i x) `quotientOverZZ` (v <:> x) )
+
+gaussElimlzIfGCD : (gcdOfVectAlg : {k : Nat} -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )) -> (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
+
+
+
 {-
 Main algorithm
 -}
@@ -106,3 +115,4 @@ Main algorithm
 
 
 gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
+gaussElimlz = gaussElimlzIfGCD gcdOfVectZZ
