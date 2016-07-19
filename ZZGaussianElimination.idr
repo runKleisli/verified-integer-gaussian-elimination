@@ -103,12 +103,29 @@ Intermediate or secondary algorithms
 
 
 
+-- Should be modified to account for (gcd x 0 = 0).
 quotientOverZZ : ZZ -> ZZ -> Type
 quotientOverZZ x y = ( d : ZZ ** d<.>y=x )
 
 -- Making argument "k" implicit will not work.
 gcdOfVectAlg : Type
 gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
+
+firstColZero : (xs : Matrix n m ZZ) -> Type
+firstColZero [] = ()
+firstColZero ([]::xs) = ()
+firstColZero ((xx::xxs)::xs) = (xx=neutral, firstColZero xs)
+
+firstColZeroCalc : (xs : Matrix n m ZZ) -> Dec $ firstColZero xs
+firstColZeroCalc [] = Yes ()
+firstColZeroCalc ([]::xs) = Yes ()
+firstColZeroCalc ((xx::xxs)::xs) with (firstColZeroCalc xs)
+	| No pr = No ( pr . snd )
+	| Yes pr with (decEq xx neutral)
+		| Yes isneut = Yes (isneut, pr)
+		| No nope = No ( nope . fst )
+
+elimFirstCol : Reader gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix (S predn') m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, firstColZero $ tail gexs)) )
 
 gaussElimlzIfGCD : Reader gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs)) )
 
