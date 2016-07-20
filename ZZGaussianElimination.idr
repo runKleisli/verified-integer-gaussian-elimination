@@ -144,6 +144,7 @@ elimFirstCol ([]::xs) = ?elimFirstCol_widthZero
 elimFirstCol mat@((xx::xxs)::xs) = do {
 		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
 		{-
+
 		Error:
 
 		> elimFirstCol (x::xs) {m} = do {
@@ -152,13 +153,31 @@ elimFirstCol mat@((xx::xxs)::xs) = do {
 		>	-- which is a ( v : Vect _ ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
 
 			gcdalg does not have a function type (gcdOfVectAlg)
+
 		-}
 		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
 		let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
-		-- claim mat' typeOf mat
-		-- claim fstcolz_mat' firstColZero mat'
-		--	to use the properties of fn to construct, with bar1 and bar2 following by construction and divisibility
-		-- return ( (v <:> (getCol FZ mat))::mat' ** (?bar1,?bar2,fstcolz_mat'))
+		{-
+
+		* Use the properties of fn to construct mat', with bar1 and bar2 following by construction and divisibility
+
+		-}
+		let mat' = mat <-> (map (\i => (v <:> (getCol FZ mat))<.>(Sigma.getWitness $ fn i) <#> (index i mat)) range)
+		{-
+
+		Typechecks, but we'll try the above for now
+
+		> let mat' = Data.Vect.zipWith (\i => \xi => updateAt i (<-> (v <:> (getCol FZ mat))<.>(Sigma.getWitness $ fn i) <#> xi) mat) range mat
+
+		-}
+		let fstcolz_mat' = the (firstColZero mat') ?lemma_fstcolz_mat'
+		{-
+
+		* You want the first entry of (gexs) to be (v <:> (getCol FZ mat)), and to acquire the full vector as linear combination of mat rows.
+		* index FZ (r<\>m) = r<:>(index FZ $ transpose m) = r<:>(getCol FZ m)
+
+		-}
+		-- return ( (v <\> mat)::mat' ** (?bar1,?bar2,fstcolz_mat'))
 		return $ believe_me "shshs"
 	}
 
