@@ -111,8 +111,12 @@ quotientOverZZ x y = ( d : ZZ ** d<.>y=x )
 gcdOfVectAlg : Type
 gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
 
+-- Necessary because Idris won't unpack the definition of (gcdOfVectAlg) at occurrences.
+runGCDOfVectAlg : ZZGaussianElimination.gcdOfVectAlg -> (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
+runGCDOfVectAlg gcdalg = gcdalg
+
 firstColZero : (xs : Matrix n m ZZ) -> Type
-firstColZero [] = ()
+firstColZero [] {m} = ()	-- implicit {m} needed to match (invariantly in)/(for all) m
 firstColZero ([]::xs) = ()
 firstColZero ((xx::xxs)::xs) = (xx=neutral, firstColZero xs)
 
@@ -125,9 +129,45 @@ firstColZeroCalc ((xx::xxs)::xs) with (firstColZeroCalc xs)
 		| Yes isneut = Yes (isneut, pr)
 		| No nope = No ( nope . fst )
 
-elimFirstCol : Reader gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix (S predn') m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, firstColZero $ tail gexs)) )
+elimFirstCol : (xs : Matrix n m ZZ) -> Reader gcdOfVectAlg (gexs : Matrix (S predn') m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, firstColZero $ tail gexs))
+{-
+-- Template
+elimFirstCol xs = do {
+		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+		return $ believe_me "shshs"
+		-- return (?foo ** (?bar1,?bar2,?bar3))
+	}
+-}
+-- A 0-row matrix becomes the one-neutral-row matrix
+elimFirstCol [] {m} {predn'=Z} = return (row {n=m} neutral ** ( ([] ** Refl), ([neutral] ** Refl), the (firstColZero [] {m=m}) () ))
+elimFirstCol ([]::xs) = ?elimFirstCol_widthZero
+elimFirstCol mat@((xx::xxs)::xs) = do {
+		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+		{-
+		Error:
+
+		> elimFirstCol (x::xs) {m} = do {
+		> 	gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+		> 	let (v ** fn) = gcdalg _ x
+		>	-- which is a ( v : Vect _ ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
+
+			gcdalg does not have a function type (gcdOfVectAlg)
+		-}
+		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
+		let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
+		-- claim mat' typeOf mat
+		-- claim fstcolz_mat' firstColZero mat'
+		--	to use the properties of fn to construct, with bar1 and bar2 following by construction and divisibility
+		-- return ( (v <:> (getCol FZ mat))::mat' ** (?bar1,?bar2,fstcolz_mat'))
+		return $ believe_me "shshs"
+	}
+
+{-
+gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
+-}
 
 gaussElimlzIfGCD : Reader gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs)) )
+-- gaussElimlzIfGCD2 : (xs : Matrix n m ZZ) -> Reader gcdOfVectAlg (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
 
 
 
@@ -149,3 +189,5 @@ Main algorithm
 
 gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, rowEchelon gexs))
 gaussElimlz = runIdentity $ runReaderT gaussElimlzIfGCD (\k => gcdOfVectZZ {n=k})
+-- Why is this wrong, for if we put the argument inside the ReaderT gaussElimlzIfGCD?
+-- gaussElimlz = runIdentity . ((flip runReaderT) $ (\k => gcdOfVectZZ {n=k})) . gaussElimlzIfGCD2
