@@ -206,7 +206,7 @@ elimFirstCol mat@((xx::xxs)::xs) {n=S predn} {m=S predm} = do {
 			( (v<\>mat)::mat ** (spanslzrefl,spanslzrefl,(FZ ** ?proveItAbs)) ) range
 		-- proveItAbs is like \j => void . ( spawnNotLTE (finToNat (FS j)) (finToNat FZ)) )
 		-- spawnNotLTE is an explicit (LTERel _ _ -> Void) to be proved, avoiding any (decLTE) (Yes/No)-case handling problems.
-		-- f should take its argument (elt:=Fin (S predn)) to its successor so it can be used to index (imat) and so that it will always be non-FZ and thus never using the same (Fin (S (S predn))) as the base case has.
+		-- f should take its argument (elt:=Fin (S predn)) to its successor so it can be used to index (imat), starting in its tail, and so that it will always be non-FZ and thus never using the same (Fin (S (S predn))) as the base case has.
 
 		{-
 		We need to show that for every row (i) of (mat), there is a vector (u) such that (u_(FS i)<\>(droprow (FS i) (v<\>mat)::mat) has the same value as row (i) of (mat) at column FZ). Especially that this property is preserved in each (imat).
