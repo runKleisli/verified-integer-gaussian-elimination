@@ -129,7 +129,8 @@ firstColZeroCalc ((xx::xxs)::xs) with (firstColZeroCalc xs)
 		| Yes isneut = Yes (isneut, pr)
 		| No nope = No ( nope . fst )
 
-elimFirstCol : (xs : Matrix n m ZZ) -> Reader gcdOfVectAlg (gexs : Matrix (S predn') m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, firstColZero $ tail gexs))
+{-
+elimFirstCol : (xs : Matrix n m ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, firstColZero $ tail gexs))
 {-
 -- Template
 elimFirstCol xs = do {
@@ -139,10 +140,11 @@ elimFirstCol xs = do {
 	}
 -}
 -- A 0-row matrix becomes the one-neutral-row matrix
-elimFirstCol [] {m} {predn'=Z} = return (row {n=m} neutral ** ( ([] ** Refl), ([neutral] ** Refl), the (firstColZero [] {m=m}) () ))
+elimFirstCol [] {m} = return (row {n=m} neutral ** ( ([] ** Refl), ([neutral] ** Refl), the (firstColZero [] {m=m}) () ))
 elimFirstCol ([]::xs) = ?elimFirstCol_widthZero
-elimFirstCol mat@((xx::xxs)::xs) {n=S predn} {m=S predm} = do {
-		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+elimFirstCol mat {n=S predn} {m=S predm} = do {
+-- elimFirstCol mat@((xx::xxs)::xs) {n=S predn} {m=S predm} = do {
+		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
 
 		{-
 		Error:
@@ -171,7 +173,12 @@ elimFirstCol mat@((xx::xxs)::xs) {n=S predn} {m=S predm} = do {
 		* Use the properties of fn to construct mat', with bar1 and bar2 following by construction and divisibility
 		-}
 
-		let mat' = mat <-> (map (\i => (v <:> (getCol FZ mat))<.>(Sigma.getWitness $ fn i) <#> (index i mat)) range)
+		{-
+		This has to be commented out if you reduce mat@((xx::xxs)::xs) to mat.
+		They say it's a type mismatch.
+
+		> let mat' = mat <-> (map (\i => (v <:> (getCol FZ mat))<.>(Sigma.getWitness $ fn i) <#> (index i mat)) range)
+		-}
 
 		{-
 		Typechecks, but we'll try the above for now
@@ -202,6 +209,10 @@ elimFirstCol mat@((xx::xxs)::xs) {n=S predn} {m=S predm} = do {
 		> 	( updateAt (FS FZ) (<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS FZ) (v<\>mat)::mat))) (v<\>mat)::mat ** (spanslzSubtractiveExchangeAt FS FZ,?howel,(FZ ** ?initTheFirstRowOfTailIsZero)) ) (map FS range)
 		-}
 
+		{-
+		(foldl Iteration 3)
+		-}
+
 		let foldSomefuncPreservingBispan3 = \f => foldl {t=Vect (S predn)} {elt=Fin (S predn)} {acc=( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, (i : Fin (S (S predn)) ** (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i -> indices (FS j) FZ imat = Pos Z) ) )} f
 			( (v<\>mat)::mat ** (spanslzrefl,spanslzrefl,(FZ ** ?proveItAbs)) ) range
 		-- proveItAbs is like \j => void . ( spawnNotLTE (finToNat (FS j)) (finToNat FZ)) )
@@ -209,14 +220,75 @@ elimFirstCol mat@((xx::xxs)::xs) {n=S predn} {m=S predm} = do {
 		-- f should take its argument (elt:=Fin (S predn)) to its successor so it can be used to index (imat), starting in its tail, and so that it will always be non-FZ and thus never using the same (Fin (S (S predn))) as the base case has.
 
 		{-
+		Can't deduce that the final bound on the known rows zero in the first column starting from the top row of (tail endmat) is actually the final row.
+
+			"Can't match on case block in case block in elimFirstCol at [...]"
+
+		This and the redundant information in the (range) argument suggests an even cleaner structure and closer intermediary to the goal.
+
+		> let ( endmat ** ( endmatSpansMatandgcd, matandgcdSpansEndmat, (last {n=S predn} ** downImpliesZ) ) ) = foldSomefuncPreservingBispan3 fancy
+		-}
+
+		let ( endmat ** ( endmatSpansMatandgcd, matandgcdSpansEndmat, (finalind ** notUpImpliesZ) ) ) = foldSomefuncPreservingBispan3 fancy
+
+		{-
 		We need to show that for every row (i) of (mat), there is a vector (u) such that (u_(FS i)<\>(droprow (FS i) (v<\>mat)::mat) has the same value as row (i) of (mat) at column FZ). Especially that this property is preserved in each (imat).
 		-}
 
-		let fstcolz_mat' = the (firstColZero mat') ?lemma_fstcolz_mat'
+		-- See comment to def of mat' for why this is commented
+		-- let fstcolz_mat' = the (firstColZero mat') ?lemma_fstcolz_mat'
+
+		-- let downImpliesZ' = ?determineFirstColZ downImpliesZ
 
 		-- return ( (v <\> mat)::mat' ** (?bar1,?bar2,fstcolz_mat'))
-		return $ believe_me "shshs"
+		return ( endmat ** (spanslztrans endmatSpansMatandgcd $ fst bisWithGCD, spanslztrans (snd bisWithGCD) matandgcdSpansEndmat, ?downImpliesZ'))
 	}
+	where
+		extendedFunc : {imat : Matrix (S (S predn)) (S predm) ZZ}
+			-> (sfi : Fin (S (S predn)))
+			-> ( (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i -> indices (FS j) FZ imat = Pos Z )
+			-> (j : Fin (S predn))
+			-> finToNat (FS j) `LTERel` finToNat sfi
+			-> indices (FS j) FZ imat = Pos Z
+		fancy : {v : Vect (S predn) ZZ} -> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, (i : Fin (S (S predn)) ** (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i -> indices (FS j) FZ imat = Pos Z) ) )
+			-> (fi : Fin (S predn))
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', (i' : Fin (S (S predn)) ** (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i' -> indices (FS j) FZ imat' = Pos Z) ) )
+		fancy ( imat ** (imatSpansMatandgcd, matandgcdSpansImat, (i ** downImpl)) ) fi = ( updateAt
+				(FS fi)
+				(<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS fi) imat)))
+				imat
+			** (spanslztrans (spanslzSubtractiveExchangeAt $ FS fi) imatSpansMatandgcd,
+				spanslztrans matandgcdSpansImat (spanslzSubtractivePreservationAt $ FS fi),
+				(FS fi ** extendedFunc (FS fi) downImpl)
+			) )
+-}
+
+{-
+( updateAt (FS fi) (<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS fi) imat))) imat ** (spanslztrans imatSpansMatandgcd (spanslzSubtractiveExchangeAt $ FS fi), spanslztrans (?spanslzSubtractivePreservationAt $ FS fi) matandgcdSpansImat, (FS fi ** ?extendedFunc))
+-}
+
+{-
+let foldSomefuncPreservingBispan2 = \f => foldl
+	{t=Vect (S predn)}
+	{elt=Fin (S predn)}
+	{acc=( imat : Matrix (S (S predn)) (S predm) ZZ **
+		( imat `spanslz` (v <\> mat)::mat,
+		(v <\> mat)::mat `spanslz` imat,
+		(i : Fin (S predn) ** {j : Fin (S predn)}
+			-> finToNat j `LTERel` finToNat i
+			-> indices j FZ (tail imat) = Pos Z)
+		)
+	)}
+	f
+ 	( updateAt (FS FZ)
+		(<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS FZ) (v<\>mat)::mat)))
+		(v<\>mat)::mat
+		** (spanslzSubtractiveExchangeAt FS FZ,
+			?howel,
+			(FZ ** ?initTheFirstRowOfTailIsZero)
+		)
+	) (map FS range)
+-}
 
 {-
 gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
