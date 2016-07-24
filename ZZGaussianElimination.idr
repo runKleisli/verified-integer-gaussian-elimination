@@ -264,31 +264,11 @@ elimFirstCol mat {n=S predn} {m=S predm} = do {
 -}
 
 {-
-( updateAt (FS fi) (<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS fi) imat))) imat ** (spanslztrans imatSpansMatandgcd (spanslzSubtractiveExchangeAt $ FS fi), spanslztrans (?spanslzSubtractivePreservationAt $ FS fi) matandgcdSpansImat, (FS fi ** ?extendedFunc))
--}
+Better to refine this to a type that depends on (m=S predm) so that the case (m=Z) may also be covered.
 
-{-
-let foldSomefuncPreservingBispan2 = \f => foldl
-	{t=Vect (S predn)}
-	{elt=Fin (S predn)}
-	{acc=( imat : Matrix (S (S predn)) (S predm) ZZ **
-		( imat `spanslz` (v <\> mat)::mat,
-		(v <\> mat)::mat `spanslz` imat,
-		(i : Fin (S predn) ** {j : Fin (S predn)}
-			-> finToNat j `LTERel` finToNat i
-			-> indices j FZ (tail imat) = Pos Z)
-		)
-	)}
-	f
- 	( updateAt (FS FZ)
-		(<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS FZ) (v<\>mat)::mat)))
-		(v<\>mat)::mat
-		** (spanslzSubtractiveExchangeAt FS FZ,
-			?howel,
-			(FZ ** ?initTheFirstRowOfTailIsZero)
-		)
-	) (map FS range)
+Shall start from the bottom of the matrix (last) and work up to row (FS FZ) using a traversal based on (weaken) and a binary map from index (Fin n) and oldvals to newvals.
 -}
+elimFirstCol2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, downAndNotRightOfEntryImpliesZ gexs FZ FZ))
 
 {-
 gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
