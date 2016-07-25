@@ -21,6 +21,85 @@ import Control.Monad.Reader
 
 
 {-
+Trivial lemmas and plumbing
+-}
+
+
+
+total
+FinSZAreFZ : (x : Fin 1) -> x=FZ
+FinSZAreFZ FZ = Refl
+FinSZAreFZ (FS voda) = FinZElim voda
+
+last_rw : Fin (n+(S predk))
+last_rw {n} {predk} = rewrite sym (plusSuccRightSucc n predk) in last {n=n+predk}
+
+{-
+-- Impossible to have this type
+last_rw2 : ( the (Fin (S $ n+predk)) last = the (Fin (n + (S predk))) last )
+last_rw2 {n} {predk} = rewrite sym (plusSuccRightSucc n predk) in Refl
+-}
+
+{-
+-- Seems impossible to prove this, actually. Maybe with careful study.
+last_rw2 : ( last_rw {n=n} {predk=predk} ~=~ Data.Fin.last {n=n+predk} )
+last_rw2 = ?last_rw2_pr
+-- last_rw2 {n} {predk} = rewrite sym (plusSuccRightSucc n predk) in Refl
+-}
+
+
+
+||| A vector fold over suppressed indices
+||| Best used with those `p` which are trivial for (last) and some (a).
+foldAutoind : ( p : {m : Nat} -> Fin (S m) -> a -> Type )
+	-> ( (i : Fin predn)
+		-> ( w : a ** p (FS i) w )
+		-> ( w' : a ** p (weaken i) w' ) )
+	-> ( v : a ** p (last {n=predn}) v )
+	-> ( xs : Vect (S predn) a ** (i : Fin (S predn)) -> p i (index i xs) )
+foldAutoind {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) ?regr' (v' ** ?finishMe) )
+		| (xs ** fn) = ?faiNew
+
+{-
+foldAutoind {n} {k=S predk} p regr (v ** pv) with ( rewrite sym last_rw2 in foldAutoind (p . weaken) (regr . weaken) (regr last_rw (v**pv)) )
+	| ( xs ** fn ) = ?foldAutoind_rhs_noExtend
+-}
+
+{-
+foldAutoind {n=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind {n=S predn} p regr (v ** pv) with ( foldAutoind {n=predn} (p . weaken) (regr . weaken) (regr last (v**pv)) )
+	| ( xs ** fn ) = ( xs++[v] ** ?foldAutoind_rhs_2 )
+-}
+
+{-
+faiNew = proof
+  intros
+  claim xsLong Vect (S (S prededn)) a
+  rewrite sym (the (S (S prededn) = (S prededn) + 1) _)
+  unfocus
+  unfocus
+  exact (xsLong ** _)
+  compute
+  refine cong
+  exact trans _ $ plusSuccRightSucc prededn Z
+  exact xs++[v]
+  unfocus
+  exact cong {f=S} $ sym $ plusZeroRightNeutral _
+  intro
+  claim extendPredDom {n : Nat} -> (q : Fin (S n) -> a -> Type) -> ((i : Fin n) -> ( v : a ** q (weaken i) v )) -> (v ** q last v) -> (j : Fin (S n)) -> (v ** q j v)
+  unfocus
+  let nearp = "extendPredDom (\fi : Fin (S (S prededn)) => p fi) _ (v ** pv) i14"
+  let nearpFnGoal = "(i : Fin (S prededn)) -> (v1 : a ** p {m=S prededn} (weaken i) v1)"
+  exact believe_me nearp
+  intros
+  exact believe_me "Didn't rename (v) in the codomain type, so this can't be implemented."
+-}
+
+
+
+{-
 Properties of vectors and matrices.
 -}
 
