@@ -289,6 +289,8 @@ fai_regrwkn2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 	-> (i : Fin predn)
 	-> ( w : a ** ((p _) . weaken) (FS i) w )
 	-> ( w' : a ** ((p _) . weaken) (weaken i) w' )
+-- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
+fai_regrwkn2 p fn i = fn (weaken i)
 
 
 
