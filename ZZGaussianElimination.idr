@@ -47,6 +47,249 @@ last_rw2 = ?last_rw2_pr
 -- last_rw2 {n} {predk} = rewrite sym (plusSuccRightSucc n predk) in Refl
 -}
 
+commuteFSWeaken : (i : Fin n) -> (FS $ weaken i = weaken $ FS i)
+commuteFSWeaken i = Refl
+
+
+
+{-
+BUG: Wrong type displayed given implicit argument in argument
+
+Incorrect type displayed:
+
+\a : Type => \p : ({m : Nat} -> Fin (S m) -> a -> Type) => p (weaken $ FZ {k=Z})
+	: (a : Type) ->
+	  Fin (S m) -> a -> Type ->
+	  a -> Type
+
+Correct type displayed:
+
+\a : Type => \p : ((m : Nat) -> Fin (S m) -> a -> Type) => p 5 (weaken FZ)
+	: (a : Type) ->
+	  ((m : Nat) -> Fin (S m) -> a -> Type) ->
+	  a -> Type
+
+Note that these examples both actually have the correct type, they're just not displayed correctly.
+-}
+
+
+
+weakenThenProp : (p : {m : Nat} -> Fin (S m) -> a -> Type ) -> ({m : Nat} -> Fin m -> a -> Type)
+weakenThenProp p = p . weaken
+
+fai_regrwkn_liftdomain: { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin (S predn))
+		-> ( w : a ** p (FS i) w )
+		-> ( w' : a ** p (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** p (weaken $ FS i) w )
+	-> ( w' : a ** p (weaken $ weaken i) w' )
+
+fai_regrwkn_chty : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> ( w : a ** p (weaken $ FS i) w )
+		-> ( w' : a ** p (weaken $ weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** (weakenThenProp p) (FS i) w )
+	-> ( w' : a ** (weakenThenProp p) (weaken i) w' )
+
+{-
+-- For some reason, it's not allowed to use (p . weaken) instead of (weakenThenProp p).
+fai_regrwkn_chty : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> ( w : a ** p (weaken $ FS i) w )
+		-> ( w' : a ** p (weaken $ weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** (p . weaken) (FS i) w )
+	-> ( w' : a ** (p . weaken) (weaken i) w' )
+-}
+
+fai_regrwkn : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin (S predn))
+		-> ( w : a ** p (FS i) w )
+		-> ( w' : a ** p (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** (weakenThenProp p) (FS i) w )
+	-> ( w' : a ** (weakenThenProp p) (weaken i) w' )
+fai_regrwkn = ?fai_regrwkn_pr
+{-
+
+This isn't allowed
+
+> fai_regrwkn {p} = (fai_regrwkn_chty {p=p}) . (fai_regrwkn_liftdomain {p=p})
+
+because there are implicit arguments generated such that for example
+
+	p i w
+
+is of the form ((k : s) -> Type).
+
+These are not implicit goals, so it is a failure of unification here. Perhaps we should use explicit (Sigma)s to overcome this failure of expression.
+
+-}
+
+fai_regrwkn_liftdomain2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin (S predn))
+		-> Sigma a (p $ FS i)
+		-> Sigma a (p $ weaken i) )
+	-> (i : Fin predn)
+	-> Sigma a (p $ weaken $ FS i)
+	-> Sigma a (p $ weaken $ weaken i)
+
+{-
+-- Can't do this for some reason
+fai_regrwkn_chty2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> Sigma a (p $ weaken $ FS i)
+		-> Sigma a (p $ weaken $ weaken i) )
+	-> (i : Fin predn)
+	-> Sigma a (weakenThenProp p $ FS i)
+	-> Sigma a (weakenThenProp p $ weaken i)
+-}
+
+{-
+-- In the REPL we can use a proof to force allowed use of (p . weaken).
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> { p : {m : Nat} -> Fin (S m) -> a -> Type } -> {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> Sigma a (p $ weaken $ FS i) -> Sigma a (p $ weaken $ weaken i)
+>   exact (i : Fin predn) -> Sigma a _ -> Sigma a _
+>   exact (p . weaken) $ FS i
+>   exact (p . weaken) $ weaken i
+
+but loaded from module, we get this error:
+
+Universe inconsistency.
+        Working on: p10
+        Old domain: (1,10)
+        New domain: (1,0)
+        Involved constraints: 
+                ConstraintFC {uconstraint = p10 <= q10, ufc = ZZGaussianElimination.idr:151:22}
+                ConstraintFC {uconstraint = o10 < p10, ufc = ZZGaussianElimination.idr:151:22}
+
+We also get that error when we write the simply more elaborate proof
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> _
+>   exact { p : {m : Nat} -> Fin (S m) -> a -> Type } -> _
+>   exact {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> _
+>   unfocus
+>   exact _ -> _
+>   unfocus
+>   exact Sigma a (p $ weaken $ FS i)
+>   exact Sigma a (p $ weaken $ weaken i)
+>   exact (j : Fin predn) -> _
+>   exact _ -> _
+>   exact Sigma a _
+>   unfocus
+>   exact ( p . weaken ) $ _
+>   unfocus
+>   unfocus
+>   exact FS j
+>   exact Sigma a _
+>   exact (p . weaken) $ _
+>   unfocus
+>   exact weaken j
+
+and even using weakenThenProp gives the error:
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> { p : {m : Nat} -> Fin (S m) -> a -> Type } -> {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> Sigma a (p $ weaken $ FS i) -> Sigma a (p $ weaken $ weaken i)
+>   exact (i : Fin predn) -> Sigma a _ -> Sigma a _
+>   exact (weakenThenProp p) $ FS i
+>   exact (weakenThenProp p) $ weaken i
+
+This variant makes me suspect the problem is with having (p) take an implicit argument at all.
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> { p : {m : Nat} -> Fin (S m) -> a -> Type } -> {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> Sigma a (p $ weaken $ FS i) -> Sigma a (p $ weaken $ weaken i)
+>   exact (j : Fin predn) -> Sigma a _ -> Sigma a _
+>   exact _ $ weaken $ FS j
+>   exact _ $ weaken $ weaken j
+>   intro j'
+>   intro w
+>   exact p j' w
+>   intro j'
+>   intro w
+>   let comment1 = "You cannot write `exact p {m=S $ S $ predn} j' w` here - it won't let the implicit argument be specified."
+>   let comment2 = "\"No such variable m\" from: let p' = \\mu => p {m=mu}"
+>   exact p j' w
+-}
+
+{-
+Sigma types also clarify what the failure is when processing (p . weaken).
+
+> fai_regrwkn_chty2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+> 	-> ( (i : Fin predn)
+> 		-> Sigma a (p $ weaken $ FS i)
+> 		-> Sigma a (p $ weaken $ weaken i) )
+> 	-> (i : Fin predn)
+> 	-> Sigma a (((p {m=_}) . weaken) $ FS i)
+> 	-> Sigma a (((p {m=_}) . weaken) $ weaken i)
+
+When checking an application of function Prelude.Basics..:
+        Type mismatch between
+                {m : Prelude.Nat.Nat} -> Data.Fin.Fin (Prelude.Nat.S m) ->
+                a -> Type (Type of p)
+        and
+                b -> a -> Type (Expected type)
+        
+        Specifically:
+                Type mismatch between
+                        a -> Type
+                and
+                        Type
+
+> fai_regrwkn_chty2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+> 	-> ( (i : Fin predn)
+> 		-> Sigma a (p $ weaken $ FS i)
+> 		-> Sigma a (p $ weaken $ weaken i) )
+> 	-> (i : Fin predn)
+> 	-> Sigma a (((p {m=_}) . weaken) $ FS i)
+> 	-> Sigma a (((p {m=_}) . weaken) $ weaken i)
+
+When checking an application of function Prelude.Basics..:
+        Type mismatch between
+                a -> Type (Type of p m _)
+        and
+                b -> a -> Type (Expected type)
+        
+        Specifically:
+                Type mismatch between
+                        Type
+                and
+                        a -> Type
+
+-}
+
+fai_regrwkn_chty2 : { p : (m : Nat) -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> Sigma a (p _ $ weaken $ FS i)
+		-> Sigma a (p _ $ weaken $ weaken i) )
+	-> (i : Fin predn)
+	-> Sigma a (((p _) . weaken) $ FS i)
+	-> Sigma a (((p _) . weaken) $ weaken i)
+
+-- We won't compose through fai_regrwkn_chty2 and fai_regrwkn_liftdomain2 this time.
+fai_regrwkn2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
+	-> ( (i : Fin (S predn))
+		-> ( w : a ** p _ (FS i) w )
+		-> ( w' : a ** p _ (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** ((p _) . weaken) (FS i) w )
+	-> ( w' : a ** ((p _) . weaken) (weaken i) w' )
+
 
 
 ||| A vector fold over suppressed indices
@@ -57,20 +300,28 @@ foldAutoind : ( p : {m : Nat} -> Fin (S m) -> a -> Type )
 		-> ( w' : a ** p (weaken i) w' ) )
 	-> ( v : a ** p (last {n=predn}) v )
 	-> ( xs : Vect (S predn) a ** (i : Fin (S predn)) -> p i (index i xs) )
+{-
 foldAutoind {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
 foldAutoind {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
-	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) ?regr' (v' ** ?finishMe) )
-		| (xs ** fn) = ?faiNew
-
 {-
-foldAutoind {n} {k=S predk} p regr (v ** pv) with ( rewrite sym last_rw2 in foldAutoind (p . weaken) (regr . weaken) (regr last_rw (v**pv)) )
-	| ( xs ** fn ) = ?foldAutoind_rhs_noExtend
+Bizarrely, this interprets filling in the impl. arg to (p) as filling in its (Fin (S m)) arg.
+-}
+	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) (fai_regrwkn2 (\mu => p {m=mu}) regr) (v' ** pv') )
+-- 	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) (fai_regrwkn {p=p} regr) (v' ** pv') )
+-- 	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) (regr' p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew
+		-- | ( xs ** fn ) = ( xs++[v] ** ?foldAutoind_rhs_2 )
+
+-- regr' = \i => \par => rewrite sym (commuteFSWeaken i) in (regr (weaken i) par)
+-- : the ( (p . weaken) t s = p (weaken t) s ) Refl
 -}
 
 {-
-foldAutoind {n=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
-foldAutoind {n=S predn} p regr (v ** pv) with ( foldAutoind {n=predn} (p . weaken) (regr . weaken) (regr last (v**pv)) )
-	| ( xs ** fn ) = ( xs++[v] ** ?foldAutoind_rhs_2 )
+regr_alter1 : (i : Fin prededn) -> ( w : a ** p (FS $ weaken i) w ) -> ( w' : a ** p (weaken $ weaken i) w' ) )
+regr_alter1 = regr . weaken
+regr_alter2 : (i : Fin prededn) -> ( w : a ** p (weaken $ FS i) w ) -> ( w' : a ** p (weaken $ weaken i) w' ) )
+regr_alter2 i = rewrite sym (commuteFSWeaken i) in (regr_alter1 i)
+regr_alter2' i = rewrite sym (commuteFSWeaken i) in (regr . weaken) i
 -}
 
 {-
@@ -96,6 +347,22 @@ faiNew = proof
   intros
   exact believe_me "Didn't rename (v) in the codomain type, so this can't be implemented."
 -}
+
+
+
+||| A vector fold over suppressed indices
+||| Best used with those `p` which are trivial for (last) and some (a).
+foldAutoind2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
+	-> ( (i : Fin predn)
+		-> ( w : a ** p _ (FS i) w )
+		-> ( w' : a ** p _ (weaken i) w' ) )
+	-> ( v : a ** p _ (last {n=predn}) v )
+	-> ( xs : Vect (S predn) a ** (i : Fin (S predn)) -> p _ i (index i xs) )
+foldAutoind2 {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind2 {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+	| (v' ** pv') with ( foldAutoind2 {predn=prededn} (\mu => (p $ S mu) . weaken) (fai_regrwkn2 p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew2
+		-- | ( xs ** fn ) = ( xs++[v] ** ?foldAutoind_rhs_2 )
 
 
 
