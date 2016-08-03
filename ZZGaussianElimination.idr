@@ -54,8 +54,6 @@ commuteFSWeaken i = Refl
 
 splitFinS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = weaken k ) ( i = Data.Fin.last )
 
--- lastInd : {xs : Vect n a} -> Data.Vect.index Data.Fin.last (rewrite ( cong {f=\k => Vect k a} $ trans (cong {f=S} $ sym $ plusZeroRightNeutral n) $ plusSuccRightSucc n Z ) in (xs++[v])) = v
-
 plusOneVectIsSuccVect : Vect (n+1) a = Vect (S n) a
 plusOneVectIsSuccVect {a} {n} = sym $ cong {f=\k => Vect k a} $ trans (cong {f=S} $ sym $ plusZeroRightNeutral n) $ plusSuccRightSucc n Z
 
