@@ -364,6 +364,7 @@ foldAutoind2 {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = 
 foldAutoind2 {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
 	| (v' ** pv') with ( foldAutoind2 {predn=prededn} (\mu => (p $ S mu) . weaken) (fai_regrwkn2 p regr) (v' ** pv') )
 		| (xs ** fn) = ?faiNew2
+		-- See commented "proof" for faiNew just above.
 		-- | ( xs ** fn ) = ( xs++[v] ** ?foldAutoind_rhs_2 )
 
 
