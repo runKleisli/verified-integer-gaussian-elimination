@@ -52,6 +52,26 @@ commuteFSWeaken i = Refl
 
 
 
+splitFinS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = weaken k ) ( i = Data.Fin.last )
+
+-- lastInd : {xs : Vect n a} -> Data.Vect.index Data.Fin.last (rewrite ( cong {f=\k => Vect k a} $ trans (cong {f=S} $ sym $ plusZeroRightNeutral n) $ plusSuccRightSucc n Z ) in (xs++[v])) = v
+
+plusOneVectIsSuccVect : Vect (n+1) a = Vect (S n) a
+plusOneVectIsSuccVect {a} {n} = sym $ cong {f=\k => Vect k a} $ trans (cong {f=S} $ sym $ plusZeroRightNeutral n) $ plusSuccRightSucc n Z
+
+appendedSingletonAsSuccVect : (xs : Vect n a) -> (v : a) -> Vect (S n) a
+appendedSingletonAsSuccVect {a} {n} xs v = rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])
+
+-- lastInd : {xs : Vect n a} -> Data.Vect.index Data.Fin.last (rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])) = v
+
+-- May need reversal isomorphism of each Fin.
+lastInd : {xs : Vect n a} -> index Data.Fin.last $ appendedSingletonAsSuccVect xs v = v
+
+-- May need reversal isomorphism of each Fin and a proof that weaken becomes FS under it.
+weakenedInd : {xs : Vect n a} -> index (weaken k) $ appendedSingletonAsSuccVect xs v = index k xs
+
+
+
 {-
 BUG: Wrong type displayed given implicit argument in argument
 
@@ -364,8 +384,25 @@ foldAutoind2 {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = 
 foldAutoind2 {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
 	| (v' ** pv') with ( foldAutoind2 {predn=prededn} (\mu => (p $ S mu) . weaken) (fai_regrwkn2 p regr) (v' ** pv') )
 		| (xs ** fn) = ?faiNew2
-		-- See commented "proof" for faiNew just above.
-		-- | ( xs ** fn ) = ( xs++[v] ** ?foldAutoind_rhs_2 )
+		-- | ( xs ** fn ) = ( xs++[v] ** _ )
+
+faiNew2 = proof
+  intros
+  exact (appendedSingletonAsSuccVect xs v ** _)
+  intro i
+  claim ifLastThenProved (i=last) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  claim ifWeakenedThenProved (j : Fin (S prededn) ** i = weaken j) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  let iAsEither = splitFinS i
+  exact either ifWeakenedThenProved ifLastThenProved iAsEither
+  intro prIsLast
+  rewrite sym prIsLast
+  exact rewrite (lastInd {xs=xs} {v=v}) in pv
+  intro parIsWeakened
+  let prIsWeakened = getProof parIsWeakened
+  rewrite sym prIsWeakened
+  exact rewrite (weakenedInd {xs=xs} {v=v} {k=getWitness parIsWeakened}) in fn (getWitness parIsWeakened)
 
 
 
