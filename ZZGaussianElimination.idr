@@ -52,7 +52,14 @@ commuteFSWeaken i = Refl
 
 
 
+total
 splitFinS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = weaken k ) ( i = Data.Fin.last )
+splitFinS {predn=Z} FZ = Right Refl
+splitFinS {predn=Z} (FS j) = absurd j
+splitFinS {predn=S prededn} FZ = Left ( FZ ** Refl )
+splitFinS {predn=S prededn} (FS prednel) with ( splitFinS prednel )
+	| Left ( k ** pr ) = Left ( FS k ** cong pr )
+	| Right pr = Right $ cong pr
 
 plusOneVectIsSuccVect : Vect (n+1) a = Vect (S n) a
 plusOneVectIsSuccVect {a} {n} = sym $ cong {f=\k => Vect k a} $ trans (cong {f=S} $ sym $ plusZeroRightNeutral n) $ plusSuccRightSucc n Z
@@ -60,13 +67,54 @@ plusOneVectIsSuccVect {a} {n} = sym $ cong {f=\k => Vect k a} $ trans (cong {f=S
 appendedSingletonAsSuccVect : (xs : Vect n a) -> (v : a) -> Vect (S n) a
 appendedSingletonAsSuccVect {a} {n} xs v = rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])
 
--- lastInd : {xs : Vect n a} -> Data.Vect.index Data.Fin.last (rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])) = v
+consAppendedSingleton : {xs : Vect n a} -> appendedSingletonAsSuccVect (x::xs) v = x::appendedSingletonAsSuccVect xs v
+consAppendedSingleton {x} {xs} {v} {a} {n} = the ( appendedSingletonAsSuccVect (x::xs) v = x::appendedSingletonAsSuccVect xs v ) ?consAppendedSingleton_rhs
 
--- May need reversal isomorphism of each Fin.
+{-
+-- Too many problems with this, rewriting the types to handle Nat addition.
+lastInd : {xs : Vect n a} -> Data.Vect.index Data.Fin.last (rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])) = v
+-}
+
+-- Could this be done with the reversal isomorphism of each Fin?
 lastInd : {xs : Vect n a} -> index Data.Fin.last $ appendedSingletonAsSuccVect xs v = v
+lastInd {xs=[]} = Refl
+lastInd {xs=x::xs} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in (lastInd {xs=xs} {v=v})
+{-
 
--- May need reversal isomorphism of each Fin and a proof that weaken becomes FS under it.
+"ERROR ON INTROS" BUG, CASE, SOLUTION
+
+--------
+
+> lastInd {xs=x::xs} = ?lastInd_rhs_2
+
+> :prove lastInd_rhs_2
+lastInd_rhs_2> intro
+
+Type mismatch between
+        Vect k a = Vect k a
+and
+        Vect (S (S k)) a = Vect (S (plus k 1)) a
+
+which I think means the type signature for (lastInd) is being reanalyzed in the presence of (x::xs), as if inlined, in such a way that the sucessor to rewrite is the one inside rather than outside, or something.
+
+This works fine:
+
+> lastInd {xs=x::xs} {v} = the ( (index Data.Fin.last $ appendedSingletonAsSuccVect (x::xs) v) = v ) ?lastInd_rhs_2
+
+and spells out
+
+> lastInd {xs=x::xs} {v} = the ( (index Data.Fin.last $ appendedSingletonAsSuccVect (x::xs) v) = v ) ( rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in lastInd {xs=xs} {v=v} )
+
+-}
+
+{-
+Could this be done with the reversal isomorphism of each Fin and a proof that weaken becomes FS under it?
+-}
+total
 weakenedInd : {xs : Vect n a} -> index (weaken k) $ appendedSingletonAsSuccVect xs v = index k xs
+weakenedInd {xs=[]} {k} = absurd k
+weakenedInd {xs=x::xs} {k=FZ} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in Refl
+weakenedInd {xs=x::xs} {k=FS j} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in weakenedInd {xs=xs} {k=j} {v}
 
 
 
