@@ -52,6 +52,23 @@ commuteFSWeaken i = Refl
 
 
 
+{-
+"
+LTE (S (finToNat last)) (finToNat i)  cannot be a parameter of Prelude.Uninhabited.Uninhabited
+(Type class arguments must be injective)
+"
+
+> instance Uninhabited (LTE (S $ finToNat $ last {n=n}) (finToNat $ the (Fin (S n)) i)) where {
+> 	uninhabited = ?notSNatLastLTEAnything
+> }
+-}
+
+-- notSNatLastLTEAnything : LTE (S $ finToNat $ last {n=n}) (finToNat $ the (Fin (S n)) i) -> Void
+
+notSNatLastLTEAnything : {n : Nat} -> {i : Fin (S n)} -> LTE (S $ finToNat $ last {n=n}) (finToNat i) -> Void
+
+
+
 total
 splitFinS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = weaken k ) ( i = Data.Fin.last )
 splitFinS {predn=Z} FZ = Right Refl
@@ -724,8 +741,46 @@ elimFirstCol2 [] {predm} = return ( row {n=S predm} $ neutral ** ( ([] ** Refl),
 {-
 elimFirstCol2 mat {n=S predn} {predm} = do {
 		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
-		return $ believe_me "Weiell"
+
+		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
+		let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
+
+		let bisWithGCD = the ((v<\>mat)::mat `spanslz` mat, mat `spanslz` (v<\>mat)::mat)
+			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
+
+		{-
+		The error here is indecipherable from the message. See the form below for an improvement.
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, the ( downAndNotRightOfEntryImpliesZ ((v<\>mat)::mat) (last {n=predn}) FZ ) $ void . notSNatLastLTEAnything) )
+		
+		---
+		Here it's basically telling us it can't infer a function type for succImplWknProp _ _ _.
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, the ( succImplWknProp {omat=(v<\>mat)::mat} (S predn) (last {n=predn}) ((v<\>mat)::mat) ) ( void . notSNatLastLTEAnything )) )
+		-}
+
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {v=v}) )
+
+		-- let ( endmatSpansMatandgcd, matandgcdSpansEndmat, leftColZ ) = _ endmatPropFn
+
+		{-
+		return ( endmat ** (spanslztrans endmatSpansMatandgcd $ fst bisWithGCD, spanslztrans (snd bisWithGCD) matandgcdSpansEndmat, leftColZ))
+		-}
+
+		return $ believe_me "waaaiiit stoopppp"
 	}
+	where
+		succImplWknProp : {omat : Matrix (S (S predn)) (S predm) ZZ} -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+		succImplWknProp {omat} nu fi tmat = ( tmat `spanslz` omat, omat `spanslz` tmat, downAndNotRightOfEntryImpliesZ tmat fi FZ )
+		succImplWknPropSec3 : {omat : Matrix (S (S predn)) (S predm) ZZ} -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+		succImplWknPropSec3 {omat} nu fi tmat = downAndNotRightOfEntryImpliesZ tmat fi FZ
+		succImplWknStep : {v : Vect (S predn) ZZ}
+			-> (fi : Fin nu)
+			-> ( imat : Matrix (S nu) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat' (FS fi) FZ ) )
+			-> ( imat' : Matrix (S nu) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+		-- weakenTrivial : {v : Vect (S predn) ZZ} -> {omat : Matrix (S (S predn)) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} (S predn) (last {n=S predn}) omat
+		weakenTrivial : {v : Vect (S predn) ZZ} -> succImplWknPropSec3 {omat=(v<\>mat)::mat} (S predn) (last {n=S predn}) ((v<\>mat)::mat)
+		-- weakenTrivial = void . notSNatLastLTEAnything
 -}
 
 {-
