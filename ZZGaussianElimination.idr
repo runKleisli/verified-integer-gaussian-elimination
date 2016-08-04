@@ -695,12 +695,46 @@ elimFirstCol mat {n=S predn} {m=S predm} = do {
 			) )
 -}
 
+
+
 {-
 Better to refine this to a type that depends on (m=S predm) so that the case (m=Z) may also be covered.
 
 Shall start from the bottom of the matrix (last) and work up to row (FS FZ) using a traversal based on (weaken) and a binary map from index (Fin n) and oldvals to newvals.
 -}
+
 elimFirstCol2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, downAndNotRightOfEntryImpliesZ gexs FZ FZ))
+{-
+-- Template
+
+elimFirstCol2 xs = do {
+		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
+		return $ believe_me "Weiell"
+	}
+-}
+
+elimFirstCol2 [] {predm} = return ( row {n=S predm} $ neutral ** ( ([] ** Refl), ([neutral] ** Refl), nosuch ) )
+	where
+		nosuch : LTRel Z (finToNat i)
+			-> LTERel (finToNat j) Z
+			-> indices i j (row {n=S predm} Prelude.Algebra.neutral) = Pos 0
+		nosuch {i=FZ} {j=FZ} _ = either (const Refl) (const Refl)
+		nosuch {i=FS k} {j=FZ} _ = absurd k
+		nosuch {j=FS k} _ = void . ( either succNotLTEzero SIsNotZ )
+{-
+elimFirstCol2 mat {n=S predn} {predm} = do {
+		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
+		return $ believe_me "Weiell"
+	}
+-}
+
+{-
+Reference
+---
+We're using
+
+foldAutoind2
+-}
 
 {-
 gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
