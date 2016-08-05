@@ -11,6 +11,7 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 
 import ZZModuleSpan
+import Data.Matrix.LinearCombinations
 
 import FinOrdering
 
@@ -846,6 +847,23 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> (fi : Fin (S predn))
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat (FS fi) FZ ) )
 			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+		succImplWknStep_lemma1 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` senior::mat, senior::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat (FS fi) FZ ) )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+		succImplWknStep_lemma1 = ?succImplWknStep_lemma1_pr
+		succImplWknStep_lemma2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( reprolem : senior::mat `spanslz` imat )
+			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
+		succImplWknStep_lemma2 = ?succImplWknStep_lemma2_pr
+		succImplWknStep_lemma3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( quotchariz : ( z : Matrix _ _ ZZ ) -> ( k : Fin _ ) -> ( LinearCombinations.monoidsum $ zipWith (<#>) (index k z) (senior::mat) = index k imat ) )
+			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
+		succImplWknStep_lemma3 = ?succImplWknStep_lemma3_pr
 		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
 		{-
 		Type mismatch between
