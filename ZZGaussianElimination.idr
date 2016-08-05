@@ -469,6 +469,21 @@ faiNew2 = proof
 
 
 
+||| A vector fold over suppressed indices
+||| The sequel to foldAutoind2
+{-
+(a : Nat -> Type) is not made implicit because Idris isn't likely to deduce it and will likely spend a long time trying anyway.
+-}
+foldAutoind3 : ( a : Nat -> Type )
+	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
+	-> ( (i : Fin predn)
+		-> ( w : a predn ** p _ (FS i) w )
+		-> ( w' : a predn ** p _ (weaken i) w' ) )
+	-> ( v : a predn ** p _ (last {n=predn}) v )
+	-> ( xs : Vect (S predn) (a predn) ** (i : Fin (S predn)) -> p _ i (index i xs) )
+
+
+
 {-
 Properties of vectors and matrices.
 -}
@@ -751,6 +766,7 @@ elimFirstCol2 [] {predm} = return ( row {n=S predm} $ neutral ** ( ([] ** Refl),
 		nosuch {i=FZ} {j=FZ} _ = either (const Refl) (const Refl)
 		nosuch {i=FS k} {j=FZ} _ = absurd k
 		nosuch {j=FS k} _ = void . ( either succNotLTEzero SIsNotZ )
+{-
 elimFirstCol2 mat {n=S predn} {predm} = do {
 		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
 
@@ -789,6 +805,84 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( imat' : Matrix (S nu) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
 		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
 		-- foldedFully {v} = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+-}
+elimFirstCol2 mat {n=S predn} {predm} = do {
+		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
+
+		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
+		let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
+
+		let bisWithGCD = the ((v<\>mat)::mat `spanslz` mat, mat `spanslz` (v<\>mat)::mat)
+			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
+
+		{-
+		The error here is indecipherable from the message. See the form below for an improvement.
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, the ( downAndNotRightOfEntryImpliesZ ((v<\>mat)::mat) (last {n=predn}) FZ ) $ void . notSNatLastLTEAnything) )
+		
+		---
+		Here it's basically telling us it can't infer a function type for succImplWknProp _ _ _.
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, the ( succImplWknProp {omat=(v<\>mat)::mat} (S predn) (last {n=predn}) ((v<\>mat)::mat) ) ( void . notSNatLastLTEAnything )) )
+		
+		---
+		After much externalization for error isolation
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+		-}
+
+		let ( endmat ** endmatPropFn ) = foldedFully {v=v}
+
+		let ( endmatSpansMatandgcd, matandgcdSpansEndmat, leftColZBelow ) = endmatPropFn FZ
+
+		return ( index FZ endmat ** (spanslztrans endmatSpansMatandgcd $ fst bisWithGCD, spanslztrans (snd bisWithGCD) matandgcdSpansEndmat, leftColZBelow))
+	}
+	where
+		succImplWknStep : {v : Vect (S predn) ZZ}
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat (FS fi) FZ ) )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
+		{-
+		Type mismatch between
+		        Vect (S predn) ZZ (Type of v)
+		and
+		        Vect (S predm) ZZ (Expected type)
+
+		Specifically:
+		        Type mismatch between
+		                predn
+		        and
+		                predm
+
+		> foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+
+		similarly for
+
+		> foldedFully {v} with ( succImplWknStep {v=v} )
+		> 	| fonc = ?foldedFully_pr
+
+		or (what you'd actually have to write)
+
+		> foldedFully {v} = let fonc = succImplWknStep {v=v} in ?foldedFully_pr
+
+		but then we can change the error with
+
+		foldedFully {v} with ( succImplWknStep )
+			| fonc = ?foldedFully_pr
+
+		to see the type of (mat) is mismatching an expected type the transpose.
+
+		First error was here:
+		
+		> succImplWknStep : {v : Vect (S predn) ZZ}
+		> 	-> (fi : Fin (S predn))
+		> 	-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat' (FS fi) FZ ) )
+		> 	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+
+		where on the third line at the very end, (imat') is referenced but doesn't exist yet.
+		-}
+		foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
 
 {-
 Reference
