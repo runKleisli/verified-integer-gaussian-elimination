@@ -481,6 +481,10 @@ foldAutoind3 : ( a : Nat -> Type )
 		-> ( w' : a predn ** p _ (weaken i) w' ) )
 	-> ( v : a predn ** p _ (last {n=predn}) v )
 	-> ( xs : Vect (S predn) (a predn) ** (i : Fin (S predn)) -> p _ i (index i xs) )
+foldAutoind3 {predn=Z} _ p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind3 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+	-- Compare with the corresponding (outer) with block in foldAutoind2
+	| (v' ** pv') = ?fai3_induceMe
 
 
 
