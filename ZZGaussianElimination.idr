@@ -1,6 +1,7 @@
 module ZZGaussianElimination
 
 import Control.Algebra
+import Classes.Verified
 import Control.Algebra.VectorSpace -- definition of module
 
 import Data.Matrix
@@ -24,6 +25,38 @@ import Control.Monad.Reader
 {-
 Trivial lemmas and plumbing
 -}
+
+
+
+ringNegationCommutesWithLeftMult : VerifiedRing a => (left, right : a) -> left<.>(inverse right) = inverse $ left<.>right
+
+ringNegationCommutesWithRightMult : VerifiedRing a => (left, right : a) -> (inverse left)<.>right = inverse $ left<.>right
+
+-- The addition-as-quasigroup proof where (0.x = 0.x + 0.x) is potentially shorter.
+ringNeutralIsMultZeroL : VerifiedRing a => (x : a) -> Algebra.neutral <.> x = Algebra.neutral
+{-
+ringNeutralIsMultZeroL x = neutral<.>x = (x <+> inverse x)<.>x = (x<.>x)<+>((inverse x)<.>x) = (x<.>x)<+>(inverse $ x<.>x) = neutral
+-}
+{-
+ringNeutralIsMultZeroL x =
+	Algebra.neutral<.>x	={ cong {f=(<.>x)} $ sym $ groupInverseIsInverseL x }=
+	(x <+> inverse x)<.>x	={ ringOpIsDistributiveR x (inverse x) x }=
+	(x<.>x)<+>((inverse x)<.>x) ={ cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithRightMult x x }=
+	(x<.>x)<+>(inverse $ x<.>x) ={ groupInverseIsInverseL (x<.>x) }=
+	Algebra.neutral	QED
+-}
+ringNeutralIsMultZeroL x =
+	trans ( cong {f=(<.>x)} $ sym $ groupInverseIsInverseL x ) $
+	trans ( ringOpIsDistributiveR x (inverse x) x ) $
+	trans ( cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithRightMult x x ) $
+	groupInverseIsInverseL (x<.>x)
+
+ringNeutralIsMultZeroR : VerifiedRing a => (x : a) -> x <.> Algebra.neutral = Algebra.neutral
+ringNeutralIsMultZeroR x =
+	trans ( cong {f=(x<.>)} $ sym $ groupInverseIsInverseL x ) $
+	trans ( ringOpIsDistributiveL x x (inverse x) ) $
+	trans ( cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithLeftMult x x ) $
+	groupInverseIsInverseL (x<.>x)
 
 
 
@@ -576,6 +609,157 @@ Intermediate or secondary algorithms
 quotientOverZZ : ZZ -> ZZ -> Type
 quotientOverZZ x y = ( d : ZZ ** d<.>y=x )
 
+||| Examples:
+||| 
+||| > divisorByDistrib (Pos 4) ((Pos 8)::(Pos 0)::[]) (\x => case x of { FZ => (Pos 2 ** Refl); (FS FZ) => (Pos 0 ** Refl) })
+||| 
+||| (Pos 2 ** ?divisorByDistrib_pr) : (d : ZZ ** multZ d (Pos 4) = Pos 8)
+||| 
+||| > divisorByDistrib (Pos 4) ((Pos 8)::(Pos 4)::[]) (\x => case x of { FZ => (Pos 2 ** Refl); (FS FZ) => (Pos 1 ** Refl) })
+||| 
+||| (Pos 3 ** ?divisorByDistrib_pr) : (d : ZZ ** multZ d (Pos 4) = Pos 12)
+||| 
+||| > divisorByDistrib (Pos 4) ((Pos 8)::(Pos 1)::[]) (\x => case x of { FZ => (Pos 2 ** Refl); (FS FZ) => (Pos 0 ** Refl) })
+||| 
+||| ... Type mismatch between 0 and 1
+divisorByDistrib : (z : ZZ)
+	-> (x : Vect n ZZ)
+	-> ( (k : _) -> index k x `quotientOverZZ` z )
+	-> (LinearCombinations.monoidsum x) `quotientOverZZ` z
+divisorByDistrib z [] fn = (0 ** ringNeutralIsMultZeroL z)
+{-
+-- Doesn't like the (fn . FS) passed to divisorByDistrib in the recursive step.
+divisorByDistrib z (xx::xxs) fn with ( divisorByDistrib z xxs (fn . FS) )
+	| (dxxs ** prxxs) with (fn FZ)
+		| (dxx ** prxx) = (dxx<+>dxxs ** ?divisorByDistrib_pr)
+	-- divisorByDistrib_pr {z} {xx} {xxs} {fn} {dxx} {dxxs} =
+	-- 	(dxx<+>dxxs)<.>z	={ ringOpIsDistributiveR dxx dxxs z }
+	-- 	(dxx<.>z)<+>(dxxs<.>z)	={ cong {f=((dxx<.>z)<+>)} prxxs }
+	-- 	(dxx<.>z)<+>sum xxs	={ cong {f=(<+>_)} prxx }
+	-- 	xx<+>sum xxs	={ rewrite sym $ monoidrec1D {v=xx} {vs=xxs} }=
+	-- 	sum (x::xxs)	QED
+-}
+divisorByDistrib z (xx::xxs) {n=S predn} fn = ( dxx<+>dxxs ** divisorByDistrib' )
+	where
+		dxx : ZZ
+		dxx = getWitness $ fn FZ
+		prxx : dxx<.>z = xx
+		prxx = getProof $ fn FZ
+		dxxs : ZZ
+		-- Passing (fn . FS) as an arg during proof reqs implicit arg (n).
+		{-
+		In REPL: "No such variable __pi_arg7"
+		Otherwise:
+		"Type mismatch between
+			(k1 : Fin (S k)) ->
+			quotientOverZZ (index k1 (xx :: xxs)) z (Type of fn)
+		and
+			Fin (S k) ->
+			(\k1 =>
+				quotientOverZZ (index k1 xxs) z) (__pi_arg7) (Expected type)
+
+		Specifically:
+			Type mismatch between
+				index v1 (xx :: xxs)
+			and
+				index (__pi_arg7) xxs
+		"
+
+		> dxxs = getWitness $ divisorByDistrib z xxs (fn . FS)
+		-}
+		dxxs = getWitness $ divisorByDistrib z xxs (\i => fn (FS i))
+		prxxs : dxxs<.>z = LinearCombinations.monoidsum xxs
+		-- prxxs = getProof $ divisorByDistrib z xxs (fn . FS)
+		prxxs = getProof $ divisorByDistrib z xxs (\i => fn (FS i))
+		{-
+		If you only write the following (note the missing (<.>_) from (_<.>_ = _))
+
+		> divisorByDistrib' : (dxx<+>dxxs) = LinearCombinations.monoidsum (xx::xxs)
+
+		then you get a type mismatch error that looks like
+
+		"type mismatch between _ and _, specifically between
+
+			foldrImpl (flip plusZ) (Pos 0) (plusZ xx) xxs
+
+		and
+
+			foldrImpl (flip plusZ) (Pos 0) (plusZ xx) xxs
+		"
+
+		which is not at all what's wrong, and is an unhelpful error message.
+		-}
+		divisorByDistrib' : (dxx<+>dxxs)<.>z = LinearCombinations.monoidsum (xx::xxs)
+		divisorByDistrib' = ?divisorByDistrib_pr
+
+{-
+If using (<#>) instead of (*) in the type signature:
+
+When checking an application of function Data.Vect.index:
+        Can't resolve type class Module ZZ ZZ
+-}
+{-
+This is just false.
+
+> zipWithQuotientRelation : {x : Vect _ ZZ} -> {v : Vect _ ZZ}
+> 	-> (k : Fin (S predn))
+> 	-> (Data.Vect.index k $ Data.Vect.zipWith (*) v (map Data.Vect.head (x::xs))) `quotientOverZZ` (Data.Vect.head x)
+-}
+
+linearComboQuotientRelation : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
+	-> ( head $
+			LinearCombinations.monoidsum $
+			zipWith (<#>) z (x::xs) )
+		`quotientOverZZ` (head x)
+{-
+Dead end implementation:
+
+> linearComboQuotientRelation (xx::xxs) xs (zz::zzs)
+> 	with ( divisorByDistrib xx ( zipWith (*) (zz::zzs) (map head ((xx::xxs)::xs)) ) ?zippyquotient )
+> 		| (d ** dpr) = ?linearComboQuotientRelation'
+-}
+{-
+This would work if zipWithQuotientRelation could be implemented, but it can't.
+We want to say the 2D version of (zipWith (<#>)) reduces in each of its heads to multiples of (head x). i.e.,
+
+	(k : _ )
+	-> ( index k $ map head $ zipWith (<#>) z (x::xs) ) `quotientOverZZ` (head x)
+
+from which we can deduce the desired result by applying divisorByDistrib.
+
+---
+
+linearComboQuotientRelation (xx::xxs) xs (zz::zzs) = (getWitness lcqr_par ** rewrite sym lcqr_eq in getProof lcqr_par)
+	where
+		{-
+		Changing Data.Vect.head in
+
+		> divpro : (d : ZZ ** multZ d xx = LinearCombinations.monoidsum $ zipWith (*) (zz::zzs) (map Data.Vect.head ((xx::xxs)::xs)) )
+		> divpro = ?divpro'
+
+		to just use (head) makes terrible type inferences happen:
+
+		"
+		  xx : Nat
+		  predm : ZZ
+		  xxs : Vect xx ZZ
+		  predn : Nat
+		  xs : Vect predn (Vect (S xx) ZZ)
+		  zz : ZZ
+		  zzs : Vect predn ZZ
+		  head : Vect (S xx) ZZ -> ZZ
+		--------------------------------------
+		divpro' : (d : ZZ ** multZ d predm = ...)
+		"
+
+		and of course "Type mismatch between Nat (Type of xx) and ZZ (expected type)"
+		-}
+		lcqr_par : (d : ZZ ** multZ d xx = LinearCombinations.monoidsum $ zipWith (*) (zz::zzs) (map Data.Vect.head ((xx::xxs)::xs)) )
+		lcqr_par = divisorByDistrib xx ( zipWith (*) (zz::zzs) (map head ((xx::xxs)::xs)) ) $ zipWithQuotientRelation {x=xx::xxs} {v=zz::zzs} {xs=xs}
+		lcqr_eq : LinearCombinations.monoidsum $ zipWith (*) (zz::zzs) (map Data.Vect.head ((xx::xxs)::xs)) = head $ LinearCombinations.monoidsum $ zipWith (<#>) (zz::zzs) ((xx::xxs)::xs)
+		lcqr_eq = timesVectMatAsLinearCombo_EntryCharizRight (zz::zzs) ((xx::xxs)::xs)
+-}
+
 -- Making argument "k" implicit will not work.
 gcdOfVectAlg : Type
 gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
@@ -861,9 +1045,11 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		succImplWknStep_lemma3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> (fi : Fin (S predn))
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
-			-> ( quotchariz : ( z : Matrix _ _ ZZ ) -> ( k : Fin _ ) -> ( LinearCombinations.monoidsum $ zipWith (<#>) (index k z) (senior::mat) = index k imat ) )
+			-> ( z : Matrix _ _ ZZ )
+			-> ( quotchariz : ( k : Fin _ ) -> ( LinearCombinations.monoidsum $ zipWith (<#>) (index k z) (senior::mat) = index k imat ) )
 			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
 		succImplWknStep_lemma3 = ?succImplWknStep_lemma3_pr
+		-- linearComboQuotientRelation
 		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
 		{-
 		Type mismatch between
