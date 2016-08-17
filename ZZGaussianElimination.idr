@@ -1098,7 +1098,39 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
 		succImplWknStep_lemma3 = ?succImplWknStep_lemma3_pr
 		-- linearComboQuotientRelation
-		-- linearComboQuotientRelation2_corrollary
+		succImplWknStep_lemma3_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( z : Matrix _ _ ZZ )
+			-> ( quotchariz : ( k : Fin _ ) -> ( LinearCombinations.monoidsum $ zipWith (<#>) (index k z) (senior::mat) = index k imat ) )
+			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
+		{-
+		-- This version is perhaps more readable.
+
+		succImplWknStep_lemma3_att2 senior srQfunc imat z quotchariz j ?= linearComboQuotientRelation2_corrollary senior mat (index j z) (\i => quotientOverZZtrans (quotientOverZZreflFromEq $ sym indexFZIsheadValued) $ srQfunc i)
+		succImplWknStep_lemma3_att2_lemma_1 = proof
+			intros
+			exact (getWitness value ** _)
+			rewrite sym $ indexFZIsheadValued {xs=index j imat}
+			rewrite cong {f=head} $ quotchariz j
+			exact getProof value
+		-}
+		succImplWknStep_lemma3_att2 senior srQfunc imat z quotchariz j = (getWitness lemma ** trans (getProof lemma) $ trans (cong {f=head} $ quotchariz j) $ sym $ indexFZIsheadValued {xs=index j imat})
+			where
+				lemma : (head $ monoidsum $ zipWith (<#>) (index j z) (senior::mat)) `quotientOverZZ` (head senior)
+				lemma = linearComboQuotientRelation2_corrollary senior mat (index j z) (\i => quotientOverZZtrans (quotientOverZZreflFromEq $ sym indexFZIsheadValued) $ srQfunc i)
+		succImplWknStep_lemma2_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( reprolem : senior::mat `spanslz` imat )
+			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
+		succImplWknStep_lemma2_att2 senior srQfunc imat reprolem = succImplWknStep_lemma3_att2 senior srQfunc imat (getWitness reprolem) (\k => trans (sym indexMapChariz) $ cong {f=index k} $ getProof reprolem)
+		succImplWknStep_lemma1_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat, downAndNotRightOfEntryImpliesZ imat (FS fi) FZ ) )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+		succImplWknStep_lemma1_att2 senior srQfunc fi (imat ** (imatpr1, imatpr2, imatpr3)) = ?succImplWknStep_lemma1_att2_pr
+			where
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				fn = succImplWknStep_lemma2_att2 senior srQfunc imat imatpr2
 		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
 		{-
 		Type mismatch between
