@@ -522,6 +522,13 @@ foldAutoind3 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prede
 
 
 
+indexMapChariz : Data.Vect.index k $ map f xs = f $ index k xs
+indexMapChariz {xs=[]} {k} = FinZElim k
+indexMapChariz {xs} {f} {k=FZ} = trans indexFZIsheadValued $ trans headMapChariz $ sym $ cong indexFZIsheadValued
+indexMapChariz {xs=x::xs} {f} {k=FS k} = indexMapChariz {xs=xs} {f=f} {k=k}
+
+
+
 {-
 Properties of vectors and matrices.
 -}
@@ -609,6 +616,18 @@ Intermediate or secondary algorithms
 quotientOverZZ : ZZ -> ZZ -> Type
 quotientOverZZ x y = ( d : ZZ ** d<.>y=x )
 
+quotientOverZZrefl : x `quotientOverZZ` x
+quotientOverZZrefl {x} = ( unity ** ringWithUnityIsUnityR x )
+
+quotientOverZZtrans : x `quotientOverZZ` y -> y `quotientOverZZ` z -> x `quotientOverZZ` z
+quotientOverZZtrans (dx ** prx) (dy ** pry) {x} {y} {z} = ( dx<.>dy ** trans (sym $ ringOpIsAssociative dx dy z) $ trans (cong pry) prx )
+
+quotientOverZZreflFromEq : (a=b) -> a `quotientOverZZ` b
+quotientOverZZreflFromEq {a} {b} eq with (quotientOverZZrefl {x=b})
+	| (d ** pr) = (d ** trans pr $ sym eq)
+
+
+
 ||| Examples:
 ||| 
 ||| > divisorByDistrib (Pos 4) ((Pos 8)::(Pos 0)::[]) (\x => case x of { FZ => (Pos 2 ** Refl); (FS FZ) => (Pos 0 ** Refl) })
@@ -692,32 +711,40 @@ divisorByDistrib z (xx::xxs) {n=S predn} fn = ( dxx<+>dxxs ** divisorByDistrib' 
 		divisorByDistrib' : (dxx<+>dxxs)<.>z = LinearCombinations.monoidsum (xx::xxs)
 		divisorByDistrib' = ?divisorByDistrib_pr
 
-{-
-If using (<#>) instead of (*) in the type signature:
 
-When checking an application of function Data.Vect.index:
-        Can't resolve type class Module ZZ ZZ
--}
-{-
-This is just false.
 
-> zipWithQuotientRelation : {x : Vect _ ZZ} -> {v : Vect _ ZZ}
-> 	-> (k : Fin (S predn))
-> 	-> (Data.Vect.index k $ Data.Vect.zipWith (*) v (map Data.Vect.head (x::xs))) `quotientOverZZ` (Data.Vect.head x)
+{-
+We need to modify this formula to make the right-hand-argument of (quotientOverZZ) constant. It should perhaps be saying the (quotientOverZZ)'s right-hand-arg lies in the transpose of xs in a constant position.
 -}
+zipWithHeadsQuotientRelation : {zs : Vect (S predn) ZZ} -> {xs : Matrix (S predn) (S predm) ZZ} -> (k : _ ) -> ( index k $ map head $ zipWith (<#>) zs xs ) `quotientOverZZ` (head $ index k xs)
+zipWithHeadsQuotientRelation {zs=z::zs} {xs=(xx::xxs)::xs} FZ = (z ** Refl)
+zipWithHeadsQuotientRelation {zs=z::zs} {xs=(xx::xxs)::xs} {predn=Z} (FS prelk) = FinZElim prelk
+zipWithHeadsQuotientRelation {zs=z::zs} {xs=x::xs} {predn=S prededn} (FS prelk) = zipWithHeadsQuotientRelation {zs=zs} {xs=xs} {predn=prededn} prelk
+
+-- Should be applied to (fn) as given by the gcd equality.
+zipWithHeadsQuotientRelation2 : {zs : Vect (S predn) ZZ} -> {xs : Matrix (S predn) (S predm) ZZ} -> ( fn : ( i : Fin _ ) -> (head $ Vect.index i xs) `quotientOverZZ` (head $ Vect.head xs) ) -> (k : _ ) -> ( Vect.index k $ map head $ Vect.zipWith (<#>) zs xs ) `quotientOverZZ` (head $ Vect.head xs)
+zipWithHeadsQuotientRelation2 {zs} {xs} fn k = quotientOverZZtrans (zipWithHeadsQuotientRelation {zs=zs} {xs=xs} k) (fn k)
+
+{-
+This is wrong.
+
+> head $ LinearCombinations.monoidsum $ Data.Vect.zipWith (<#>) [Pos 0, Pos 1, Pos 2] [[Pos 5, Pos 5], [Pos 3, Pos 5], [Pos 5, Pos 3]]
+
+Pos 13 : ZZ
+
+> head $ [Pos 5, Pos 5]
+Pos 5 : ZZ
+
+---
 
 linearComboQuotientRelation : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
 	-> ( head $
 			LinearCombinations.monoidsum $
 			zipWith (<#>) z (x::xs) )
 		`quotientOverZZ` (head x)
-{-
-Dead end implementation:
-
-> linearComboQuotientRelation (xx::xxs) xs (zz::zzs)
-> 	with ( divisorByDistrib xx ( zipWith (*) (zz::zzs) (map head ((xx::xxs)::xs)) ) ?zippyquotient )
-> 		| (d ** dpr) = ?linearComboQuotientRelation'
+linearComboQuotientRelation = ?linearComboQuotientRelation'
 -}
+
 {-
 This would work if zipWithQuotientRelation could be implemented, but it can't.
 We want to say the 2D version of (zipWith (<#>)) reduces in each of its heads to multiples of (head x). i.e.,
@@ -726,6 +753,8 @@ We want to say the 2D version of (zipWith (<#>)) reduces in each of its heads to
 	-> ( index k $ map head $ zipWith (<#>) z (x::xs) ) `quotientOverZZ` (head x)
 
 from which we can deduce the desired result by applying divisorByDistrib.
+
+Goal: succImplWknStep_lemma3
 
 ---
 
@@ -759,6 +788,25 @@ linearComboQuotientRelation (xx::xxs) xs (zz::zzs) = (getWitness lcqr_par ** rew
 		lcqr_eq : LinearCombinations.monoidsum $ zipWith (*) (zz::zzs) (map Data.Vect.head ((xx::xxs)::xs)) = head $ LinearCombinations.monoidsum $ zipWith (<#>) (zz::zzs) ((xx::xxs)::xs)
 		lcqr_eq = timesVectMatAsLinearCombo_EntryCharizRight (zz::zzs) ((xx::xxs)::xs)
 -}
+
+linearComboQuotientRelation2 : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
+	-> ( fn : ( i : Fin _ ) -> (head $ Vect.index i (x::xs)) `quotientOverZZ` (head x) )
+	-> ( LinearCombinations.monoidsum $
+			map head $
+			zipWith (<#>) z (x::xs) )
+		`quotientOverZZ` (head x)
+linearComboQuotientRelation2 x xs z fn = divisorByDistrib _ _ (zipWithHeadsQuotientRelation2 {zs=z} {xs=x::xs} fn)
+
+-- Goal: succImplWknStep_lemma3
+linearComboQuotientRelation2_corrollary : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
+	-> ( fn : ( i : Fin _ ) -> (head $ Vect.index i (x::xs)) `quotientOverZZ` (head x) )
+	-> ( head $
+			LinearCombinations.monoidsum $
+			zipWith (<#>) z (x::xs) )
+		`quotientOverZZ` (head x)
+linearComboQuotientRelation2_corrollary x xs z fn = quotientOverZZtrans (quotientOverZZreflFromEq $ headOfSumIsSumOfHeads _) $ linearComboQuotientRelation2 x xs z fn
+
+
 
 -- Making argument "k" implicit will not work.
 gcdOfVectAlg : Type
@@ -1050,6 +1098,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
 		succImplWknStep_lemma3 = ?succImplWknStep_lemma3_pr
 		-- linearComboQuotientRelation
+		-- linearComboQuotientRelation2_corrollary
 		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
 		{-
 		Type mismatch between
