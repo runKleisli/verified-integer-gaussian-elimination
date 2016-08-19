@@ -1348,6 +1348,154 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		where on the third line at the very end, (imat') is referenced but doesn't exist yet.
 		-}
+		{-
+
+		Based on our experience with (foldAutoInd) vs. (foldAutoInd[2-3]), there are problems with taking Sigma arguments where the property-producing function takes implicit arguments. In that case it was implicit arguments to the function, but since implicit arguments are involved in the value itself we may have to eliminate those as well.
+
+		So, the first thing we should try is the following:
+
+		> downAndNotRightOfEntryImpliesZ : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
+
+		> downAndNotRightOfEntryImpliesZ_MatchVariant : (n, m : Nat) -> (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
+
+		and then let {P=\xsInDANRZ => downAndNotRightOfEntryImpliesZ_MatchVariant _ _ xsInDANRZ _ _} for the Sigma type, modifying this for dependent pair syntax to
+
+		> ( xs : Matrix n m ZZ ** (\xsInDANRZ => downAndNotRightOfEntryImpliesZ_MatchVariant n m xsInDANRZ i j) xs )
+
+		or simply
+
+		> ( xs : Matrix n m ZZ ** (\xsInDANRZ => downAndNotRightOfEntryImpliesZ {n=n} {m=m} xsInDANRZ i j) xs )
+
+		---
+
+		succImplWknStep_lemma1_att3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** (\xsInProp => ( xsInProp `spanslz` (senior::mat), (senior::mat) `spanslz` xsInProp, downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsInProp (FS fi) FZ )) imat )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( (\xsInProp => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsInProp (weaken fi) FZ) imat' ) )
+
+		-----
+
+		This successfully uncovers that there is a problem with specifying this as a Sigma type at all:
+
+		When checking argument P to type constructor Builtins.Sigma:
+		        Type mismatch between
+		                (Type, Type, Type) (Type of (\xsInProp =>
+		                                               (spanslz xsInProp
+		                                                        (senior :: mat),
+		                                                spanslz (senior :: mat)
+		                                                        xsInProp,
+		                                                downAndNotRightOfEntryImpliesZ xsInProp
+		                                                                               (FS fi)
+		                                                                               FZ)) imat)
+		        and
+		                Type (Expected type)
+
+		---
+
+		This is a silly error, though.
+
+		> (Nat, Nat, Nat) : (Type, Type, Type)
+
+		> the Type (Nat, Nat, Nat) : Type
+
+		---
+
+		Nevertheless, it creates an impassable barrier:
+
+		succImplWknStep_lemma1_att4 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** (\xsInProp => the Type ( xsInProp `spanslz` (senior::mat), (senior::mat) `spanslz` xsInProp, downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsInProp (FS fi) FZ )) imat )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( (\xsInProp => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsInProp (weaken fi) FZ) imat' ) )
+		succImplWknStep_lemma1_att4 senior srQfunc fi (imat ** imatPrs) = foo
+			where
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				witfoo : Matrix (S (S predn)) (S predm) ZZ
+				prfoo : downAndNotRightOfEntryImpliesZ witfoo (weaken fi) FZ
+				-- foo : ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ )
+				foo : ( imat' : Matrix (S (S predn)) (S predm) ZZ ** (\xsInProp => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsInProp (weaken fi) FZ) imat' )
+
+		---
+
+		When checking type of ZZGaussianElimination.elimFirstCol2, succImplWknStep_lemma1_att4, fn:
+		Type mismatch between
+		        (Type, Type, Type) (Type of ...)
+		and
+		        Type (Expected type)
+
+		-----
+
+		The following two still give this displaced error, suggesting a problem with the types produced by (downAndNotRightOfEntryImpliesZ) itself, rather than with the way we're pattern matching on types like this:
+
+		When checking type of ZZGaussianElimination.elimFirstCol2, succImplWknStep_lemma1_att5, prfoo:
+		Type mismatch between
+		        downAndNotRightOfEntryImpliesZ imat (FS fi) FZ
+		and
+		        (\i =>
+		           LTE (S (S (finToNat fi))) (finToNat i) ->
+		           Either (LTE (S (finToNat j)) 0) (finToNat j = 0) ->
+		           index j (index i imat) = Pos 0) i1
+
+		---
+
+		succImplWknStep_lemma1_att5 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> ( fi : Fin (S predn) )
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( imatSpansOrig : imat `spanslz` (senior::mat) )
+			-> ( origSpansImat : (senior::mat) `spanslz` imat )
+			-> ( imatDANRZ : downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) FZ )
+			-> ( imot : Matrix (S (S predn)) (S predm) ZZ ** (\xsInProp => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsInProp (weaken fi) FZ) imot )
+		succImplWknStep_lemma1_att5 senior srQfunc fi imat imatSpansOrig origSpansImat imatDANRZ = foo
+			where
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				witfoo : Matrix (S (S predn)) (S predm) ZZ
+				witfoo = ?witfoo'
+				prfoo : downAndNotRightOfEntryImpliesZ witfoo (weaken fi) FZ
+				-- foo : ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ )
+				foo : ( imot : Matrix (S (S predn)) (S predm) ZZ ** (\xsInProp => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsInProp (weaken fi) FZ) imot )
+
+		---
+
+		succImplWknStep_lemma1_att5 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> ( fi : Fin (S predn) )
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( imatSpansOrig : imat `spanslz` (senior::mat) )
+			-> ( origSpansImat : (senior::mat) `spanslz` imat )
+			-> ( imatDANRZ : downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) FZ )
+			-> Nat
+		succImplWknStep_lemma1_att5 senior srQfunc fi imat imatSpansOrig origSpansImat imatDANRZ = foo
+			where
+				-- fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				witfoo : Matrix (S (S predn)) (S predm) ZZ
+				witfoo = ?witfoo'
+				-- prfoo : downAndNotRightOfEntryImpliesZ witfoo (weaken fi) FZ
+				-- prfoo : (\xsPrFoo => downAndNotRightOfEntryImpliesZ xsPrFoo (weaken fi) FZ) witfoo
+				prfoo : (\xsPrFoo => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsPrFoo (weaken fi) FZ) witfoo
+				foo : Nat
+
+		---
+
+		In fact, with the type errors from the different ways of declaring the type of (prfoo), these different ways seen in the last version, it seems to suggest that as imatDANRZ is having its type inferred in the environment of other, locally-declared values' types, its type's implicit arguments are being made explicit in either those environments XOR the type inferred for imatDANRZ (upon pattern matching or in inferring the type of succImplWknStep_lemma1_att5).
+
+		So, I think we're forced to rewrite (downAndNotRightOfEntryImpliesZ) so that the arguments of its values are all explicit.
+
+		-}
+		succImplWknStep_lemma1_att5 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> ( fi : Fin (S predn) )
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( imatSpansOrig : imat `spanslz` (senior::mat) )
+			-> ( origSpansImat : (senior::mat) `spanslz` imat )
+			-> ( imatDANRZ : downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) FZ )
+			-> Nat
+		succImplWknStep_lemma1_att5 senior srQfunc fi imat imatSpansOrig origSpansImat imatDANRZ = foo
+			where
+				-- fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				witfoo : Matrix (S (S predn)) (S predm) ZZ
+				witfoo = ?witfoo'
+				-- prfoo : downAndNotRightOfEntryImpliesZ witfoo (weaken fi) FZ
+				-- prfoo : (\xsPrFoo => downAndNotRightOfEntryImpliesZ xsPrFoo (weaken fi) FZ) witfoo
+				prfoo : (\xsPrFoo => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsPrFoo (weaken fi) FZ) witfoo
+				foo : Nat
+		-}
 		foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
 
 {-
