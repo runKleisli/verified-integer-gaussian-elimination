@@ -524,8 +524,44 @@ foldAutoind3 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prede
 
 indexMapChariz : Data.Vect.index k $ map f xs = f $ index k xs
 indexMapChariz {xs=[]} {k} = FinZElim k
-indexMapChariz {xs} {f} {k=FZ} = trans indexFZIsheadValued $ trans headMapChariz $ sym $ cong indexFZIsheadValued
+-- indexMapChariz {xs} {f} {k=FZ} = trans indexFZIsheadValued $ trans headMapChariz $ sym $ cong indexFZIsheadValued
+indexMapChariz {xs=x::xs} {f} {k=FZ} = Refl
 indexMapChariz {xs=x::xs} {f} {k=FS k} = indexMapChariz {xs=xs} {f=f} {k=k}
+
+indexUpdateAtChariz : index i $ updateAt i f xs = f $ index i xs
+indexUpdateAtChariz {xs=[]} {i} = FinZElim i
+indexUpdateAtChariz {xs=(x::xs)} {f} {i=FZ} = Refl
+indexUpdateAtChariz {xs=x::xs} {f} {i=FS i} = indexUpdateAtChariz {xs=xs} {f=f} {i=i}
+
+updateAtIndIsMapAtInd : index i $ updateAt i f xs = index i $ map f xs
+updateAtIndIsMapAtInd = trans indexUpdateAtChariz $ sym indexMapChariz
+
+
+
+zipWithEntryChariz : index i $ Vect.zipWith m x y = m (index i x) (index i y)
+
+
+
+-- For completeness's sake, these should have (index FZ) as (head) forms proved.
+
+indexCompatInverse : VerifiedRingWithUnity a => (xs : Vect n a) -> (i : Fin n) -> index i $ inverse xs = inverse $ index i xs
+
+indexCompatAdd : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <+> ys = index i xs <+> index i ys
+indexCompatAdd xs ys i = zipWithEntryChariz {x=xs} {y=ys} {i=i} {m=(<+>)}
+
+{-
+Proof obstruction seems to be that the meaning of "inverse" depends on whether the class hierarchy is treated as
+
+	VerifiedGroup < Group < Monoid < Semigroup
+
+or as
+
+	VerifiedGroup < VerifiedMonoid < VerifiedSemigroup < Semigroup
+-}
+indexCompatSub : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <-> ys = index i xs <-> index i ys
+indexCompatSub xs ys i ?= trans (indexCompatAdd xs (inverse ys) i) $ cong {f=((index i xs)<+>)} $ indexCompatInverse ys i
+
+indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
 
 
 
@@ -544,9 +580,22 @@ Equivalent properties:
 	# In pseudocode, because we decided not to use direct LT and LTE of Fins.
 -}
 
-weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (weaken prednel) mel xs = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+downAndNotRightOfEntryImpliesZ2 : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
+downAndNotRightOfEntryImpliesZ2 xs nel mel {n} {m} = (i : Fin n) -> (j : Fin m) -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
+{-
+Equivalent properties:
+1) map (take mel) (drop nel xs) = neutral
+2) (nel `LT` i) -> (j `LTE` mel) -> indices i j xs = Pos Z
+	# In pseudocode, because we decided not to use direct LT and LTE of Fins.
+-}
+
+weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (weaken prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
 
 afterUpdateAtCurStillDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ (updateAt (weaken prednel) f mat) (FS prednel) mel)
+
+weakenDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (indices (weaken prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ2 mat (weaken prednel) mel
+
+afterUpdateAtCurStillDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ2 (updateAt (weaken prednel) f mat) (FS prednel) mel)
 
 leadingNonzero : (v : Vect n ZZ) -> Type
 leadingNonzero {n} v = Either
@@ -1308,46 +1357,6 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		Then (spanslzSubtractiveExchangeAt (weaken fi)) (or its bispanning version) can be applied to produce the spanslz proofs, for (tau = deleteRow (weaken fi) imat).
 		-}
-		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
-		{-
-		Type mismatch between
-		        Vect (S predn) ZZ (Type of v)
-		and
-		        Vect (S predm) ZZ (Expected type)
-
-		Specifically:
-		        Type mismatch between
-		                predn
-		        and
-		                predm
-
-		> foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
-
-		similarly for
-
-		> foldedFully {v} with ( succImplWknStep {v=v} )
-		> 	| fonc = ?foldedFully_pr
-
-		or (what you'd actually have to write)
-
-		> foldedFully {v} = let fonc = succImplWknStep {v=v} in ?foldedFully_pr
-
-		but then we can change the error with
-
-		foldedFully {v} with ( succImplWknStep )
-			| fonc = ?foldedFully_pr
-
-		to see the type of (mat) is mismatching an expected type the transpose.
-
-		First error was here:
-		
-		> succImplWknStep : {v : Vect (S predn) ZZ}
-		> 	-> (fi : Fin (S predn))
-		> 	-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat' (FS fi) FZ ) )
-		> 	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
-
-		where on the third line at the very end, (imat') is referenced but doesn't exist yet.
-		-}
 		{-
 
 		Based on our experience with (foldAutoInd) vs. (foldAutoInd[2-3]), there are problems with taking Sigma arguments where the property-producing function takes implicit arguments. In that case it was implicit arguments to the function, but since implicit arguments are involved in the value itself we may have to eliminate those as well.
@@ -1479,22 +1488,75 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		So, I think we're forced to rewrite (downAndNotRightOfEntryImpliesZ) so that the arguments of its values are all explicit.
 
 		-}
-		succImplWknStep_lemma1_att5 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+		{-
+		This old workaround still gives the type error that the type is a triple of types not interpreted as a type in its own right. Very sad. Isn't helped if (downAndNotRightImpliesZ2) is used instead of (downAndNotRightImpliesZ), either.
+
+		---
+
+		succImplWknStep_lemma1_att6 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> ( fi : Fin (S predn) )
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** succImplWknProp {omat=senior::mat} (S predn) (FS fi) imat )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** succImplWknPropSec3 {omat=senior::mat} (S predn) (weaken fi) imat' )
+		succImplWknStep_lemma1_att6 senior srQfunc fi (imat ** imatprs) = foo
+			where
+				foo : ( imat' : Matrix (S (S predn)) (S predm) ZZ ** succImplWknPropSec3 {omat=senior::mat} (S predn) (weaken fi) imat' )
+		-}
+		succImplWknStep_lemma1_att7 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
 			-> ( imatSpansOrig : imat `spanslz` (senior::mat) )
 			-> ( origSpansImat : (senior::mat) `spanslz` imat )
-			-> ( imatDANRZ : downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) FZ )
-			-> Nat
-		succImplWknStep_lemma1_att5 senior srQfunc fi imat imatSpansOrig origSpansImat imatDANRZ = foo
+			-> ( imatDANRZ : downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ )
+		succImplWknStep_lemma1_att7 senior srQfunc fi imat imatSpansOrig origSpansImat imatDANRZ = (witfoo ** prfoo)
 			where
-				-- fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
 				witfoo : Matrix (S (S predn)) (S predm) ZZ
-				witfoo = ?witfoo'
-				-- prfoo : downAndNotRightOfEntryImpliesZ witfoo (weaken fi) FZ
-				-- prfoo : (\xsPrFoo => downAndNotRightOfEntryImpliesZ xsPrFoo (weaken fi) FZ) witfoo
-				prfoo : (\xsPrFoo => downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} xsPrFoo (weaken fi) FZ) witfoo
-				foo : Nat
+				witfoo = updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
+				primatzAtWknFi : indices (weaken fi) FZ witfoo = Pos Z
+				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
+				prfoo : downAndNotRightOfEntryImpliesZ2 witfoo (weaken fi) FZ
+				prfoo = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=witfoo} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
+		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
+		{-
+		Type mismatch between
+		        Vect (S predn) ZZ (Type of v)
+		and
+		        Vect (S predm) ZZ (Expected type)
+
+		Specifically:
+		        Type mismatch between
+		                predn
+		        and
+		                predm
+
+		> foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+
+		similarly for
+
+		> foldedFully {v} with ( succImplWknStep {v=v} )
+		> 	| fonc = ?foldedFully_pr
+
+		or (what you'd actually have to write)
+
+		> foldedFully {v} = let fonc = succImplWknStep {v=v} in ?foldedFully_pr
+
+		but then we can change the error with
+
+		foldedFully {v} with ( succImplWknStep )
+			| fonc = ?foldedFully_pr
+
+		to see the type of (mat) is mismatching an expected type the transpose.
+
+		First error was here:
+		
+		> succImplWknStep : {v : Vect (S predn) ZZ}
+		> 	-> (fi : Fin (S predn))
+		> 	-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat' (FS fi) FZ ) )
+		> 	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+
+		where on the third line at the very end, (imat') is referenced but doesn't exist yet.
 		-}
 		foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
 
