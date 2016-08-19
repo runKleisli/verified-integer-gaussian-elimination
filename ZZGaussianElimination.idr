@@ -544,6 +544,10 @@ Equivalent properties:
 	# In pseudocode, because we decided not to use direct LT and LTE of Fins.
 -}
 
+weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (weaken prednel) mel xs = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+
+afterUpdateAtCurStillDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ (updateAt (weaken prednel) f mat) (FS prednel) mel)
+
 leadingNonzero : (v : Vect n ZZ) -> Type
 leadingNonzero {n} v = Either
 		(v = neutral)
@@ -1127,10 +1131,183 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> (fi : Fin (S predn))
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat, downAndNotRightOfEntryImpliesZ imat (FS fi) FZ ) )
 			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
-		succImplWknStep_lemma1_att2 senior srQfunc fi (imat ** (imatpr1, imatpr2, imatpr3)) = ?succImplWknStep_lemma1_att2_pr
+		{-
+		Type checking bug:
+
+		Although (imatpr3) only occurs through pattern match, we still get this error
+
+		When checking type of ZZGaussianElimination.elimFirstCol2, succImplWknStep_lemma1_att2, prDown:
+		Type mismatch between
+		        LTE (S (S (finToNat fi))) (finToNat i29) ->
+		        Either (LTE (S (finToNat j)) 0) (finToNat j = 0) ->
+		        index j (index i29 imat) = Pos 0 (Type of imatpr3)
+		and
+		        LTE (S (S (finToNat fi))) (finToNat i30) ->
+		        Either (LTE (S (finToNat j1)) 0) (finToNat j1 = 0) ->
+		        index j1 (index i30 imat) = Pos 0 (Expected type)
+
+		Specifically:
+		        Type mismatch between
+		                Fin (S (S predn))
+		        and
+		                LTE (S (S (finToNat fi))) (finToNat i30)
+
+		---
+
+		succImplWknStep_lemma1_att2 senior srQfunc fi (imat ** (imatpr1, imatpr2, imatpr3)) = ( updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imat) imat ** prDown )
 			where
 				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
 				fn = succImplWknStep_lemma2_att2 senior srQfunc imat imatpr2
+				prDown : downAndNotRightOfEntryImpliesZ ( updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imat) imat ) (weaken fi) FZ
+		
+
+		-----
+
+
+		This one didn't work either. It's almost certainly that (succImplWknStep_lemma1_att2) was declared a malformed type.
+
+		However, the type can be evaluated in the REPL without complaint.
+
+		> (predm, predn : Nat) -> (mat : Matrix (S predn) (S predm) ZZ) -> ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) ) -> (fi : Fin (S predn)) -> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat, downAndNotRightOfEntryImpliesZ imat (FS fi) FZ ) ) -> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
+
+		It could be the pattern matching itself that's flawed.
+
+		---
+
+		succImplWknStep_lemma1_att2 senior srQfunc fi (imat ** (imatpr1, imatpr2, imatpr3)) ?= ( updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imat) imat ** weakenDownAndNotRight {prednel=fi} {mel=FZ} {mat=updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imat) imat} (afterUpdateAtCurStillDownAndNotRight {mat=imat} {f=(<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imat)} {prednel=fi} {mel=FZ} imatpr3) zeroAfterSubPr )
+			where
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				fn = succImplWknStep_lemma2_att2 senior srQfunc imat imatpr2
+				zeroAfterSubPr : indices (weaken fi) FZ $ updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imat) imat = Pos Z
+
+
+		-----
+
+
+		Same error:
+
+		succImplWknStep_lemma1_att2 senior srQfunc fi (imat ** ( imatpr1, (imatpr2, imatpr3) )) = (fafa ** sese)
+			where
+				fafa : Matrix (S (S predn)) (S predm) ZZ
+				sese : downAndNotRightOfEntryImpliesZ fafa (weaken fi) FZ
+
+
+		-----
+
+		Nope:
+
+		succImplWknStep_lemma1_att2 senior srQfunc fi (imat ** ( imatpr1, imatpr2, imatpr3 )) = foo
+			where
+				witfoo : Matrix (S (S predn)) (S predm) ZZ
+				prfoo : downAndNotRightOfEntryImpliesZ witfoo (weaken fi) FZ
+				foo : ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ )
+				-- foo ?= ( witfoo ** prfoo )
+				-- foo ?= MkSigma witfoo {P=\matty => downAndNotRightOfEntryImpliesZ matty (weaken fi) FZ} prfoo
+		
+		-----
+
+		Error eliminated by just not pattern matching on dependent pair like that, but now we have a scarier problem.
+
+		succImplWknStep_lemma1_att2 senior srQfunc fi imatAndPrs = foo
+			where
+				imat : Matrix (S (S predn)) (S predm) ZZ
+				imat = getWitness imatAndPrs
+				imatZPr : downAndNotRightOfEntryImpliesZ imat (FS fi) FZ
+				imatZPr ?= snd $ snd $ getProof imatAndPrs
+				witfoo : Matrix (S (S predn)) (S predm) ZZ
+				prfoo : downAndNotRightOfEntryImpliesZ witfoo (weaken fi) FZ
+				foo : ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ )
+				-- foo ?= ( witfoo ** prfoo )
+				-- foo ?= MkSigma witfoo {P=\matty => downAndNotRightOfEntryImpliesZ matty (weaken fi) FZ} prfoo
+
+		-----
+
+		Either of these will give
+
+		ZZGaussianElimination.idr:1223:45:Type mismatch between
+		        Vect (S predm) ZZ
+		and
+		        ZZ
+
+		succImplWknStep_lemma1_att2 senior srQfunc fi imatAndPrs with ( imatAndPrs )
+			| (imat ** (_,_,imatZPr)) = ?adadadep -- ( imat' ** imatZPr' )
+
+		succImplWknStep_lemma1_att2 senior srQfunc fi imatAndPrs with ( imatAndPrs )
+			| ( suluOfRnfrst ** valley ) = ?adadadep
+
+		-----
+
+		This will cause the same error once (fn) is left to be proved.
+		It appears to be fixed if you use (compute) at this stage before (exact ?hoelele), but if you don't solve (fn) right then and unfocus as required, the error appears anyway once it's solved as the last goal.
+
+		succImplWknStep_lemma1_att2 = ?succImplWknStep_lemma1_att2_pr
+
+		succImplWknStep_lemma1_att2_pr = proof
+		  intro
+		  intro
+		  intro
+		  intro
+		  intro
+		  intro
+		  intro imatAndPr
+		  let imatty = getWitness imatAndPr
+		  let imattyZPr = snd $ snd $ getProof imatAndPr
+		  claim fn ( j : Fin _ ) -> (indices j FZ imatty) `quotientOverZZ` (head senior)
+		  unfocus
+		  exact ( updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imatty) imatty ** _ )
+		  unfocus
+		  exact weakenDownAndNotRight {prednel=fi} {mel=FZ} _ _
+		  unfocus
+		  exact updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imatty) imatty
+		  exact afterUpdateAtCurStillDownAndNotRight {mat=imatty} {prednel=fi} {mel=FZ} _
+		  exact ?stipulation1
+		  intro jah
+		  exact believe_me "Hello."
+		  exact imattyZPr
+
+
+
+		-----
+
+
+		As for the contents of the proof, I now think instead of
+
+		> updateAt (weaken fi) (<-> (head senior)<.>(Sigma.getWitness $ fn (weaken fi)) <#> index (weaken fi) imat) imat
+
+		it should be
+
+		> updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
+
+		since according to (fn $ weaken fi), we will then get a value (imat') such that
+
+		> indices (weaken fi) FZ imat'
+			= head $ index (weaken fi) imat <-> (Sigma.getWitness $ fn (weaken fi)) <#> senior
+			= head (index (weaken fi) imat) <-> head ( (Sigma.getWitness $ fn (weaken fi)) <#> senior )
+			= head (index (weaken fi) imat) <-> (Sigma.getWitness $ fn (weaken fi)) <.> (head senior)
+			=	(by getProof $ fn (weaken fi))
+				head (index (weaken fi) imat) <-> head (index (weaken fi) imat)
+			=	(by groupInverseIsInverseL $ head (index (weaken fi) imat))
+			Pos Z
+
+		-}
+		succImplWknStep_lemma1_att2 = ?succImplWknStep_lemma1_att2_pr
+		{-
+		Strategy visible for proving bispannability for the witness from above:
+
+		< sym vectMatLScalingCompatibility
+
+		extends a proof that (index (weaken fi) imat)
+
+		is of the form (v <\> tau)
+
+		to a proof that for all s,
+
+		< s<#>(index (weaken fi) imat)
+
+		is of the form (v <\> tau).
+
+		Then (spanslzSubtractiveExchangeAt (weaken fi)) (or its bispanning version) can be applied to produce the spanslz proofs, for (tau = deleteRow (weaken fi) imat).
+		-}
 		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
 		{-
 		Type mismatch between
