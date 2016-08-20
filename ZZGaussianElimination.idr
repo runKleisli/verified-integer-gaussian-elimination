@@ -1024,13 +1024,21 @@ succImplWknProp {omat} nu fi tmat = ( tmat `spanslz` omat, omat `spanslz` tmat, 
 succImplWknPropSec3 : {omat : Matrix onnom (S predm) ZZ} -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
 succImplWknPropSec3 {omat} nu fi tmat = downAndNotRightOfEntryImpliesZ tmat fi FZ
 
+succImplWknProp2 : (omat : Matrix onnom (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+succImplWknProp2 omat nu fi tmat = ( downAndNotRightOfEntryImpliesZ2 tmat fi FZ, tmat `spanslz` omat, omat `spanslz` tmat )
+succImplWknProp2Sec1 : (omat : Matrix onnom (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+succImplWknProp2Sec1 omat nu fi tmat = downAndNotRightOfEntryImpliesZ2 tmat fi FZ
+
 {-
-weakenTrivial : {omat : Matrix (S (S predn)) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} (S predn) (last {n=S predn}) omat
-weakenTrivial = void . notSNatLastLTEAnything
+danrzLast : {omat : Matrix (S (S predn)) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} (S predn) (last {n=S predn}) omat
+danrzLast = void . notSNatLastLTEAnything
 -}
 
-weakenTrivial : {omat : Matrix (S predn) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} predn (last {n=predn}) omat
-weakenTrivial = void . notSNatLastLTEAnything
+danrzLast : {omat : Matrix (S predn) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} predn (last {n=predn}) omat
+danrzLast = void . notSNatLastLTEAnything
+
+danrzLast2 : (omat : Matrix (S predn) (S predm) ZZ) -> succImplWknProp2Sec1 omat predn (last {n=predn}) omat
+danrzLast2 omat = (\i => \j => void . notSNatLastLTEAnything)
 
 {-
 Better to refine this to a type that depends on (m=S predm) so that the case (m=Z) may also be covered.
@@ -1079,7 +1087,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		---
 		After much externalization for error isolation
 		---
-		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
 		-}
 
 		let ( endmat ** endmatPropFn ) = foldedFully {v=v}
@@ -1094,7 +1102,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( imat : Matrix (S nu) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat' (FS fi) FZ ) )
 			-> ( imat' : Matrix (S nu) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
 		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
-		-- foldedFully {v} = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+		-- foldedFully {v} = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
 -}
 elimFirstCol2 mat {n=S predn} {predm} = do {
 		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
@@ -1118,7 +1126,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		---
 		After much externalization for error isolation
 		---
-		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
 		-}
 
 		let ( endmat ** endmatPropFn ) = foldedFully {v=v}
@@ -1518,7 +1526,31 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
 				prfoo : downAndNotRightOfEntryImpliesZ2 witfoo (weaken fi) FZ
 				prfoo = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=witfoo} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
-		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
+		succImplWknStep_lemma1_att8 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ )
+		succImplWknStep_lemma1_att8 senior srQfunc fi imat (imatDANRZ, imatSpansOrig, origSpansImat) = (witfoo ** prfoo)
+			where
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
+				witfoo : Matrix (S (S predn)) (S predm) ZZ
+				witfoo = updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
+				primatzAtWknFi : indices (weaken fi) FZ witfoo = Pos Z
+				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
+				prfoo : downAndNotRightOfEntryImpliesZ2 witfoo (weaken fi) FZ
+				prfoo = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=witfoo} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
+		succImplWknStep_lemma1_plumbed : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ )
+		succImplWknStep_lemma1_plumbed senior srQfunc fi imatAndPr = succImplWknStep_lemma1_att8 senior srQfunc fi (getWitness imatAndPr) (getProof imatAndPr)
+		succImplWknStep_att2 : (v : Vect (S predn) ZZ)
+			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 imat (FS fi) FZ, imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat ) )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 imat' (weaken fi) FZ, imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat' ) )
 		{-
 		Type mismatch between
 		        Vect (S predn) ZZ (Type of v)
@@ -1531,7 +1563,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		        and
 		                predm
 
-		> foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+		> foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
 
 		similarly for
 
@@ -1558,7 +1590,12 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		where on the third line at the very end, (imat') is referenced but doesn't exist yet.
 		-}
-		foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, weakenTrivial {omat=(v <\> mat)::mat}) )
+		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
+		foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
+		foldedFully_att2 : (v : Vect (S predn) ZZ)
+			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
+			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp2 ((v<\>mat)::mat) (S predn) i (index i mats) )
+		foldedFully_att2 v vmatQfunc = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp2 ((v <\> mat)::mat)) (succImplWknStep_att2 v vmatQfunc) ( (v<\>mat)::mat ** (danrzLast2 ((v <\> mat)::mat), spanslzrefl, spanslzrefl) )
 
 {-
 Reference
