@@ -591,9 +591,13 @@ Equivalent properties:
 
 weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (weaken prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
 
+weakenDownAndNotRight_att2 : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+
 afterUpdateAtCurStillDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ (updateAt (weaken prednel) f mat) (FS prednel) mel)
 
 weakenDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (indices (weaken prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ2 mat (weaken prednel) mel
+
+weakenDownAndNotRight2_att2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ2 mat (weaken prednel) mel
 
 afterUpdateAtCurStillDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ2 (updateAt (weaken prednel) f mat) (FS prednel) mel)
 
@@ -1183,6 +1187,31 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
 				prfoo : downAndNotRightOfEntryImpliesZ2 witfoo (weaken fi) FZ
 				prfoo = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=witfoo} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
+		-- Including proof the head is equal to senior just makes this step easier.
+		succImplWknStep_modded : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
+		succImplWknStep_modded senior srQfunc fi imat ( imatHeadIsSenior, imatDANRZ, imatSpansOrig, origSpansImat ) = (jmat ** ( jmatHeadIsSenior, jmatDANRZ, jmatSpansOrig, origSpansJmat ) )
+			where
+				-- This and thus missingstep can't be implemented. We have used the wrong indexes in our definition of (jmat) and hence in our supporting lemmas for proving jmatDANRZ.
+				degeneracy : fi = FS fi'
+				missingstep : head imat = (Algebra.unity::Algebra.neutral) <\> deleteRow (weaken fi) imat
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
+				jmat : Matrix (S (S predn)) (S predm) ZZ
+				jmat = updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
+				jmatHeadIsSenior : senior = head jmat
+				jmatHeadIsSenior = ?succImplWknStep_jmatHeadIsSenior_pr
+				primatzAtWknFi : indices (weaken fi) FZ jmat = Pos Z
+				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
+				jmatDANRZ : downAndNotRightOfEntryImpliesZ2 jmat (weaken fi) FZ
+				jmatDANRZ = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
+				jmatSpansOrig : jmat `spanslz` (senior::mat)
+				jmatSpansOrig = spanslztrans (spanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (weaken fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans imatHeadIsSenior $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ weaken fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (weaken fi) imat}) $ spanslztrans ( spanslzSubtractiveExchangeAt (weaken fi) {xs=imat} {z=(Sigma.getWitness $ fn (weaken fi))<#>(Algebra.unity::Algebra.neutral)} ) $ imatSpansOrig
+				origSpansJmat : (senior::mat) `spanslz` jmat
+				origSpansJmat = ?succImplWknStep_origSpansJmat_pr
 		{-
 		Strategy for proving bispannability of the witness from the above:
 

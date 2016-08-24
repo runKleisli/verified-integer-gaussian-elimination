@@ -476,6 +476,9 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 spanslzrefl : spanslz xs xs
 spanslzrefl = ( Id ** zippyScaleIdLeftNeutral _ )
 
+spanslzreflFromEq : (xs=ys) -> xs `spanslz` ys
+spanslzreflFromEq pr = ( Id ** trans (zippyScaleIdLeftNeutral _) pr )
+
 
 
 updateAtEquality : {ls : Matrix n k ZZ} -> {rs : Matrix k m ZZ} -> (updi : Fin n) -> (f : (i : Nat) -> Vect i ZZ -> Vect i ZZ) -> ( (la : Vect k ZZ) -> (f k la) <\> rs = f m $ la <\> rs ) -> (updateAt updi (f k) ls) `zippyScale` rs = updateAt updi (f m) (ls `zippyScale` rs)
