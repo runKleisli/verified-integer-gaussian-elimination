@@ -1102,6 +1102,11 @@ succImplWknProp2 omat nu fi tmat = ( downAndNotRightOfEntryImpliesZ2 tmat fi FZ,
 succImplWknProp2Sec1 : (omat : Matrix onnom (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
 succImplWknProp2Sec1 omat nu fi tmat = downAndNotRightOfEntryImpliesZ2 tmat fi FZ
 
+succImplWknProp3 : (omat : Matrix predonnom (S predm) ZZ) -> (senior : Vect (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+succImplWknProp3 omat senior nu fi tmat = ( senior = head tmat, downAndNotRightOfEntryImpliesZ2 tmat fi FZ, tmat `bispanslz` (senior::omat) )
+succImplWknProp3Sec2 : (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+succImplWknProp3Sec2 nu fi tmat = downAndNotRightOfEntryImpliesZ2 tmat fi FZ
+
 {-
 danrzLast : {omat : Matrix (S (S predn)) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} (S predn) (last {n=S predn}) omat
 danrzLast = void . notSNatLastLTEAnything
@@ -1112,6 +1117,9 @@ danrzLast = void . notSNatLastLTEAnything
 
 danrzLast2 : (omat : Matrix (S predn) (S predm) ZZ) -> succImplWknProp2Sec1 omat predn (last {n=predn}) omat
 danrzLast2 omat = (\i => \j => void . notSNatLastLTEAnything)
+
+danrzLast3 : (omat : Matrix (S predn) (S predm) ZZ) -> succImplWknProp3Sec2 predn (last {n=predn}) omat
+danrzLast3 omat = (\i => \j => void . notSNatLastLTEAnything)
 
 {-
 Better to refine this to a type that depends on (m=S predm) so that the case (m=Z) may also be covered.
@@ -1241,46 +1249,6 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			=	(by groupInverseIsInverseL $ head (index (weaken fi) imat))
 			Pos Z
 		-}
-		succImplWknStep_lemma1_att8 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
-			-> (fi : Fin (S predn))
-			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
-			-> ( downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
-			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ )
-		succImplWknStep_lemma1_att8 senior srQfunc fi imat (imatDANRZ, imatSpansOrig, origSpansImat) = (witfoo ** prfoo)
-			where
-				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
-				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
-				witfoo : Matrix (S (S predn)) (S predm) ZZ
-				witfoo = updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
-				primatzAtWknFi : indices (weaken fi) FZ witfoo = Pos Z
-				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
-				prfoo : downAndNotRightOfEntryImpliesZ2 witfoo (weaken fi) FZ
-				prfoo = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=witfoo} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
-		-- Including proof the head is equal to senior just makes this step easier.
-		succImplWknStep_modded : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
-			-> (fi : Fin (S predn))
-			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
-			-> ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
-			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
-		succImplWknStep_modded senior srQfunc fi imat ( seniorIsImatHead, imatDANRZ, imatSpansOrig, origSpansImat ) = (jmat ** ( seniorIsJmatHead, jmatDANRZ, jmatSpansOrig, origSpansJmat ) )
-			where
-				-- This and thus missingstep can't be implemented. We have used the wrong indexes in our definition of (jmat) and hence in our supporting lemmas for proving jmatDANRZ.
-				degeneracy : fi = FS fi'
-				missingstep : head imat = (Algebra.unity::Algebra.neutral) <\> deleteRow (weaken fi) imat
-				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
-				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
-				jmat : Matrix (S (S predn)) (S predm) ZZ
-				jmat = updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
-				seniorIsJmatHead : senior = head jmat
-				seniorIsJmatHead = trans seniorIsImatHead updateAtSuccRowVanishesUnderHead
-				primatzAtWknFi : indices (weaken fi) FZ jmat = Pos Z
-				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
-				jmatDANRZ : downAndNotRightOfEntryImpliesZ2 jmat (weaken fi) FZ
-				jmatDANRZ = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
-				jmatSpansOrig : jmat `spanslz` (senior::mat)
-				jmatSpansOrig = spanslztrans (spanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (weaken fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ weaken fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (weaken fi) imat}) $ spanslztrans ( spanslzSubtractiveExchangeAt (weaken fi) {xs=imat} {z=(Sigma.getWitness $ fn (weaken fi))<#>(Algebra.unity::Algebra.neutral)} ) $ imatSpansOrig
-				origSpansJmat : (senior::mat) `spanslz` jmat
-				origSpansJmat = ?succImplWknStep_origSpansJmat_pr
 		-- Including proof the head is equal to senior just makes this step easier.
 		succImplWknStep_modded_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> (fi : Fin (S predn))
@@ -1308,32 +1276,8 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 					$ trans ( cong {f=((head $ deleteRow (FS fi) imat)<+>)} $ trans (sym $ timesVectMatAsLinearCombo Algebra.neutral $ tail $ deleteRow (FS fi) imat) $ zzVecNeutralIsVecMatMultZero (tail $ deleteRow (FS fi) imat) )
 					$ trans ( zzVecNeutralIsNeutralL $ head $ deleteRow (FS fi) imat )
 					$ deleteSuccRowVanishesUnderHead {k=fi} {xs=imat}
-				{-
-				-- The first proof typechecks, but both these terms are subsumed by use of bispanslztrans.
-				jmatSpansOrig : jmat `spanslz` (senior::mat)
-				jmatSpansOrig = spanslztrans (spanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (FS fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ FS fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (FS fi) imat}) $ spanslztrans ( spanslzSubtractiveExchangeAt (FS fi) {xs=imat} {z=(Sigma.getWitness $ fn (FS fi))<#>(Algebra.unity::Algebra.neutral)} ) $ imatSpansOrig
-				origSpansJmat : (senior::mat) `spanslz` jmat
-				origSpansJmat = ?succImplWknStep_origSpansJmat_pr
-				-}
 				jmatBispansOrig : jmat `bispanslz` (senior::mat)
 				jmatBispansOrig = bispanslztrans (bispanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (FS fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ FS fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (FS fi) imat}) $ bispanslztrans ( bispanslzSubtractiveExchangeAt (FS fi) {xs=imat} {z=(Sigma.getWitness $ fn (FS fi))<#>(Algebra.unity::Algebra.neutral)} ) $ (imatSpansOrig, origSpansImat)
-		{-
-		Strategy for proving bispannability of the witness from the above:
-
-		< sym vectMatLScalingCompatibility
-
-		extends a proof that (senior)
-
-		is of the form (v_imat <\> tau)
-
-		to a proof that for all s,
-
-		< s<#>senior
-
-		is of the form (v_imat <\> tau).
-
-		Then (spanslzSubtractiveExchangeAt (weaken fi)) (or its bispanning version) can be applied to produce the spanslz proofs, for (tau = deleteRow (weaken fi) imat).
-		-}
 		succImplWknStep_unplumbed : (v : Vect (S predn) ZZ)
 			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
 			-> (fi : Fin (S predn))
@@ -1346,6 +1290,11 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 imat (FS fi) FZ, imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat ) )
 			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 imat' (weaken fi) FZ, imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat' ) )
 		succImplWknStep_att2 senior srQfunc fi imatAndPrs = succImplWknStep_unplumbed senior srQfunc fi (getWitness imatAndPrs) (getProof imatAndPrs)
+		succImplWknStep_att3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
+		succImplWknStep_att3 senior srQfunc fi imatAndPrs = succImplWknStep_modded_att2 senior srQfunc fi (getWitness imatAndPrs) (getProof imatAndPrs)
 		{-
 		Type mismatch between
 		        Vect (S predn) ZZ (Type of v)
@@ -1391,6 +1340,10 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
 			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp2 ((v<\>mat)::mat) (S predn) i (index i mats) )
 		foldedFully_att2 v vmatQfunc = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp2 ((v <\> mat)::mat)) (succImplWknStep_att2 v vmatQfunc) ( (v<\>mat)::mat ** (danrzLast2 ((v <\> mat)::mat), spanslzrefl, spanslzrefl) )
+		foldedFully_att3 : (v : Vect (S predn) ZZ)
+			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
+			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp3 mat (v<\>mat) (S predn) i (index i mats) )
+		foldedFully_att3 v vmatQfunc = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp3 mat (v <\> mat)) (succImplWknStep_att3 (v <\> mat) vmatQfunc) ( (v<\>mat)::mat ** (Refl, danrzLast3 ((v <\> mat)::mat), bispanslzrefl) )
 
 {-
 Reference
