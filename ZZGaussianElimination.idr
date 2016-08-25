@@ -1127,7 +1127,7 @@ Better to refine this to a type that depends on (m=S predm) so that the case (m=
 Shall start from the bottom of the matrix (last) and work up to row (FS FZ) using a traversal based on (weaken) and a binary map from index (Fin n) and oldvals to newvals.
 -}
 
-elimFirstCol2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, downAndNotRightOfEntryImpliesZ gexs FZ FZ))
+elimFirstCol2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (downAndNotRightOfEntryImpliesZ2 gexs FZ FZ, gexs `spanslz` xs, xs `spanslz` gexs))
 {-
 -- Template
 
@@ -1137,14 +1137,15 @@ elimFirstCol2 xs = do {
 	}
 -}
 
-elimFirstCol2 [] {predm} = return ( row {n=S predm} $ neutral ** ( ([] ** Refl), ([neutral] ** Refl), nosuch ) )
+elimFirstCol2 [] {predm} = return ( row {n=S predm} $ neutral ** ( nosuch, ([] ** Refl), ([neutral] ** Refl) ) )
 	where
-		nosuch : LTRel Z (finToNat i)
+		nosuch : (i : Fin _) -> (j : Fin _)
+			-> LTRel Z (finToNat i)
 			-> LTERel (finToNat j) Z
 			-> indices i j (row {n=S predm} Prelude.Algebra.neutral) = Pos 0
-		nosuch {i=FZ} {j=FZ} _ = either (const Refl) (const Refl)
-		nosuch {i=FS k} {j=FZ} _ = absurd k
-		nosuch {j=FS k} _ = void . ( either succNotLTEzero SIsNotZ )
+		nosuch FZ FZ _ = either (const Refl) (const Refl)
+		nosuch (FS k) FZ _ = absurd k
+		nosuch _ (FS k) _ = void . ( either succNotLTEzero SIsNotZ )
 elimFirstCol2 mat {n=S predn} {predm} = do {
 		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
 
@@ -1174,7 +1175,12 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		let ( endmatSpansMatandgcd, matandgcdSpansEndmat, leftColZBelow ) = endmatPropFn FZ
 
-		return ( index FZ endmat ** (spanslztrans endmatSpansMatandgcd $ fst bisWithGCD, spanslztrans (snd bisWithGCD) matandgcdSpansEndmat, leftColZBelow))
+		let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v ?vQfunc
+
+		let ( headvecWasFixed, leftColZBelow2, endmat2BispansMatandgcd ) = endmat2PropFn FZ
+
+		return ( index FZ endmat2 ** (leftColZBelow2, bispanslztrans endmat2BispansMatandgcd bisWithGCD) )
+		-- return ( index FZ endmat ** (spanslztrans endmatSpansMatandgcd $ fst bisWithGCD, spanslztrans (snd bisWithGCD) matandgcdSpansEndmat, leftColZBelow) )
 	}
 	where
 		{-
