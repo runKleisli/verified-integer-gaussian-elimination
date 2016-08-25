@@ -1092,31 +1092,10 @@ elimFirstCol mat {n=S predn} {m=S predm} = do {
 
 
 
-succImplWknProp : {omat : Matrix onnom (S predm) ZZ} -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
-succImplWknProp {omat} nu fi tmat = ( tmat `spanslz` omat, omat `spanslz` tmat, downAndNotRightOfEntryImpliesZ tmat fi FZ )
-succImplWknPropSec3 : {omat : Matrix onnom (S predm) ZZ} -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
-succImplWknPropSec3 {omat} nu fi tmat = downAndNotRightOfEntryImpliesZ tmat fi FZ
-
-succImplWknProp2 : (omat : Matrix onnom (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
-succImplWknProp2 omat nu fi tmat = ( downAndNotRightOfEntryImpliesZ2 tmat fi FZ, tmat `spanslz` omat, omat `spanslz` tmat )
-succImplWknProp2Sec1 : (omat : Matrix onnom (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
-succImplWknProp2Sec1 omat nu fi tmat = downAndNotRightOfEntryImpliesZ2 tmat fi FZ
-
 succImplWknProp3 : (omat : Matrix predonnom (S predm) ZZ) -> (senior : Vect (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
 succImplWknProp3 omat senior nu fi tmat = ( senior = head tmat, downAndNotRightOfEntryImpliesZ2 tmat fi FZ, tmat `bispanslz` (senior::omat) )
 succImplWknProp3Sec2 : (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
 succImplWknProp3Sec2 nu fi tmat = downAndNotRightOfEntryImpliesZ2 tmat fi FZ
-
-{-
-danrzLast : {omat : Matrix (S (S predn)) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} (S predn) (last {n=S predn}) omat
-danrzLast = void . notSNatLastLTEAnything
--}
-
-danrzLast : {omat : Matrix (S predn) (S predm) ZZ} -> succImplWknPropSec3 {omat=omat} predn (last {n=predn}) omat
-danrzLast = void . notSNatLastLTEAnything
-
-danrzLast2 : (omat : Matrix (S predn) (S predm) ZZ) -> succImplWknProp2Sec1 omat predn (last {n=predn}) omat
-danrzLast2 omat = (\i => \j => void . notSNatLastLTEAnything)
 
 danrzLast3 : (omat : Matrix (S predn) (S predm) ZZ) -> succImplWknProp3Sec2 predn (last {n=predn}) omat
 danrzLast3 omat = (\i => \j => void . notSNatLastLTEAnything)
@@ -1156,6 +1135,9 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
 
 		{-
+		!!! ARCHAICLY WRITTEN COMMENT.
+		!!! At the time, foldedFully had a different type, and some of the types had different values, compared to what currently exists.
+
 		The error here is indecipherable from the message. See the form below for an improvement.
 		---
 		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, the ( downAndNotRightOfEntryImpliesZ ((v<\>mat)::mat) (last {n=predn}) FZ ) $ void . notSNatLastLTEAnything) )
@@ -1171,38 +1153,25 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
 		-}
 
-		let ( endmat ** endmatPropFn ) = foldedFully {v=v}
-
-		let ( endmatSpansMatandgcd, matandgcdSpansEndmat, leftColZBelow ) = endmatPropFn FZ
-
 		let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v ?vQfunc
 
 		let ( headvecWasFixed, leftColZBelow2, endmat2BispansMatandgcd ) = endmat2PropFn FZ
 
 		return ( index FZ endmat2 ** (leftColZBelow2, bispanslztrans endmat2BispansMatandgcd bisWithGCD) )
-		-- return ( index FZ endmat ** (spanslztrans endmatSpansMatandgcd $ fst bisWithGCD, spanslztrans (snd bisWithGCD) matandgcdSpansEndmat, leftColZBelow) )
 	}
 	where
 		{-
-		!!! This (succImplWknStep) is dead code, retained for (foldedFully).
-		!!! See (succImplWknStep_att2) and (foldedFully_att2) for living code.
-		-}
-		succImplWknStep : {v : Vect (S predn) ZZ}
-			-> (fi : Fin (S predn))
-			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat (FS fi) FZ ) )
-			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
-		{-
-		Section notes for succImplWknStep_att2
+		Section notes for succImplWknStep_att3
 
 		---
 
 		Structure:
-		lemma3 => lemma2 => lemma1 => succImplWknStep_att2 => foldedFully_att2
+		lemma3 => lemma2 => modded => succImplWknStep => foldedFully
 		(incomplete picture)
 
 		---
 
-		We have learned of two obstructions to expressing (succImplWknStep_att2) and its lemmas which must be taken into account in this design.
+		We have learned of two obstructions to expressing (succImplWknStep_att3) and its lemmas which must be taken into account in this design.
 
 		1) If a dependent pair's proof's type is a function of the witness and has implicit arguments, that dependent pair will not be inferred correctly when used as an argument to a function, and this might only be revealed through type errors in (the left-hand side of) other definitions that are attempted within the function, such as in its where block, where such definitions have the arguments to the function in their assumptions/context (environment, scope).
 
@@ -1210,7 +1179,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 			Implementing (foldAutoInd) created a similar problem when using type-valued functions that took certain implicit arguments, which led to writing (foldAutoInd[2-3]) instead. However, the values of those type-valued functions did not clearly have implicit arguments.
 
-		2) A triple of types in the righthand value of a dependent pair is not treated as a type when pattern matching on it, giving type errors when anything is done with the proof (getProof _) except using it as an argument to a function. Hence to get a function from dependent pairs to dependent pairs that applies the theorem proved, we must call a dependently typed but curried version of the function on the witness and proof of the dependent pair input. Whence (succImplWknStep_unplumbed) and the definition of (succImplWknStep) in terms of it.
+		2) A triple of types in the righthand value of a dependent pair is not treated as a type when pattern matching on it, giving type errors when anything is done with the proof (getProof _) except using it as an argument to a function. Hence to get a function from dependent pairs to dependent pairs that applies the theorem proved, we must call a dependently typed but curried version of the function on the witness and proof of the dependent pair input. Whence (succImplWknStep_modded_att2) and the definition of (succImplWknStep_att3) in terms of it.
 
 			Note, we may write (the Type (Nat,Nat,Nat)), but using a predefined (Type) whose value is a triple does not get around the mismatch error.
 		-}
@@ -1284,24 +1253,32 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 					$ deleteSuccRowVanishesUnderHead {k=fi} {xs=imat}
 				jmatBispansOrig : jmat `bispanslz` (senior::mat)
 				jmatBispansOrig = bispanslztrans (bispanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (FS fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ FS fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (FS fi) imat}) $ bispanslztrans ( bispanslzSubtractiveExchangeAt (FS fi) {xs=imat} {z=(Sigma.getWitness $ fn (FS fi))<#>(Algebra.unity::Algebra.neutral)} ) $ (imatSpansOrig, origSpansImat)
-		succImplWknStep_unplumbed : (v : Vect (S predn) ZZ)
-			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
-			-> (fi : Fin (S predn))
-			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
-			-> ( downAndNotRightOfEntryImpliesZ2 imat (FS fi) FZ, imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat )
-			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 imat' (weaken fi) FZ, imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat' ) )
-		succImplWknStep_att2 : (v : Vect (S predn) ZZ)
-			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
-			-> (fi : Fin (S predn))
-			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 imat (FS fi) FZ, imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat ) )
-			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( downAndNotRightOfEntryImpliesZ2 imat' (weaken fi) FZ, imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat' ) )
-		succImplWknStep_att2 senior srQfunc fi imatAndPrs = succImplWknStep_unplumbed senior srQfunc fi (getWitness imatAndPrs) (getProof imatAndPrs)
 		succImplWknStep_att3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> (fi : Fin (S predn))
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
 			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
 		succImplWknStep_att3 senior srQfunc fi imatAndPrs = succImplWknStep_modded_att2 senior srQfunc fi (getWitness imatAndPrs) (getProof imatAndPrs)
 		{-
+		Misleading error message from using name in type signature before it enters scope.
+
+		---
+
+		If you write
+
+		> succImplWknStep_att3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+		> 	-> (fi : Fin (S predn))
+		> 	-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
+		> 	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
+
+		then on the 3rd line near the end, you see "imat'" when (imat') has not been defined yet, and it should read "imat".
+
+		1) This creates a host of error messages saying they're from (foldedFully3_att3) when they're actually from (succImplWknStep_att3).
+		2) The error messages are misleading. In particular, it seems to say that one of the matrices must, whatever its height and width, have that width for its height and that height for its width.
+		3) Using a (with (succImplWknStep_att3 ...)) or (let (x = succImplWknStep_att3 ...)) block in the definition of (foldedFully_att3) is enough to trigger the error.
+
+		One such error message:
+
+		"
 		Type mismatch between
 		        Vect (S predn) ZZ (Type of v)
 		and
@@ -1312,40 +1289,10 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		                predn
 		        and
 		                predm
+		"
 
-		> foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
-
-		similarly for
-
-		> foldedFully {v} with ( succImplWknStep {v=v} )
-		> 	| fonc = ?foldedFully_pr
-
-		or (what you'd actually have to write)
-
-		> foldedFully {v} = let fonc = succImplWknStep {v=v} in ?foldedFully_pr
-
-		but then we can change the error with
-
-		foldedFully {v} with ( succImplWknStep )
-			| fonc = ?foldedFully_pr
-
-		to see the type of (mat) is mismatching an expected type the transpose.
-
-		First error was here:
-		
-		> succImplWknStep : {v : Vect (S predn) ZZ}
-		> 	-> (fi : Fin (S predn))
-		> 	-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, downAndNotRightOfEntryImpliesZ imat' (FS fi) FZ ) )
-		> 	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', downAndNotRightOfEntryImpliesZ imat' (weaken fi) FZ ) )
-
-		where on the third line at the very end, (imat') is referenced but doesn't exist yet.
+		A similar one was found indicating a type mismatch between (Matrix (S predn) (S predm) ZZ) and (Matrix (S predm) (S predn) ZZ), where both the argument chosen and the function's assigned type for that argument were equal to (Matrix (S predn) (S predm) ZZ).
 		-}
-		foldedFully : {v : Vect (S predn) ZZ} -> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp {omat=(v<\>mat)::mat} (S predn) i (index i mats) )
-		foldedFully {v} = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
-		foldedFully_att2 : (v : Vect (S predn) ZZ)
-			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
-			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp2 ((v<\>mat)::mat) (S predn) i (index i mats) )
-		foldedFully_att2 v vmatQfunc = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp2 ((v <\> mat)::mat)) (succImplWknStep_att2 v vmatQfunc) ( (v<\>mat)::mat ** (danrzLast2 ((v <\> mat)::mat), spanslzrefl, spanslzrefl) )
 		foldedFully_att3 : (v : Vect (S predn) ZZ)
 			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
 			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp3 mat (v<\>mat) (S predn) i (index i mats) )
