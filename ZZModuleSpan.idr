@@ -12,6 +12,9 @@ import Data.ZZ
 import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 
+import Data.Vect.Structural
+-- import Data.Matrix.Structural
+
 import Control.Isomorphism
 
 
@@ -19,11 +22,6 @@ import Control.Isomorphism
 {-
 Trivial lemmas and plumbing
 -}
-
-vecHeadtailsEq : {xs,ys : Vect _ _} -> ( headeq : x = y ) -> ( taileq : xs = ys ) -> x::xs = y::ys
-vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq) $ cong {f=(::ys)} headeq
--- Also a solid proof:
--- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
 
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to

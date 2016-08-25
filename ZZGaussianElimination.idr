@@ -9,10 +9,12 @@ import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 import Data.Matrix.AlgebraicVerified
 
 import Data.Vect.Structural
+import Data.Matrix.Structural
 
 import Data.ZZ
 import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
+import Data.Matrix.ZZVerified
 
 import ZZModuleSpan
 import Data.Matrix.LinearCombinations
@@ -28,89 +30,6 @@ import Control.Monad.Reader
 {-
 Trivial lemmas and plumbing
 -}
-
-
-
-ringNegationCommutesWithLeftMult : VerifiedRing a => (left, right : a) -> left<.>(inverse right) = inverse $ left<.>right
-
-ringNegationCommutesWithRightMult : VerifiedRing a => (left, right : a) -> (inverse left)<.>right = inverse $ left<.>right
-
--- The addition-as-quasigroup proof where (0.x = 0.x + 0.x) is potentially shorter.
-ringNeutralIsMultZeroL : VerifiedRing a => (x : a) -> Algebra.neutral <.> x = Algebra.neutral
-{-
-ringNeutralIsMultZeroL x = neutral<.>x = (x <+> inverse x)<.>x = (x<.>x)<+>((inverse x)<.>x) = (x<.>x)<+>(inverse $ x<.>x) = neutral
--}
-{-
-ringNeutralIsMultZeroL x =
-	Algebra.neutral<.>x	={ cong {f=(<.>x)} $ sym $ groupInverseIsInverseL x }=
-	(x <+> inverse x)<.>x	={ ringOpIsDistributiveR x (inverse x) x }=
-	(x<.>x)<+>((inverse x)<.>x) ={ cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithRightMult x x }=
-	(x<.>x)<+>(inverse $ x<.>x) ={ groupInverseIsInverseL (x<.>x) }=
-	Algebra.neutral	QED
--}
-ringNeutralIsMultZeroL x =
-	trans ( cong {f=(<.>x)} $ sym $ groupInverseIsInverseL x ) $
-	trans ( ringOpIsDistributiveR x (inverse x) x ) $
-	trans ( cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithRightMult x x ) $
-	groupInverseIsInverseL (x<.>x)
-
-ringNeutralIsMultZeroR : VerifiedRing a => (x : a) -> x <.> Algebra.neutral = Algebra.neutral
-ringNeutralIsMultZeroR x =
-	trans ( cong {f=(x<.>)} $ sym $ groupInverseIsInverseL x ) $
-	trans ( ringOpIsDistributiveL x x (inverse x) ) $
-	trans ( cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithLeftMult x x ) $
-	groupInverseIsInverseL (x<.>x)
-
-{-
--- More instance collisions prevent a proof. (<:>) invokes a (neutral) for the ring which differs from (the a Algebra.neutral).
-
-ringVecNeutralIsVecPtwiseProdZeroL : VerifiedRing a => (xs : Vect n a) -> xs <:> (the (Vect n a) Algebra.neutral) = the a Algebra.neutral
-ringVecNeutralIsVecPtwiseProdZeroL [] {a} = Refl
-ringVecNeutralIsVecPtwiseProdZeroL (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroL x) $ ringVecNeutralIsVecPtwiseProdZeroL xs
-
-ringVecNeutralIsVecPtwiseProdZeroR : VerifiedRing a => (xs : Vect n a) -> (the (Vect n a) Algebra.neutral) <:> xs = the a Algebra.neutral
-ringVecNeutralIsVecPtwiseProdZeroR [] {a} = Refl
-ringVecNeutralIsVecPtwiseProdZeroR (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ ringVecNeutralIsVecPtwiseProdZeroR xs
-
-matVecMultIsVecTransposeMult : Ring a => (v : Vect n a) -> (xs : Matrix n m a) -> v <\> xs = (transpose xs) </> v
-
-ringVecNeutralIsMatVecMultZero : VerifiedRing a => (xs : Matrix n m a) -> xs </> Algebra.neutral = Algebra.neutral
-ringVecNeutralIsMatVecMultZero [] = Refl
-ringVecNeutralIsMatVecMultZero (x::xs) = vecHeadtailsEq (ringVecNeutralIsVecPtwiseProdZeroR x) $ ringVecNeutralIsMatVecMultZero xs
-
-ringVecNeutralIsVecMatMultZero : VerifiedRing a => (xs : Matrix n m a) -> Algebra.neutral <\> xs = Algebra.neutral
-ringVecNeutralIsVecMatMultZero xs = trans (vecMatMultTransposeEq Algebra.neutral xs) $ ringVecNeutralIsMatVecMultZero $ transpose xs
--}
-
-zzVecNeutralIsVecPtwiseProdZeroL : (xs : Vect n ZZ) -> xs <:> Algebra.neutral = Algebra.neutral
-zzVecNeutralIsVecPtwiseProdZeroL [] = Refl
--- zzVecNeutralIsVecPtwiseProdZeroL (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ zzVecNeutralIsVecPtwiseProdZeroL xs
-
-zzVecNeutralIsVecPtwiseProdZeroR : (xs : Vect n ZZ) -> Algebra.neutral <:> xs = Algebra.neutral
-zzVecNeutralIsVecPtwiseProdZeroR [] = Refl
--- zzVecNeutralIsVecPtwiseProdZeroR (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroL x) $ zzVecNeutralIsVecPtwiseProdZeroR xs
-
-vecMatMultIsTransposeVecMult : Ring a => (v : Vect n a) -> (xs : Matrix n m a) -> v <\> xs = (transpose xs) </> v
-vecMatMultIsTransposeVecMult v xs = Refl
-
-matVecMultIsVecTransposeMult : Ring a => (v : Vect m a) -> (xs : Matrix n m a) -> xs </> v = v <\> (transpose xs)
-matVecMultIsVecTransposeMult v xs = sym $ trans (vecMatMultIsTransposeVecMult v $ transpose xs) $ cong {f=(</> v)} $ transposeIsInvolution {xs=xs}
-
-zzVecNeutralIsVecMatMultZero : (xs : Matrix n m ZZ) -> Algebra.neutral <\> xs = Algebra.neutral
-zzVecNeutralIsVecMatMultZero xs {m=Z} = zeroVecEq
-zzVecNeutralIsVecMatMultZero xs {m=S predm} = trans timesVectMatAsHeadTail_ByTransposeElimination $ vecHeadtailsEq (zzVecNeutralIsVecPtwiseProdZeroR $ map Vect.head xs) $ zzVecNeutralIsVecMatMultZero $ map Vect.tail xs
-
-zzVecNeutralIsMatVecMultZero : (xs : Matrix n m ZZ) -> xs </> Algebra.neutral = Algebra.neutral
-zzVecNeutralIsMatVecMultZero xs = trans (matVecMultIsVecTransposeMult Algebra.neutral xs) $ zzVecNeutralIsVecMatMultZero (transpose xs)
-
-zzVecNeutralIsNeutralL : (l : Vect n ZZ) -> l<+>Algebra.neutral=l
--- zzVecNeutralIsNeutralL = monoidNeutralIsNeutralL
-
-zzVecNeutralIsNeutralR : (r : Vect n ZZ) -> Algebra.neutral<+>r=r
--- zzVecNeutralIsNeutralR = monoidNeutralIsNeutralR
-
-zzVecScalarUnityIsUnity : (v : Vect n ZZ) -> (Algebra.unity {a=ZZ}) <#> v = v
--- zzVecScalarUnityIsUnity = moduleScalarUnityIsUnity
 
 
 
@@ -165,61 +84,6 @@ splitFinS {predn=S prededn} FZ = Left ( FZ ** Refl )
 splitFinS {predn=S prededn} (FS prednel) with ( splitFinS prednel )
 	| Left ( k ** pr ) = Left ( FS k ** cong pr )
 	| Right pr = Right $ cong pr
-
-plusOneVectIsSuccVect : Vect (n+1) a = Vect (S n) a
-plusOneVectIsSuccVect {a} {n} = sym $ cong {f=\k => Vect k a} $ trans (cong {f=S} $ sym $ plusZeroRightNeutral n) $ plusSuccRightSucc n Z
-
-appendedSingletonAsSuccVect : (xs : Vect n a) -> (v : a) -> Vect (S n) a
-appendedSingletonAsSuccVect {a} {n} xs v = rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])
-
-consAppendedSingleton : {xs : Vect n a} -> appendedSingletonAsSuccVect (x::xs) v = x::appendedSingletonAsSuccVect xs v
-consAppendedSingleton {x} {xs} {v} {a} {n} = the ( appendedSingletonAsSuccVect (x::xs) v = x::appendedSingletonAsSuccVect xs v ) ?consAppendedSingleton_rhs
-
-{-
--- Too many problems with this, rewriting the types to handle Nat addition.
-lastInd : {xs : Vect n a} -> Data.Vect.index Data.Fin.last (rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])) = v
--}
-
--- Could this be done with the reversal isomorphism of each Fin?
-lastInd : {xs : Vect n a} -> index Data.Fin.last $ appendedSingletonAsSuccVect xs v = v
-lastInd {xs=[]} = Refl
-lastInd {xs=x::xs} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in (lastInd {xs=xs} {v=v})
-{-
-
-"ERROR ON INTROS" BUG, CASE, SOLUTION
-
---------
-
-> lastInd {xs=x::xs} = ?lastInd_rhs_2
-
-> :prove lastInd_rhs_2
-lastInd_rhs_2> intro
-
-Type mismatch between
-        Vect k a = Vect k a
-and
-        Vect (S (S k)) a = Vect (S (plus k 1)) a
-
-which I think means the type signature for (lastInd) is being reanalyzed in the presence of (x::xs), as if inlined, in such a way that the sucessor to rewrite is the one inside rather than outside, or something.
-
-This works fine:
-
-> lastInd {xs=x::xs} {v} = the ( (index Data.Fin.last $ appendedSingletonAsSuccVect (x::xs) v) = v ) ?lastInd_rhs_2
-
-and spells out
-
-> lastInd {xs=x::xs} {v} = the ( (index Data.Fin.last $ appendedSingletonAsSuccVect (x::xs) v) = v ) ( rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in lastInd {xs=xs} {v=v} )
-
--}
-
-{-
-Could this be done with the reversal isomorphism of each Fin and a proof that weaken becomes FS under it?
--}
-total
-weakenedInd : {xs : Vect n a} -> index (weaken k) $ appendedSingletonAsSuccVect xs v = index k xs
-weakenedInd {xs=[]} {k} = absurd k
-weakenedInd {xs=x::xs} {k=FZ} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in Refl
-weakenedInd {xs=x::xs} {k=FS j} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in weakenedInd {xs=xs} {k=j} {v}
 
 
 

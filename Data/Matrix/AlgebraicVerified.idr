@@ -91,3 +91,41 @@ instance (VerifiedRingWithUnity a) => VerifiedModule a (Matrix n m a) where {
 	moduleScalarMultDistributiveWRTVectorAddition = ?moduleScalarMultDistributiveWRTVectorAddition_Mat
 	moduleScalarMultDistributiveWRTModuleAddition = ?moduleScalarMultDistributiveWRTModuleAddition_Mat
 }
+
+
+
+{-
+Trivial identities about (unital) rings.
+-}
+
+
+
+ringNegationCommutesWithLeftMult : VerifiedRing a => (left, right : a) -> left<.>(inverse right) = inverse $ left<.>right
+
+ringNegationCommutesWithRightMult : VerifiedRing a => (left, right : a) -> (inverse left)<.>right = inverse $ left<.>right
+
+-- The addition-as-quasigroup proof where (0.x = 0.x + 0.x) is potentially shorter.
+ringNeutralIsMultZeroL : VerifiedRing a => (x : a) -> Algebra.neutral <.> x = Algebra.neutral
+{-
+ringNeutralIsMultZeroL x = neutral<.>x = (x <+> inverse x)<.>x = (x<.>x)<+>((inverse x)<.>x) = (x<.>x)<+>(inverse $ x<.>x) = neutral
+-}
+{-
+ringNeutralIsMultZeroL x =
+	Algebra.neutral<.>x	={ cong {f=(<.>x)} $ sym $ groupInverseIsInverseL x }=
+	(x <+> inverse x)<.>x	={ ringOpIsDistributiveR x (inverse x) x }=
+	(x<.>x)<+>((inverse x)<.>x) ={ cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithRightMult x x }=
+	(x<.>x)<+>(inverse $ x<.>x) ={ groupInverseIsInverseL (x<.>x) }=
+	Algebra.neutral	QED
+-}
+ringNeutralIsMultZeroL x =
+	trans ( cong {f=(<.>x)} $ sym $ groupInverseIsInverseL x ) $
+	trans ( ringOpIsDistributiveR x (inverse x) x ) $
+	trans ( cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithRightMult x x ) $
+	groupInverseIsInverseL (x<.>x)
+
+ringNeutralIsMultZeroR : VerifiedRing a => (x : a) -> x <.> Algebra.neutral = Algebra.neutral
+ringNeutralIsMultZeroR x =
+	trans ( cong {f=(x<.>)} $ sym $ groupInverseIsInverseL x ) $
+	trans ( ringOpIsDistributiveL x x (inverse x) ) $
+	trans ( cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithLeftMult x x ) $
+	groupInverseIsInverseL (x<.>x)
