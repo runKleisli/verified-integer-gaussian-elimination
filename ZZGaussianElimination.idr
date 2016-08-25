@@ -6,6 +6,7 @@ import Control.Algebra.VectorSpace -- definition of module
 
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
+import Data.Matrix.AlgebraicVerified
 
 import Data.ZZ
 import Control.Algebra.NumericInstances
@@ -57,6 +58,66 @@ ringNeutralIsMultZeroR x =
 	trans ( ringOpIsDistributiveL x x (inverse x) ) $
 	trans ( cong {f=((x<.>x)<+>)} $ ringNegationCommutesWithLeftMult x x ) $
 	groupInverseIsInverseL (x<.>x)
+
+{-
+-- More instance collisions prevent a proof. (<:>) invokes a (neutral) for the ring which differs from (the a Algebra.neutral).
+
+ringVecNeutralIsVecPtwiseProdZeroL : VerifiedRing a => (xs : Vect n a) -> xs <:> (the (Vect n a) Algebra.neutral) = the a Algebra.neutral
+ringVecNeutralIsVecPtwiseProdZeroL [] {a} = Refl
+ringVecNeutralIsVecPtwiseProdZeroL (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroL x) $ ringVecNeutralIsVecPtwiseProdZeroL xs
+
+ringVecNeutralIsVecPtwiseProdZeroR : VerifiedRing a => (xs : Vect n a) -> (the (Vect n a) Algebra.neutral) <:> xs = the a Algebra.neutral
+ringVecNeutralIsVecPtwiseProdZeroR [] {a} = Refl
+ringVecNeutralIsVecPtwiseProdZeroR (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ ringVecNeutralIsVecPtwiseProdZeroR xs
+
+vecMatMultTransposeEq : Ring a => (v : Vect n a) -> (xs : Matrix n m a) -> v <\> xs = (transpose xs) </> v
+
+ringVecNeutralIsMatVecMultZero : VerifiedRing a => (xs : Matrix n m a) -> xs </> Algebra.neutral = Algebra.neutral
+ringVecNeutralIsMatVecMultZero [] = Refl
+ringVecNeutralIsMatVecMultZero (x::xs) = vecHeadtailsEq (ringVecNeutralIsVecPtwiseProdZeroR x) $ ringVecNeutralIsMatVecMultZero xs
+
+ringVecNeutralIsVecMatMultZero : VerifiedRing a => (xs : Matrix n m a) -> Algebra.neutral <\> xs = Algebra.neutral
+ringVecNeutralIsVecMatMultZero xs = trans (vecMatMultTransposeEq Algebra.neutral xs) $ ringVecNeutralIsMatVecMultZero $ transpose xs
+-}
+
+zzVecNeutralIsVecPtwiseProdZeroL : (xs : Vect n ZZ) -> xs <:> Algebra.neutral = Algebra.neutral
+zzVecNeutralIsVecPtwiseProdZeroL [] = Refl
+-- zzVecNeutralIsVecPtwiseProdZeroL (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ zzVecNeutralIsVecPtwiseProdZeroL xs
+
+zzVecNeutralIsVecPtwiseProdZeroR : (xs : Vect n ZZ) -> Algebra.neutral <:> xs = Algebra.neutral
+zzVecNeutralIsVecPtwiseProdZeroR [] = Refl
+-- zzVecNeutralIsVecPtwiseProdZeroR (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroL x) $ zzVecNeutralIsVecPtwiseProdZeroR xs
+
+vecMatMultIsTransposeVecMult : Ring a => (v : Vect n a) -> (xs : Matrix n m a) -> v <\> xs = (transpose xs) </> v
+vecMatMultIsTransposeVecMult v xs = Refl
+
+matVecMultIsVecTransposeMult : Ring a => (v : Vect m a) -> (xs : Matrix n m a) -> xs </> v = v <\> (transpose xs)
+matVecMultIsVecTransposeMult v xs = sym $ trans (vecMatMultIsTransposeVecMult v $ transpose xs) $ cong {f=(</> v)} $ transposeIsInvolution {xs=xs}
+
+{-
+zzVecNeutralIsMatVecMultZero : (xs : Matrix n m ZZ) -> xs </> Algebra.neutral = Algebra.neutral
+zzVecNeutralIsMatVecMultZero [] = Refl
+zzVecNeutralIsMatVecMultZero (x::xs) = vecHeadtailsEq (zzVecNeutralIsVecPtwiseProdZeroL x) $ zzVecNeutralIsMatVecMultZero xs
+
+zzVecNeutralIsVecMatMultZero : (xs : Matrix n m ZZ) -> Algebra.neutral <\> xs = Algebra.neutral
+zzVecNeutralIsVecMatMultZero xs = trans (vecMatMultIsTransposeVecMult Algebra.neutral xs) $ zzVecNeutralIsMatVecMultZero $ transpose xs
+-}
+
+zzVecNeutralIsVecMatMultZero : (xs : Matrix n m ZZ) -> Algebra.neutral <\> xs = Algebra.neutral
+zzVecNeutralIsVecMatMultZero xs {m=Z} = zeroVecEq
+zzVecNeutralIsVecMatMultZero xs {m=S predm} = trans timesVectMatAsHeadTail_ByTransposeElimination $ vecHeadtailsEq (zzVecNeutralIsVecPtwiseProdZeroR $ map Vect.head xs) $ zzVecNeutralIsVecMatMultZero $ map Vect.tail xs
+
+zzVecNeutralIsMatVecMultZero : (xs : Matrix n m ZZ) -> xs </> Algebra.neutral = Algebra.neutral
+zzVecNeutralIsMatVecMultZero xs = trans (matVecMultIsVecTransposeMult Algebra.neutral xs) $ zzVecNeutralIsVecMatMultZero (transpose xs)
+
+zzVecNeutralIsNeutralL : (l : Vect n ZZ) -> l<+>Algebra.neutral=l
+-- zzVecNeutralIsNeutralL = monoidNeutralIsNeutralL
+
+zzVecNeutralIsNeutralR : (r : Vect n ZZ) -> Algebra.neutral<+>r=r
+-- zzVecNeutralIsNeutralR = monoidNeutralIsNeutralR
+
+zzVecScalarUnityIsUnity : (v : Vect n ZZ) -> (Algebra.unity {a=ZZ}) <#> v = v
+-- zzVecScalarUnityIsUnity = moduleScalarUnityIsUnity
 
 
 
@@ -536,6 +597,12 @@ indexUpdateAtChariz {xs=x::xs} {f} {i=FS i} = indexUpdateAtChariz {xs=xs} {f=f} 
 updateAtIndIsMapAtInd : index i $ updateAt i f xs = index i $ map f xs
 updateAtIndIsMapAtInd = trans indexUpdateAtChariz $ sym indexMapChariz
 
+deleteSuccRowVanishesUnderHead : head $ deleteRow (FS k) xs = head xs
+deleteSuccRowVanishesUnderHead {xs=x::xs} = Refl
+
+updateAtSuccRowVanishesUnderHead : head $ updateAt (FS k) f xs = head xs
+updateAtSuccRowVanishesUnderHead {xs=x::xs} = Refl
+
 
 
 zipWithEntryChariz : index i $ Vect.zipWith m x y = m (index i x) (index i y)
@@ -600,6 +667,8 @@ weakenDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) 
 weakenDownAndNotRight2_att2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ2 mat (weaken prednel) mel
 
 afterUpdateAtCurStillDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ2 (updateAt (weaken prednel) f mat) (FS prednel) mel)
+
+afterUpdateAtCurStillDownAndNotRight2_att2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ2 (updateAt (FS prednel) f mat) (FS prednel) mel)
 
 leadingNonzero : (v : Vect n ZZ) -> Type
 leadingNonzero {n} v = Either
@@ -1193,7 +1262,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
 			-> ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
 			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
-		succImplWknStep_modded senior srQfunc fi imat ( imatHeadIsSenior, imatDANRZ, imatSpansOrig, origSpansImat ) = (jmat ** ( jmatHeadIsSenior, jmatDANRZ, jmatSpansOrig, origSpansJmat ) )
+		succImplWknStep_modded senior srQfunc fi imat ( seniorIsImatHead, imatDANRZ, imatSpansOrig, origSpansImat ) = (jmat ** ( seniorIsJmatHead, jmatDANRZ, jmatSpansOrig, origSpansJmat ) )
 			where
 				-- This and thus missingstep can't be implemented. We have used the wrong indexes in our definition of (jmat) and hence in our supporting lemmas for proving jmatDANRZ.
 				degeneracy : fi = FS fi'
@@ -1202,16 +1271,52 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
 				jmat : Matrix (S (S predn)) (S predm) ZZ
 				jmat = updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
-				jmatHeadIsSenior : senior = head jmat
-				jmatHeadIsSenior = ?succImplWknStep_jmatHeadIsSenior_pr
+				seniorIsJmatHead : senior = head jmat
+				seniorIsJmatHead = trans seniorIsImatHead updateAtSuccRowVanishesUnderHead
 				primatzAtWknFi : indices (weaken fi) FZ jmat = Pos Z
 				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=weaken fi} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (weaken fi) imat} {y=inverse $ (Sigma.getWitness $ fn (weaken fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (weaken fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ weaken fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ weaken fi) senior FZ)) $ trans (cong {f=(<->) $ indices (weaken fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ weaken fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ weaken fi) $ groupInverseIsInverseL $ indices (weaken fi) FZ imat
 				jmatDANRZ : downAndNotRightOfEntryImpliesZ2 jmat (weaken fi) FZ
 				jmatDANRZ = weakenDownAndNotRight2 {prednel=fi} {mel=FZ} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior)} imatDANRZ) primatzAtWknFi
 				jmatSpansOrig : jmat `spanslz` (senior::mat)
-				jmatSpansOrig = spanslztrans (spanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (weaken fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans imatHeadIsSenior $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ weaken fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (weaken fi) imat}) $ spanslztrans ( spanslzSubtractiveExchangeAt (weaken fi) {xs=imat} {z=(Sigma.getWitness $ fn (weaken fi))<#>(Algebra.unity::Algebra.neutral)} ) $ imatSpansOrig
+				jmatSpansOrig = spanslztrans (spanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (weaken fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ weaken fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (weaken fi) imat}) $ spanslztrans ( spanslzSubtractiveExchangeAt (weaken fi) {xs=imat} {z=(Sigma.getWitness $ fn (weaken fi))<#>(Algebra.unity::Algebra.neutral)} ) $ imatSpansOrig
 				origSpansJmat : (senior::mat) `spanslz` jmat
 				origSpansJmat = ?succImplWknStep_origSpansJmat_pr
+		-- Including proof the head is equal to senior just makes this step easier.
+		succImplWknStep_modded_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+			-> (fi : Fin (S predn))
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
+			-> ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
+		succImplWknStep_modded_att2 senior srQfunc fi imat ( seniorIsImatHead, imatDANRZ, imatSpansOrig, origSpansImat ) = (jmat ** ( seniorIsJmatHead, jmatDANRZ, jmatBispansOrig ) )
+			where
+				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
+				jmat : Matrix (S (S predn)) (S predm) ZZ
+				jmat = updateAt (FS fi) (<-> (Sigma.getWitness $ fn (FS fi)) <#> senior) imat
+				seniorIsJmatHead : senior = head jmat
+				seniorIsJmatHead = ?succImplWknStep_seniorIsJmatHead_pr
+				primatzAtWknFi : indices (FS fi) FZ jmat = Pos Z
+				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=FS fi} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (FS fi) imat} {y=inverse $ (Sigma.getWitness $ fn (FS fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (FS fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ FS fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ FS fi) senior FZ)) $ trans (cong {f=(<->) $ indices (FS fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ FS fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ FS fi) $ groupInverseIsInverseL $ indices (FS fi) FZ imat
+				jmatDANRZ : downAndNotRightOfEntryImpliesZ2 jmat (weaken fi) FZ
+				jmatDANRZ = weakenDownAndNotRight2_att2 {prednel=fi} {mel=FZ} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight2_att2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)} imatDANRZ) primatzAtWknFi
+				missingstep : head imat = (Algebra.unity::Algebra.neutral) <\> deleteRow (FS fi) imat
+				missingstep = sym $ trans
+					( timesVectMatAsLinearCombo (Algebra.unity::Algebra.neutral) $ deleteRow (FS fi) imat )
+					$ trans ( cong {f=\m => monoidsum {t=Vect _} $ zipWith ((<#>) {a=ZZ}) (Algebra.unity::Algebra.neutral) m} $ headtails $ deleteRow (FS fi) imat )
+					$ trans ( cong {f=monoidsum {a=Vect _ ZZ}} $ vecHeadtailsEq (zzVecScalarUnityIsUnity $ head $ deleteRow (FS fi) imat) Refl )
+					$ trans monoidrec2D
+					$ trans ( cong {f=((head $ deleteRow (FS fi) imat)<+>)} $ trans (sym $ timesVectMatAsLinearCombo Algebra.neutral $ tail $ deleteRow (FS fi) imat) $ zzVecNeutralIsVecMatMultZero (tail $ deleteRow (FS fi) imat) )
+					$ trans ( zzVecNeutralIsNeutralL $ head $ deleteRow (FS fi) imat )
+					$ deleteSuccRowVanishesUnderHead {k=fi} {xs=imat}
+				{-
+				-- The first proof typechecks, but both these terms are subsumed by use of bispanslztrans.
+				jmatSpansOrig : jmat `spanslz` (senior::mat)
+				jmatSpansOrig = spanslztrans (spanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (FS fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ FS fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (FS fi) imat}) $ spanslztrans ( spanslzSubtractiveExchangeAt (FS fi) {xs=imat} {z=(Sigma.getWitness $ fn (FS fi))<#>(Algebra.unity::Algebra.neutral)} ) $ imatSpansOrig
+				origSpansJmat : (senior::mat) `spanslz` jmat
+				origSpansJmat = ?succImplWknStep_origSpansJmat_pr
+				-}
+				jmatBispansOrig : jmat `bispanslz` (senior::mat)
+				jmatBispansOrig = bispanslztrans (bispanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (FS fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ FS fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (FS fi) imat}) $ bispanslztrans ( bispanslzSubtractiveExchangeAt (FS fi) {xs=imat} {z=(Sigma.getWitness $ fn (FS fi))<#>(Algebra.unity::Algebra.neutral)} ) $ (imatSpansOrig, origSpansImat)
 		{-
 		Strategy for proving bispannability of the witness from the above:
 

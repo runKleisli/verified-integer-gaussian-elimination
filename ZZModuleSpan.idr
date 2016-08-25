@@ -367,6 +367,9 @@ spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** zippyScale {n'=n'} {n=n} vs xs 
 spanslz : (xs : Matrix n w ZZ) -> (ys : Matrix n' w ZZ) -> Type
 spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys)
 
+bispanslz : (xs : Matrix n w ZZ) -> (ys : Matrix n' w ZZ) -> Type
+bispanslz xs ys = (xs `spanslz` ys, ys `spanslz` xs)
+
 
 
 {-
@@ -471,13 +474,19 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
 		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {l=vsy} {c=vsx} {r=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
 
+bispanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> bispanslz {n=na} {n'=ni} xs ys -> bispanslz {n=ni} {n'=nu} ys zs -> bispanslz xs zs
+
 
 
 spanslzrefl : spanslz xs xs
 spanslzrefl = ( Id ** zippyScaleIdLeftNeutral _ )
 
+bispanslzrefl : bispanslz xs xs
+
 spanslzreflFromEq : (xs=ys) -> xs `spanslz` ys
 spanslzreflFromEq pr = ( Id ** trans (zippyScaleIdLeftNeutral _) pr )
+
+bispanslzreflFromEq : (xs=ys) -> xs `bispanslz` ys
 
 
 
@@ -652,3 +661,9 @@ spanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<
 spanslzAdditivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs)
 
 spanslzSubtractivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<->(z<\>(deleteRow nel xs))) xs)
+
+bispanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
+bispanslzAdditiveExchangeAt nel = (spanslzAdditiveExchangeAt nel, spanslzAdditivePreservationAt nel)
+
+bispanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt nel (<->(z<\>(deleteRow nel xs))) xs) xs
+bispanslzSubtractiveExchangeAt nel = (spanslzSubtractiveExchangeAt nel, spanslzSubtractivePreservationAt nel)
