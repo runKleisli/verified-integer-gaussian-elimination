@@ -8,6 +8,8 @@ import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 import Data.Matrix.AlgebraicVerified
 
+import Data.Vect.Structural
+
 import Data.ZZ
 import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
@@ -70,7 +72,7 @@ ringVecNeutralIsVecPtwiseProdZeroR : VerifiedRing a => (xs : Vect n a) -> (the (
 ringVecNeutralIsVecPtwiseProdZeroR [] {a} = Refl
 ringVecNeutralIsVecPtwiseProdZeroR (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ ringVecNeutralIsVecPtwiseProdZeroR xs
 
-vecMatMultTransposeEq : Ring a => (v : Vect n a) -> (xs : Matrix n m a) -> v <\> xs = (transpose xs) </> v
+matVecMultIsVecTransposeMult : Ring a => (v : Vect n a) -> (xs : Matrix n m a) -> v <\> xs = (transpose xs) </> v
 
 ringVecNeutralIsMatVecMultZero : VerifiedRing a => (xs : Matrix n m a) -> xs </> Algebra.neutral = Algebra.neutral
 ringVecNeutralIsMatVecMultZero [] = Refl
@@ -93,15 +95,6 @@ vecMatMultIsTransposeVecMult v xs = Refl
 
 matVecMultIsVecTransposeMult : Ring a => (v : Vect m a) -> (xs : Matrix n m a) -> xs </> v = v <\> (transpose xs)
 matVecMultIsVecTransposeMult v xs = sym $ trans (vecMatMultIsTransposeVecMult v $ transpose xs) $ cong {f=(</> v)} $ transposeIsInvolution {xs=xs}
-
-{-
-zzVecNeutralIsMatVecMultZero : (xs : Matrix n m ZZ) -> xs </> Algebra.neutral = Algebra.neutral
-zzVecNeutralIsMatVecMultZero [] = Refl
-zzVecNeutralIsMatVecMultZero (x::xs) = vecHeadtailsEq (zzVecNeutralIsVecPtwiseProdZeroL x) $ zzVecNeutralIsMatVecMultZero xs
-
-zzVecNeutralIsVecMatMultZero : (xs : Matrix n m ZZ) -> Algebra.neutral <\> xs = Algebra.neutral
-zzVecNeutralIsVecMatMultZero xs = trans (vecMatMultIsTransposeVecMult Algebra.neutral xs) $ zzVecNeutralIsMatVecMultZero $ transpose xs
--}
 
 zzVecNeutralIsVecMatMultZero : (xs : Matrix n m ZZ) -> Algebra.neutral <\> xs = Algebra.neutral
 zzVecNeutralIsVecMatMultZero xs {m=Z} = zeroVecEq
@@ -580,55 +573,6 @@ foldAutoind3 {predn=Z} _ p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ 
 foldAutoind3 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
 	-- Compare with the corresponding (outer) with block in foldAutoind2
 	| (v' ** pv') = ?fai3_induceMe
-
-
-
-indexMapChariz : Data.Vect.index k $ map f xs = f $ index k xs
-indexMapChariz {xs=[]} {k} = FinZElim k
--- indexMapChariz {xs} {f} {k=FZ} = trans indexFZIsheadValued $ trans headMapChariz $ sym $ cong indexFZIsheadValued
-indexMapChariz {xs=x::xs} {f} {k=FZ} = Refl
-indexMapChariz {xs=x::xs} {f} {k=FS k} = indexMapChariz {xs=xs} {f=f} {k=k}
-
-indexUpdateAtChariz : index i $ updateAt i f xs = f $ index i xs
-indexUpdateAtChariz {xs=[]} {i} = FinZElim i
-indexUpdateAtChariz {xs=(x::xs)} {f} {i=FZ} = Refl
-indexUpdateAtChariz {xs=x::xs} {f} {i=FS i} = indexUpdateAtChariz {xs=xs} {f=f} {i=i}
-
-updateAtIndIsMapAtInd : index i $ updateAt i f xs = index i $ map f xs
-updateAtIndIsMapAtInd = trans indexUpdateAtChariz $ sym indexMapChariz
-
-deleteSuccRowVanishesUnderHead : head $ deleteRow (FS k) xs = head xs
-deleteSuccRowVanishesUnderHead {xs=x::xs} = Refl
-
-updateAtSuccRowVanishesUnderHead : head $ updateAt (FS k) f xs = head xs
-updateAtSuccRowVanishesUnderHead {xs=x::xs} = Refl
-
-
-
-zipWithEntryChariz : index i $ Vect.zipWith m x y = m (index i x) (index i y)
-
-
-
--- For completeness's sake, these should have (index FZ) as (head) forms proved.
-
-indexCompatInverse : VerifiedRingWithUnity a => (xs : Vect n a) -> (i : Fin n) -> index i $ inverse xs = inverse $ index i xs
-
-indexCompatAdd : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <+> ys = index i xs <+> index i ys
-indexCompatAdd xs ys i = zipWithEntryChariz {x=xs} {y=ys} {i=i} {m=(<+>)}
-
-{-
-Proof obstruction seems to be that the meaning of "inverse" depends on whether the class hierarchy is treated as
-
-	VerifiedGroup < Group < Monoid < Semigroup
-
-or as
-
-	VerifiedGroup < VerifiedMonoid < VerifiedSemigroup < Semigroup
--}
-indexCompatSub : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <-> ys = index i xs <-> index i ys
-indexCompatSub xs ys i ?= trans (indexCompatAdd xs (inverse ys) i) $ cong {f=((index i xs)<+>)} $ indexCompatInverse ys i
-
-indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
 
 
 
