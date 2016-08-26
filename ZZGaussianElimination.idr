@@ -478,6 +478,8 @@ afterUpdateAtCurStillDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS
 
 afterUpdateAtCurStillDownAndNotRight2_att2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ2 (updateAt (FS prednel) f mat) (FS prednel) mel)
 
+
+
 leadingNonzero : (v : Vect n ZZ) -> Type
 leadingNonzero {n} v = Either
 		(v = neutral)
@@ -937,7 +939,8 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
 
 		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
-		let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
+		-- let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
+		let (v ** fn) = runGCDOfVectAlg gcdalg (S predn) (getCol FZ mat)
 
 		let bisWithGCD = the ((v<\>mat)::mat `spanslz` mat, mat `spanslz` (v<\>mat)::mat)
 			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
@@ -961,13 +964,87 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
 		-}
 
-		let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v ?vQfunc
+		{-
+		This works fine
+		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v ?vQfunc
+
+		This should too but doesn't
+		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v (mkQFunc fn)
+
+		says
+
+		"
+		When checking ... w/ expected type
+			ReaderT ...
+
+		Type mismatch between
+		        Matrix (S predn) (S predm) ZZ (Type of mat)
+		and
+		        Matrix (S predm) (S predn) ZZ (Expected type)
+		"
+
+		This is the same error as we described getting for (foldedFully) before, when (succImplWknStep) has (imat') occuring before it was declared as the witness of the dependent pair output.
+
+		This doesn't work either, even though the inputs' type signatures are correct by definition. Hence it's probably an issue with pattern matching to expose the witness and proof of either (v ** fn) or this dependent pair (the output of foldedFully_att3).
+
+		> placeholder_witness : Vect (S predn) ZZ
+		> placeholder_fn : ( i : Fin (S predn) )
+			-> (index i $ getCol FZ mat) `quotientOverZZ` (placeholder_witness <:> (getCol FZ mat))
+		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 placeholder_witness (mkQFunc placeholder_fn)
+
+		However, if we write
+
+		> placeholder_witness : Vect (S predn) ZZ
+		> placeholder_fn : ( i : Fin (S predn) )
+		> 	-> (index i $ getCol FZ mat) `quotientOverZZ` (placeholder_witness <:> (getCol FZ mat))
+		> mkQFunc : ( ( i : Fin (S predn) )
+		> 		-> (index i $ getCol FZ mat) `quotientOverZZ` (v <:> (getCol FZ mat)) )
+		> 	-> ( ( i : Fin (S $ S predn) )
+		> 		-> (indices i FZ $ (v<\>mat)::mat) `quotientOverZZ` (head $ v<\>mat) )
+		> mkQFunc = ?mkQFunc_pr
+		> placeholder_2ndfn : ( i : Fin (S $ S predn) )
+		> 		-> (indices i FZ $ (v<\>mat)::mat) `quotientOverZZ` (head $ v<\>mat)
+		> placeholder_2ndfn = mkQFunc placeholder_fn
+
+		we get the opposite error:
+
+		"
+		Type mismatch between
+		        Matrix (S predm) (S predn) ZZ (Type of mat)
+		and
+		        Matrix (S predn) (S predm) ZZ (Expected type)
+		"
+
+		without needing to apply (mkQFunc) inside the monad.
+
+		After some revision we see we have to make (v) and (mat) explicit arguments of the (mkQFunc) deal. So we write
+
+		> mkQFunc : (v : Vect (S predn) ZZ)
+			-> (m : Matrix (S predn) (S predm) ZZ)
+			-> ( ( i : Fin (S predn) )
+				-> (index i $ getCol FZ m) `quotientOverZZ` (v <:> (getCol FZ m)) )
+			-> ( ( i : Fin (S $ S predn) )
+				-> (indices i FZ $ (v<\>m)::m) `quotientOverZZ` (head $ v<\>m) )
+
+		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v $ mkQFunc v mat fn
+
+		and that works.
+		-}
+		let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v $ mkQFunc v mat fn
 
 		let ( headvecWasFixed, leftColZBelow2, endmat2BispansMatandgcd ) = endmat2PropFn FZ
 
 		return ( index FZ endmat2 ** (leftColZBelow2, bispanslztrans endmat2BispansMatandgcd bisWithGCD) )
 	}
 	where
+		mkQFunc : (v : Vect (S predn) ZZ)
+			-> (xs : Matrix (S predn) (S predm) ZZ)
+			-> ( ( i : Fin (S predn) )
+				-> (index i $ getCol FZ xs) `quotientOverZZ` (v <:> (getCol FZ xs)) )
+			-> ( ( i : Fin (S $ S predn) )
+				-> (indices i FZ $ (v<\>xs)::xs) `quotientOverZZ` (head $ v<\>xs) )
+		mkQFunc v xs fn FZ = quotientOverZZreflFromEq $ indexFZIsheadValued {xs=v<\>xs}
+		mkQFunc v xs fn (FS k) = ( (quotientOverZZreflFromEq $ sym $ indexMapChariz {k=k} {f=index FZ} {xs=xs}) `quotientOverZZtrans` fn k ) `quotientOverZZtrans` ( quotientOverZZreflFromEq $ sym $ headVecMatMultChariz {v=v} {xs=xs} )
 		{-
 		Section notes for succImplWknStep_att3
 
@@ -1045,7 +1122,7 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 				jmat : Matrix (S (S predn)) (S predm) ZZ
 				jmat = updateAt (FS fi) (<-> (Sigma.getWitness $ fn (FS fi)) <#> senior) imat
 				seniorIsJmatHead : senior = head jmat
-				seniorIsJmatHead = ?succImplWknStep_seniorIsJmatHead_pr
+				seniorIsJmatHead = trans seniorIsImatHead $ sym updateAtSuccRowVanishesUnderHead
 				primatzAtWknFi : indices (FS fi) FZ jmat = Pos Z
 				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=FS fi} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (FS fi) imat} {y=inverse $ (Sigma.getWitness $ fn (FS fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (FS fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ FS fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ FS fi) senior FZ)) $ trans (cong {f=(<->) $ indices (FS fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ FS fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ FS fi) $ groupInverseIsInverseL $ indices (FS fi) FZ imat
 				jmatDANRZ : downAndNotRightOfEntryImpliesZ2 jmat (weaken fi) FZ

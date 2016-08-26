@@ -14,6 +14,8 @@ import Data.Vect.Structural
 
 transposeNHead: with Data.Vect ( head $ transpose xs = map head xs )
 
+tranposeIndexChariz : index k $ transpose xs = getCol k xs
+
 transposeNTail : with Data.Vect ( transpose $ tail $ transpose xs = map tail xs )
 
 transposeIsInvolution : with Data.Vect ( transpose $ transpose xs = xs )
@@ -25,3 +27,8 @@ vecMatMultIsTransposeVecMult v xs = Refl
 
 matVecMultIsVecTransposeMult : Ring a => (v : Vect m a) -> (xs : Matrix n m a) -> xs </> v = v <\> (transpose xs)
 matVecMultIsVecTransposeMult v xs = sym $ trans (vecMatMultIsTransposeVecMult v $ transpose xs) $ cong {f=(</> v)} $ transposeIsInvolution {xs=xs}
+
+headVecMatMultChariz : Ring a => {xs : Matrix _ (S _) a} -> head $ v<\>xs = v <:> (getCol FZ xs)
+headVecMatMultChariz {v} {xs} = trans (sym $ indexFZIsheadValued {xs=v<\>xs})
+	$ trans (indexMapChariz {k=FZ} {f=(v<:>)} {xs=transpose xs})
+	$ cong {f=(v<:>)} $ tranposeIndexChariz {k=FZ} {xs=xs}
