@@ -329,6 +329,19 @@ fai_regrwkn2 p fn i = fn (weaken i)
 
 
 
+fai_regrwkn3 : (a : Nat -> Type)
+	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
+	-> ( (i : Fin (S predn))
+		-> ( w : a (S predn) ** p _ (FS i) w )
+		-> ( w' : a (S predn) ** p _ (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w  : (a . S) predn ** ((p _) . weaken) (FS i) w )
+	-> ( w' : (a . S) predn ** ((p _) . weaken) (weaken i) w' )
+-- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
+fai_regrwkn3 a p fn i = fn (weaken i)
+
+
+
 ||| A vector fold over suppressed indices
 ||| Best used with those `p` which are trivial for (last) and some (a).
 foldAutoind : ( p : {m : Nat} -> Fin (S m) -> a -> Type )
@@ -435,8 +448,28 @@ foldAutoind3 : ( a : Nat -> Type )
 	-> ( xs : Vect (S predn) (a predn) ** (i : Fin (S predn)) -> p _ i (index i xs) )
 foldAutoind3 {predn=Z} _ p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
 foldAutoind3 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
-	-- Compare with the corresponding (outer) with block in foldAutoind2
-	| (v' ** pv') = ?fai3_induceMe
+	| (v' ** pv') with ( foldAutoind3 {predn=prededn} (natToA . S) (\mu => (p $ S mu) . weaken) (fai_regrwkn3 natToA p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew3
+		-- | ( xs ** fn ) = ( xs++[v] ** _ )
+
+-- Identical to the proof of faiNew2
+faiNew3 = proof
+  intros
+  exact (appendedSingletonAsSuccVect xs v ** _)
+  intro i
+  claim ifLastThenProved (i=last) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  claim ifWeakenedThenProved (j : Fin (S prededn) ** i = weaken j) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  let iAsEither = splitFinS i
+  exact either ifWeakenedThenProved ifLastThenProved iAsEither
+  intro prIsLast
+  rewrite sym prIsLast
+  exact rewrite (lastInd {xs=xs} {v=v}) in pv
+  intro parIsWeakened
+  let prIsWeakened = getProof parIsWeakened
+  rewrite sym prIsWeakened
+  exact rewrite (weakenedInd {xs=xs} {v=v} {k=getWitness parIsWeakened}) in fn (getWitness parIsWeakened)
 
 
 
