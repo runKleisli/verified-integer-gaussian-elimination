@@ -98,26 +98,34 @@ zipWithEntryChariz : index i $ Vect.zipWith m x y = m (index i x) (index i y)
 plusOneVectIsSuccVect : Vect (n+1) a = Vect (S n) a
 plusOneVectIsSuccVect {a} {n} = sym $ cong {f=\k => Vect k a} $ trans (cong {f=S} $ sym $ plusZeroRightNeutral n) $ plusSuccRightSucc n Z
 
+{-
 appendedSingletonAsSuccVect : (xs : Vect n a) -> (v : a) -> Vect (S n) a
 appendedSingletonAsSuccVect {a} {n} xs v = rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])
+-}
+appendedSingletonAsSuccVect : (xs : Vect n a) -> (v : a) -> Vect (S n) a
+appendedSingletonAsSuccVect [] v = [v]
+appendedSingletonAsSuccVect (x::xs) v = x::appendedSingletonAsSuccVect xs v
 
+-- With the old implementation of (appendedSingletonAsSuccVect) this seemed impossible to prove.
 consAppendedSingleton : {xs : Vect n a} -> appendedSingletonAsSuccVect (x::xs) v = x::appendedSingletonAsSuccVect xs v
-consAppendedSingleton {x} {xs} {v} {a} {n} = the ( appendedSingletonAsSuccVect (x::xs) v = x::appendedSingletonAsSuccVect xs v ) ?consAppendedSingleton_rhs
+consAppendedSingleton {x} {xs} {v} {a} {n} = Refl
 
 {-
 -- Too many problems with this, rewriting the types to handle Nat addition.
 lastInd : {xs : Vect n a} -> Data.Vect.index Data.Fin.last (rewrite sym $ plusOneVectIsSuccVect {a=a} {n=n} in (xs++[v])) = v
 -}
 
--- Could this be done with the reversal isomorphism of each Fin?
+{-
+-- Stopped typechecking once the implementation of (appendedSingletonAsSuccVect) changed.
 lastInd : {xs : Vect n a} -> index Data.Fin.last $ appendedSingletonAsSuccVect xs v = v
 lastInd {xs=[]} = Refl
 lastInd {xs=x::xs} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in (lastInd {xs=xs} {v=v})
-{-
+
+-----
 
 "ERROR ON INTROS" BUG, CASE, SOLUTION
 
---------
+---
 
 > lastInd {xs=x::xs} = ?lastInd_rhs_2
 
@@ -141,14 +149,28 @@ and spells out
 
 -}
 
+-- Could this be done with the reversal isomorphism of each Fin?
+lastInd : {xs : Vect n a} -> index Data.Fin.last $ appendedSingletonAsSuccVect xs v = v
+lastInd {xs=[]} = Refl
+lastInd {xs=x::xs} {v} = lastInd {xs=xs} {v=v}
+
+{-
+-- Stopped typechecking once the implementation of (appendedSingletonAsSuccVect) changed.
+total
+weakenedInd : {xs : Vect n a} -> index (weaken k) $ appendedSingletonAsSuccVect xs v = index k xs
+weakenedInd {xs=[]} {k} = absurd k
+weakenedInd {xs=x::xs} {k=FZ} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in Refl
+weakenedInd {xs=x::xs} {k=FS j} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in weakenedInd {xs=xs} {k=j} {v}
+-}
+
 {-
 Could this be done with the reversal isomorphism of each Fin and a proof that weaken becomes FS under it?
 -}
 total
 weakenedInd : {xs : Vect n a} -> index (weaken k) $ appendedSingletonAsSuccVect xs v = index k xs
 weakenedInd {xs=[]} {k} = absurd k
-weakenedInd {xs=x::xs} {k=FZ} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in Refl
-weakenedInd {xs=x::xs} {k=FS j} {v} = rewrite consAppendedSingleton {x=x} {xs=xs} {v=v} in weakenedInd {xs=xs} {k=j} {v}
+weakenedInd {xs=x::xs} {k=FZ} {v} = Refl
+weakenedInd {xs=x::xs} {k=FS j} {v} = weakenedInd {xs=xs} {k=j} {v}
 
 
 
