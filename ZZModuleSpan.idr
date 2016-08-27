@@ -473,6 +473,12 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {l=vsy} {c=vsx} {r=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
 
 bispanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> bispanslz {n=na} {n'=ni} xs ys -> bispanslz {n=ni} {n'=nu} ys zs -> bispanslz xs zs
+bispanslztrans (sxy,syx) (syz,szy) = (spanslztrans sxy syz, spanslztrans szy syx)
+
+
+
+bispanslzsym : xs `bispanslz` ys -> ys `bispanslz` xs
+bispanslzsym = swap
 
 
 
@@ -480,6 +486,7 @@ spanslzrefl : spanslz xs xs
 spanslzrefl = ( Id ** zippyScaleIdLeftNeutral _ )
 
 bispanslzrefl : bispanslz xs xs
+bispanslzrefl = (spanslzrefl, spanslzrefl)
 
 spanslzreflFromEq : (xs=ys) -> xs `spanslz` ys
 spanslzreflFromEq pr = ( Id ** trans (zippyScaleIdLeftNeutral _) pr )
