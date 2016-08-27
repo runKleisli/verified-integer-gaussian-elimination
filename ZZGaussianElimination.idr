@@ -118,16 +118,16 @@ It was found that if you replace the argument
 
 > p : (m : Nat) -> Fin (S m) -> a -> Type
 
-with one where (m) is implicit, and rewrite (foldAutoind2 & friends) accordingly, then one can't implement them, because composing (p) with weaken leads to a Universe Inconsistency error, which doesn't appear when the weakening is done in the REPL, only when the resulting proof is loaded in the module.
+with one where (m) is implicit, and rewrite (foldAutoind) & dependencies accordingly, then one can't implement them, because composing (p) with weaken leads to a Universe Inconsistency error, which doesn't appear when the weakening is done in the REPL, only when the resulting proof is loaded in the module.
 
-See (elimFirstCol-oldmaterial.idr) where (fai_regrwkn_chty) and (fai_regrwkn_chty2) are being implemented (for (foldAutoind), (foldAutoind2) resp.) for details.
+See (elimFirstCol-oldmaterial.idr) where (fai_regrwkn_chty) and (fai_regrwkn_chty2) are being implemented (for that file's (foldAutoind), (foldAutoind2) resp.) for details.
 
 This differs from the error described in (ImplicitArgsError), in that the values of (p) are irrelevant in creating this Universe Inconsistency error, whereas the one in (ImplicitArgsError) would arise from the values of (p) having implicit arguments of their own.
 -}
 
 
 
-fai_regrwkn2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
+fai_regrwkn : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 	-> ( (i : Fin (S predn))
 		-> ( w : a ** p _ (FS i) w )
 		-> ( w' : a ** p _ (weaken i) w' ) )
@@ -135,23 +135,23 @@ fai_regrwkn2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 	-> ( w : a ** ((p _) . weaken) (FS i) w )
 	-> ( w' : a ** ((p _) . weaken) (weaken i) w' )
 -- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
-fai_regrwkn2 p fn i = fn (weaken i)
+fai_regrwkn p fn i = fn (weaken i)
 
 ||| A vector fold over suppressed indices
 ||| Best used with those `p` which are trivial for (last) and some (a).
-foldAutoind2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
+foldAutoind : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 	-> ( (i : Fin predn)
 		-> ( w : a ** p _ (FS i) w )
 		-> ( w' : a ** p _ (weaken i) w' ) )
 	-> ( v : a ** p _ (last {n=predn}) v )
 	-> ( xs : Vect (S predn) a ** (i : Fin (S predn)) -> p _ i (index i xs) )
-foldAutoind2 {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
-foldAutoind2 {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
-	| (v' ** pv') with ( foldAutoind2 {predn=prededn} (\mu => (p $ S mu) . weaken) (fai_regrwkn2 p regr) (v' ** pv') )
-		| (xs ** fn) = ?faiNew2
+foldAutoind {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+	| (v' ** pv') with ( foldAutoind {predn=prededn} (\mu => (p $ S mu) . weaken) (fai_regrwkn p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew
 		-- | ( xs ** fn ) = ( xs++[v] ** _ )
 
-faiNew2 = proof
+faiNew = proof
   intros
   exact (appendedSingletonAsSuccVect xs v ** _)
   intro i
@@ -171,7 +171,7 @@ faiNew2 = proof
 
 
 
-fai_regrwkn3 : (a : Nat -> Type)
+fai2_regrwkn : (a : Nat -> Type)
 	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
 	-> ( (i : Fin (S predn))
 		-> ( w : a (S predn) ** p _ (FS i) w )
@@ -180,28 +180,28 @@ fai_regrwkn3 : (a : Nat -> Type)
 	-> ( w  : (a . S) predn ** ((p _) . weaken) (FS i) w )
 	-> ( w' : (a . S) predn ** ((p _) . weaken) (weaken i) w' )
 -- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
-fai_regrwkn3 a p fn i = fn (weaken i)
+fai2_regrwkn a p fn i = fn (weaken i)
 
 ||| A vector fold over suppressed indices
-||| The sequel to foldAutoind2
+||| The sequel to foldAutoind
 {-
 (a : Nat -> Type) is not made implicit because Idris isn't likely to deduce it and will likely spend a long time trying anyway.
 -}
-foldAutoind3 : ( a : Nat -> Type )
+foldAutoind2 : ( a : Nat -> Type )
 	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
 	-> ( (i : Fin predn)
 		-> ( w : a predn ** p _ (FS i) w )
 		-> ( w' : a predn ** p _ (weaken i) w' ) )
 	-> ( v : a predn ** p _ (last {n=predn}) v )
 	-> ( xs : Vect (S predn) (a predn) ** (i : Fin (S predn)) -> p _ i (index i xs) )
-foldAutoind3 {predn=Z} _ p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
-foldAutoind3 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
-	| (v' ** pv') with ( foldAutoind3 {predn=prededn} (natToA . S) (\mu => (p $ S mu) . weaken) (fai_regrwkn3 natToA p regr) (v' ** pv') )
-		| (xs ** fn) = ?faiNew3
+foldAutoind2 {predn=Z} _ p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind2 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+	| (v' ** pv') with ( foldAutoind2 {predn=prededn} (natToA . S) (\mu => (p $ S mu) . weaken) (fai2_regrwkn natToA p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew2
 		-- | ( xs ** fn ) = ( xs++[v] ** _ )
 
--- Identical to the proof of faiNew2
-faiNew3 = proof
+-- Identical to the proof of faiNew
+faiNew2 = proof
   intros
   exact (appendedSingletonAsSuccVect xs v ** _)
   intro i
@@ -227,8 +227,8 @@ Properties of vectors and matrices.
 
 
 
-downAndNotRightOfEntryImpliesZ2 : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
-downAndNotRightOfEntryImpliesZ2 xs nel mel {n} {m} = (i : Fin n) -> (j : Fin m) -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
+downAndNotRightOfEntryImpliesZ : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
+downAndNotRightOfEntryImpliesZ xs nel mel {n} {m} = (i : Fin n) -> (j : Fin m) -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
 {-
 Equivalent properties:
 1) map (take mel) (drop nel xs) = neutral
@@ -247,11 +247,9 @@ because the error described in ImplicitArgsError applied to (i) and (j) in ({i :
 
 
 
-weakenDownAndNotRight2_att2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ2 mat (weaken prednel) mel
+weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
 
-afterUpdateAtCurStillDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ2 (updateAt (weaken prednel) f mat) (FS prednel) mel)
-
-afterUpdateAtCurStillDownAndNotRight2_att2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ2 (updateAt (FS prednel) f mat) (FS prednel) mel)
+afterUpdateAtCurStillDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ (updateAt (FS prednel) f mat) (FS prednel) mel)
 
 
 
@@ -312,7 +310,7 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 		ty : Fin n -> Type
 		ty nel with (leadingNonzeroCalc $ index nel xs)
 			| Right someNonZness with someNonZness
-				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ2 xs nel leadeln
+				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
 			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 
 
@@ -436,86 +434,22 @@ zipWithHeadsQuotientRelation {zs=z::zs} {xs=x::xs} {predn=S prededn} (FS prelk) 
 zipWithHeadsQuotientRelation2 : {zs : Vect (S predn) ZZ} -> {xs : Matrix (S predn) (S predm) ZZ} -> ( fn : ( i : Fin _ ) -> (head $ Vect.index i xs) `quotientOverZZ` (head $ Vect.head xs) ) -> (k : _ ) -> ( Vect.index k $ map head $ Vect.zipWith (<#>) zs xs ) `quotientOverZZ` (head $ Vect.head xs)
 zipWithHeadsQuotientRelation2 {zs} {xs} fn k = quotientOverZZtrans (zipWithHeadsQuotientRelation {zs=zs} {xs=xs} k) (fn k)
 
-{-
-This is wrong.
-
-> head $ LinearCombinations.monoidsum $ Data.Vect.zipWith (<#>) [Pos 0, Pos 1, Pos 2] [[Pos 5, Pos 5], [Pos 3, Pos 5], [Pos 5, Pos 3]]
-
-Pos 13 : ZZ
-
-> head $ [Pos 5, Pos 5]
-Pos 5 : ZZ
-
----
-
 linearComboQuotientRelation : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
-	-> ( head $
-			LinearCombinations.monoidsum $
-			zipWith (<#>) z (x::xs) )
-		`quotientOverZZ` (head x)
-linearComboQuotientRelation = ?linearComboQuotientRelation'
--}
-
-{-
-This would work if zipWithQuotientRelation could be implemented, but it can't.
-We want to say the 2D version of (zipWith (<#>)) reduces in each of its heads to multiples of (head x). i.e.,
-
-	(k : _ )
-	-> ( index k $ map head $ zipWith (<#>) z (x::xs) ) `quotientOverZZ` (head x)
-
-from which we can deduce the desired result by applying divisorByDistrib.
-
-Goal: succImplWknStep_lemma3
-
----
-
-linearComboQuotientRelation (xx::xxs) xs (zz::zzs) = (getWitness lcqr_par ** rewrite sym lcqr_eq in getProof lcqr_par)
-	where
-		{-
-		Changing Data.Vect.head in
-
-		> divpro : (d : ZZ ** multZ d xx = LinearCombinations.monoidsum $ zipWith (*) (zz::zzs) (map Data.Vect.head ((xx::xxs)::xs)) )
-		> divpro = ?divpro'
-
-		to just use (head) makes terrible type inferences happen:
-
-		"
-		  xx : Nat
-		  predm : ZZ
-		  xxs : Vect xx ZZ
-		  predn : Nat
-		  xs : Vect predn (Vect (S xx) ZZ)
-		  zz : ZZ
-		  zzs : Vect predn ZZ
-		  head : Vect (S xx) ZZ -> ZZ
-		--------------------------------------
-		divpro' : (d : ZZ ** multZ d predm = ...)
-		"
-
-		and of course "Type mismatch between Nat (Type of xx) and ZZ (expected type)"
-		-}
-		lcqr_par : (d : ZZ ** multZ d xx = LinearCombinations.monoidsum $ zipWith (*) (zz::zzs) (map Data.Vect.head ((xx::xxs)::xs)) )
-		lcqr_par = divisorByDistrib xx ( zipWith (*) (zz::zzs) (map head ((xx::xxs)::xs)) ) $ zipWithQuotientRelation {x=xx::xxs} {v=zz::zzs} {xs=xs}
-		lcqr_eq : LinearCombinations.monoidsum $ zipWith (*) (zz::zzs) (map Data.Vect.head ((xx::xxs)::xs)) = head $ LinearCombinations.monoidsum $ zipWith (<#>) (zz::zzs) ((xx::xxs)::xs)
-		lcqr_eq = timesVectMatAsLinearCombo_EntryCharizRight (zz::zzs) ((xx::xxs)::xs)
--}
-
-linearComboQuotientRelation2 : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
 	-> ( fn : ( i : Fin _ ) -> (head $ Vect.index i (x::xs)) `quotientOverZZ` (head x) )
 	-> ( LinearCombinations.monoidsum $
 			map head $
 			zipWith (<#>) z (x::xs) )
 		`quotientOverZZ` (head x)
-linearComboQuotientRelation2 x xs z fn = divisorByDistrib _ _ (zipWithHeadsQuotientRelation2 {zs=z} {xs=x::xs} fn)
+linearComboQuotientRelation x xs z fn = divisorByDistrib _ _ (zipWithHeadsQuotientRelation2 {zs=z} {xs=x::xs} fn)
 
--- Goal: succImplWknStep_lemma3
-linearComboQuotientRelation2_corrollary : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
+-- Motivation: succImplWknStep_Qfunclemma
+linearComboQuotientRelation_corrollary : (x : Vect (S predm) ZZ) -> (xs : Matrix predn (S predm) ZZ) -> (z : Vect (S predn) ZZ)
 	-> ( fn : ( i : Fin _ ) -> (head $ Vect.index i (x::xs)) `quotientOverZZ` (head x) )
 	-> ( head $
 			LinearCombinations.monoidsum $
 			zipWith (<#>) z (x::xs) )
 		`quotientOverZZ` (head x)
-linearComboQuotientRelation2_corrollary x xs z fn = quotientOverZZtrans (quotientOverZZreflFromEq $ headOfSumIsSumOfHeads _) $ linearComboQuotientRelation2 x xs z fn
+linearComboQuotientRelation_corrollary x xs z fn = quotientOverZZtrans (quotientOverZZreflFromEq $ headOfSumIsSumOfHeads _) $ linearComboQuotientRelation x xs z fn
 
 
 
@@ -543,13 +477,13 @@ firstColZeroCalc ((xx::xxs)::xs) with (firstColZeroCalc xs)
 
 
 
-succImplWknProp3 : (omat : Matrix predonnom (S predm) ZZ) -> (senior : Vect (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
-succImplWknProp3 omat senior nu fi tmat = ( senior = head tmat, downAndNotRightOfEntryImpliesZ2 tmat fi FZ, tmat `bispanslz` (senior::omat) )
-succImplWknProp3Sec2 : (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
-succImplWknProp3Sec2 nu fi tmat = downAndNotRightOfEntryImpliesZ2 tmat fi FZ
+succImplWknProp : (omat : Matrix predonnom (S predm) ZZ) -> (senior : Vect (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+succImplWknProp omat senior nu fi tmat = ( senior = head tmat, downAndNotRightOfEntryImpliesZ tmat fi FZ, tmat `bispanslz` (senior::omat) )
+succImplWknPropSec2 : (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
+succImplWknPropSec2 nu fi tmat = downAndNotRightOfEntryImpliesZ tmat fi FZ
 
-danrzLast3 : (omat : Matrix (S predn) (S predm) ZZ) -> succImplWknProp3Sec2 predn (last {n=predn}) omat
-danrzLast3 omat = (\i => \j => void . notSNatLastLTEAnything)
+danrzLast : (omat : Matrix (S predn) (S predm) ZZ) -> succImplWknPropSec2 predn (last {n=predn}) omat
+danrzLast omat = (\i => \j => void . notSNatLastLTEAnything)
 
 {-
 Better to refine this to a type that depends on (m=S predm) so that the case (m=Z) may also be covered.
@@ -557,17 +491,8 @@ Better to refine this to a type that depends on (m=S predm) so that the case (m=
 Shall start from the bottom of the matrix (last) and work up to row (FS FZ) using a traversal based on (weaken) and a binary map from index (Fin n) and oldvals to newvals.
 -}
 
-elimFirstCol2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (downAndNotRightOfEntryImpliesZ2 gexs FZ FZ, gexs `spanslz` xs, xs `spanslz` gexs))
-{-
--- Template
-
-elimFirstCol2 xs = do {
-		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
-		return $ believe_me "Weiell"
-	}
--}
-
-elimFirstCol2 [] {predm} = return ( row {n=S predm} $ neutral ** ( nosuch, ([] ** Refl), ([neutral] ** Refl) ) )
+elimFirstCol : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (downAndNotRightOfEntryImpliesZ gexs FZ FZ, gexs `spanslz` xs, xs `spanslz` gexs))
+elimFirstCol [] {predm} = return ( row {n=S predm} $ neutral ** ( nosuch, ([] ** Refl), ([neutral] ** Refl) ) )
 	where
 		nosuch : (i : Fin _) -> (j : Fin _)
 			-> LTRel Z (finToNat i)
@@ -576,7 +501,7 @@ elimFirstCol2 [] {predm} = return ( row {n=S predm} $ neutral ** ( nosuch, ([] *
 		nosuch FZ FZ _ = either (const Refl) (const Refl)
 		nosuch (FS k) FZ _ = absurd k
 		nosuch _ (FS k) _ = void . ( either succNotLTEzero SIsNotZ )
-elimFirstCol2 mat {n=S predn} {predm} = do {
+elimFirstCol mat {n=S predn} {predm} = do {
 		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
 
 		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
@@ -592,10 +517,10 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		{-
 		This works fine
-		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v ?vQfunc
+		> let ( endmat ** endmatPropFn ) = foldedFully v ?vQfunc
 
 		This should too but doesn't
-		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v (mkQFunc fn)
+		> let ( endmat ** endmatPropFn ) = foldedFully v (mkQFunc fn)
 
 		says
 
@@ -611,12 +536,12 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		This is the same error as we described getting for (foldedFully) before, when (succImplWknStep) has (imat') occuring before it was declared as the witness of the dependent pair output.
 
-		This doesn't work either, even though the inputs' type signatures are correct by definition. Hence it's probably an issue with pattern matching to expose the witness and proof of either (v ** fn) or this dependent pair (the output of foldedFully_att3).
+		This doesn't work either, even though the inputs' type signatures are correct by definition. Hence it's probably an issue with pattern matching to expose the witness and proof of either (v ** fn) or this dependent pair (the output of foldedFully).
 
 		> placeholder_witness : Vect (S predn) ZZ
 		> placeholder_fn : ( i : Fin (S predn) )
 			-> (index i $ getCol FZ mat) `quotientOverZZ` (placeholder_witness <:> (getCol FZ mat))
-		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 placeholder_witness (mkQFunc placeholder_fn)
+		> let ( endmat ** endmatPropFn ) = foldedFully placeholder_witness (mkQFunc placeholder_fn)
 
 		However, if we write
 
@@ -652,17 +577,23 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			-> ( ( i : Fin (S $ S predn) )
 				-> (indices i FZ $ (v<\>m)::m) `quotientOverZZ` (head $ v<\>m) )
 
-		> let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v $ mkQFunc v mat fn
+		> let ( endmat ** endmatPropFn ) = foldedFully v $ mkQFunc v mat fn
 
 		and that works.
 		-}
-		let ( endmat2 ** endmat2PropFn ) = foldedFully_att3 v $ mkQFunc v mat fn
+		let ( endmat ** endmatPropFn ) = foldedFully v $ mkQFunc v mat fn
 
-		let ( headvecWasFixed, leftColZBelow2, endmat2BispansMatandgcd ) = endmat2PropFn FZ
+		let ( headvecWasFixed, leftColZBelow, endmatBispansMatandgcd ) = endmatPropFn FZ
 
-		return ( index FZ endmat2 ** (leftColZBelow2, bispanslztrans endmat2BispansMatandgcd bisWithGCD) )
+		return ( index FZ endmat ** (leftColZBelow, bispanslztrans endmatBispansMatandgcd bisWithGCD) )
 	}
 	where
+		{-
+		Structure of proof:
+
+		succImplWknStep_Qfunclemma => succImplWknStep_stepQfunc => succImplWknStep_unplumbed => succImplWknStep => foldedFully
+		(mkQfunc, foldedFully) => elimFirstCol (after some work)
+		-}
 		mkQFunc : (v : Vect (S predn) ZZ)
 			-> (xs : Matrix (S predn) (S predm) ZZ)
 			-> ( ( i : Fin (S predn) )
@@ -672,29 +603,23 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		mkQFunc v xs fn FZ = quotientOverZZreflFromEq $ indexFZIsheadValued {xs=v<\>xs}
 		mkQFunc v xs fn (FS k) = ( (quotientOverZZreflFromEq $ sym $ indexMapChariz {k=k} {f=index FZ} {xs=xs}) `quotientOverZZtrans` fn k ) `quotientOverZZtrans` ( quotientOverZZreflFromEq $ sym $ headVecMatMultChariz {v=v} {xs=xs} )
 		{-
-		Section notes for succImplWknStep_att3
+		Section notes for succImplWknStep
 
 		---
 
-		Structure:
-		lemma3 => lemma2 => modded => succImplWknStep => foldedFully
-		(incomplete picture)
-
-		---
-
-		We have learned of two obstructions to expressing (succImplWknStep_att3) and its lemmas which must be taken into account in this design.
+		We have learned of two obstructions to expressing (succImplWknStep) and its lemmas which must be taken into account in this design.
 
 		1) If a dependent pair's proof's type is a function of the witness and has implicit arguments, that dependent pair will not be inferred correctly when used as an argument to a function, and this might only be revealed through type errors in (the left-hand side of) other definitions that are attempted within the function, such as in its where block, where such definitions have the arguments to the function in their assumptions/context (environment, scope).
 
 			See (ImplicitArgsError) for simple examples of the problem.
 
-			Implementing (foldAutoInd) created a similar problem when using type-valued functions that took certain implicit arguments, which led to writing (foldAutoInd[2-3]) instead. However, the values of those type-valued functions did not clearly have implicit arguments.
+			Implementing (foldAutoind) created a similar problem when using type-valued functions that took certain implicit arguments (see elimFirstCol-oldmaterial.idr, where we had to rewrite its (foldAutoind) into its (foldAutoind2)). However, the values of those type-valued functions did not clearly have implicit arguments.
 
-		2) A triple of types in the righthand value of a dependent pair is not treated as a type when pattern matching on it, giving type errors when anything is done with the proof (getProof _) except using it as an argument to a function. Hence to get a function from dependent pairs to dependent pairs that applies the theorem proved, we must call a dependently typed but curried version of the function on the witness and proof of the dependent pair input. Whence (succImplWknStep_modded_att2) and the definition of (succImplWknStep_att3) in terms of it.
+		2) A triple of types in the righthand value of a dependent pair is not treated as a type when pattern matching on it, giving type errors when anything is done with the proof (getProof _) except using it as an argument to a function. Hence to get a function from dependent pairs to dependent pairs that applies the theorem proved, we must call a dependently typed but curried version of the function on the witness and proof of the dependent pair input. Whence (succImplWknStep_unplumbed) and the definition of (succImplWknStep) in terms of it.
 
 			Note, we may write (the Type (Nat,Nat,Nat)), but using a predefined (Type) whose value is a triple does not get around the mismatch error.
 		-}
-		succImplWknStep_lemma3_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+		succImplWknStep_Qfunclemma : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
 			-> ( z : Matrix _ _ ZZ )
 			-> ( quotchariz : ( k : Fin _ ) -> ( LinearCombinations.monoidsum $ zipWith (<#>) (index k z) (senior::mat) = index k imat ) )
@@ -702,25 +627,25 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		{-
 		-- This version is perhaps more readable.
 
-		succImplWknStep_lemma3_att2 senior srQfunc imat z quotchariz j ?= linearComboQuotientRelation2_corrollary senior mat (index j z) (\i => quotientOverZZtrans (quotientOverZZreflFromEq $ sym indexFZIsheadValued) $ srQfunc i)
-		succImplWknStep_lemma3_att2_lemma_1 = proof
+		succImplWknStep_Qfunclemma senior srQfunc imat z quotchariz j ?= linearComboQuotientRelation_corrollary senior mat (index j z) (\i => quotientOverZZtrans (quotientOverZZreflFromEq $ sym indexFZIsheadValued) $ srQfunc i)
+		succImplWknStep_Qfunclemma_lemma_1 = proof
 			intros
 			exact (getWitness value ** _)
 			rewrite sym $ indexFZIsheadValued {xs=index j imat}
 			rewrite cong {f=head} $ quotchariz j
 			exact getProof value
 		-}
-		succImplWknStep_lemma3_att2 senior srQfunc imat z quotchariz j = (getWitness lemma ** trans (getProof lemma) $ trans (cong {f=head} $ quotchariz j) $ sym $ indexFZIsheadValued {xs=index j imat})
+		succImplWknStep_Qfunclemma senior srQfunc imat z quotchariz j = (getWitness lemma ** trans (getProof lemma) $ trans (cong {f=head} $ quotchariz j) $ sym $ indexFZIsheadValued {xs=index j imat})
 			where
 				lemma : (head $ monoidsum $ zipWith (<#>) (index j z) (senior::mat)) `quotientOverZZ` (head senior)
-				lemma = linearComboQuotientRelation2_corrollary senior mat (index j z) (\i => quotientOverZZtrans (quotientOverZZreflFromEq $ sym indexFZIsheadValued) $ srQfunc i)
-		succImplWknStep_lemma2_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+				lemma = linearComboQuotientRelation_corrollary senior mat (index j z) (\i => quotientOverZZtrans (quotientOverZZreflFromEq $ sym indexFZIsheadValued) $ srQfunc i)
+		succImplWknStep_stepQfunc : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
 			-> ( reprolem : senior::mat `spanslz` imat )
 			-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
-		succImplWknStep_lemma2_att2 senior srQfunc imat reprolem = succImplWknStep_lemma3_att2 senior srQfunc imat (getWitness reprolem) (\k => trans (sym indexMapChariz) $ cong {f=index k} $ getProof reprolem)
+		succImplWknStep_stepQfunc senior srQfunc imat reprolem = succImplWknStep_Qfunclemma senior srQfunc imat (getWitness reprolem) (\k => trans (sym indexMapChariz) $ cong {f=index k} $ getProof reprolem)
 		{-
-		For the proof of (downAndNotRightImpliesZ2) for the output of the below function in human, consider the modification
+		For the proof of (downAndNotRightOfEntryImpliesZ) for the output of the below function in human, consider the modification
 
 		> updateAt (weaken fi) (<-> (Sigma.getWitness $ fn (weaken fi)) <#> senior) imat
 
@@ -736,23 +661,23 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 			Pos Z
 		-}
 		-- Including proof the head is equal to senior just makes this step easier.
-		succImplWknStep_modded_att2 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+		succImplWknStep_unplumbed : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> (fi : Fin (S predn))
 			-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
-			-> ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
-			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
-		succImplWknStep_modded_att2 senior srQfunc fi imat ( seniorIsImatHead, imatDANRZ, imatSpansOrig, origSpansImat ) = (jmat ** ( seniorIsJmatHead, jmatDANRZ, jmatBispansOrig ) )
+			-> ( senior = head imat, downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
+		succImplWknStep_unplumbed senior srQfunc fi imat ( seniorIsImatHead, imatDANRZ, imatSpansOrig, origSpansImat ) = (jmat ** ( seniorIsJmatHead, jmatDANRZ, jmatBispansOrig ) )
 			where
 				fn : ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
-				fn = succImplWknStep_lemma2_att2 senior srQfunc imat origSpansImat
+				fn = succImplWknStep_stepQfunc senior srQfunc imat origSpansImat
 				jmat : Matrix (S (S predn)) (S predm) ZZ
 				jmat = updateAt (FS fi) (<-> (Sigma.getWitness $ fn (FS fi)) <#> senior) imat
 				seniorIsJmatHead : senior = head jmat
 				seniorIsJmatHead = trans seniorIsImatHead $ sym updateAtSuccRowVanishesUnderHead
 				primatzAtWknFi : indices (FS fi) FZ jmat = Pos Z
 				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=FS fi} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (FS fi) imat} {y=inverse $ (Sigma.getWitness $ fn (FS fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (FS fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ FS fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ FS fi) senior FZ)) $ trans (cong {f=(<->) $ indices (FS fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ FS fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ FS fi) $ groupInverseIsInverseL $ indices (FS fi) FZ imat
-				jmatDANRZ : downAndNotRightOfEntryImpliesZ2 jmat (weaken fi) FZ
-				jmatDANRZ = weakenDownAndNotRight2_att2 {prednel=fi} {mel=FZ} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight2_att2 {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)} imatDANRZ) primatzAtWknFi
+				jmatDANRZ : downAndNotRightOfEntryImpliesZ jmat (weaken fi) FZ
+				jmatDANRZ = weakenDownAndNotRight {prednel=fi} {mel=FZ} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)} imatDANRZ) primatzAtWknFi
 				missingstep : head imat = (Algebra.unity::Algebra.neutral) <\> deleteRow (FS fi) imat
 				missingstep = sym $ trans
 					( timesVectMatAsLinearCombo (Algebra.unity::Algebra.neutral) $ deleteRow (FS fi) imat )
@@ -764,11 +689,11 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 					$ deleteSuccRowVanishesUnderHead {k=fi} {xs=imat}
 				jmatBispansOrig : jmat `bispanslz` (senior::mat)
 				jmatBispansOrig = bispanslztrans (bispanslzreflFromEq {xs=jmat} $ cong {f=\z => updateAt (FS fi) (<-> z) imat} $ trans ( cong {f=((<#>) {a=ZZ} _)} $ trans seniorIsImatHead $ missingstep ) $ sym $ vectMatLScalingCompatibility {z=Sigma.getWitness $ fn $ FS fi} {la=Algebra.unity::Algebra.neutral} {rs=deleteRow (FS fi) imat}) $ bispanslztrans ( bispanslzSubtractiveExchangeAt (FS fi) {xs=imat} {z=(Sigma.getWitness $ fn (FS fi))<#>(Algebra.unity::Algebra.neutral)} ) $ (imatSpansOrig, origSpansImat)
-		succImplWknStep_att3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+		succImplWknStep : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 			-> (fi : Fin (S predn))
-			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
-			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
-		succImplWknStep_att3 senior srQfunc fi imatAndPrs = succImplWknStep_modded_att2 senior srQfunc fi (getWitness imatAndPrs) (getProof imatAndPrs)
+			-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat, downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
+		succImplWknStep senior srQfunc fi imatAndPrs = succImplWknStep_unplumbed senior srQfunc fi (getWitness imatAndPrs) (getProof imatAndPrs)
 		{-
 		Misleading error message from using name in type signature before it enters scope.
 
@@ -776,16 +701,16 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		If you write
 
-		> succImplWknStep_att3 : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
+		> succImplWknStep : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
 		> 	-> (fi : Fin (S predn))
-		> 	-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat, downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
-		> 	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ2 {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
+		> 	-> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat, downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat ) )
+		> 	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( senior = head imat', downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat' (weaken fi) FZ, imat' `spanslz` (senior::mat), (senior::mat) `spanslz` imat' ) )
 
 		then on the 3rd line near the end, you see "imat'" when (imat') has not been defined yet, and it should read "imat".
 
-		1) This creates a host of error messages saying they're from (foldedFully3_att3) when they're actually from (succImplWknStep_att3).
+		1) This creates a host of error messages saying they're from (foldedFully) when they're actually from (succImplWknStep).
 		2) The error messages are misleading. In particular, it seems to say that one of the matrices must, whatever its height and width, have that width for its height and that height for its width.
-		3) Using a (with (succImplWknStep_att3 ...)) or (let (x = succImplWknStep_att3 ...)) block in the definition of (foldedFully_att3) is enough to trigger the error.
+		3) Using a (with (succImplWknStep ...)) or (let (x = succImplWknStep ...)) block in the definition of (foldedFully) is enough to trigger the error.
 
 		One such error message:
 
@@ -804,10 +729,10 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 
 		A similar one was found indicating a type mismatch between (Matrix (S predn) (S predm) ZZ) and (Matrix (S predm) (S predn) ZZ), where both the argument chosen and the function's assigned type for that argument were equal to (Matrix (S predn) (S predm) ZZ).
 		-}
-		foldedFully_att3 : (v : Vect (S predn) ZZ)
+		foldedFully : (v : Vect (S predn) ZZ)
 			-> ( vmatQfunc : ( i : Fin _ ) -> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
-			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp3 mat (v<\>mat) (S predn) i (index i mats) )
-		foldedFully_att3 v vmatQfunc = foldAutoind3 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp3 mat (v <\> mat)) (succImplWknStep_att3 (v <\> mat) vmatQfunc) ( (v<\>mat)::mat ** (Refl, danrzLast3 ((v <\> mat)::mat), bispanslzrefl) )
+			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
+		foldedFully v vmatQfunc = foldAutoind2 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp mat (v <\> mat)) (succImplWknStep (v <\> mat) vmatQfunc) ( (v<\>mat)::mat ** (Refl, danrzLast ((v <\> mat)::mat), bispanslzrefl) )
 
 {-
 Reference
