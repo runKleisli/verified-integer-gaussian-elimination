@@ -1,3 +1,6 @@
+-- This content is preserved for the understanding of errors surrounding this approach.
+-- elimFirstCol and foldAutoind were to be dropped.
+
 module ZZGaussianElimination
 
 import Control.Algebra
@@ -109,24 +112,214 @@ Note that these examples both actually have the correct type, they're just not d
 
 
 
+weakenThenProp : (p : {m : Nat} -> Fin (S m) -> a -> Type ) -> ({m : Nat} -> Fin m -> a -> Type)
+weakenThenProp p = p . weaken
+
+fai_regrwkn_liftdomain: { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin (S predn))
+		-> ( w : a ** p (FS i) w )
+		-> ( w' : a ** p (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** p (weaken $ FS i) w )
+	-> ( w' : a ** p (weaken $ weaken i) w' )
+
+fai_regrwkn_chty : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> ( w : a ** p (weaken $ FS i) w )
+		-> ( w' : a ** p (weaken $ weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** (weakenThenProp p) (FS i) w )
+	-> ( w' : a ** (weakenThenProp p) (weaken i) w' )
+
 {-
-Error discovered while implementing (foldAutoind).
-
----
-
-It was found that if you replace the argument
-
-> p : (m : Nat) -> Fin (S m) -> a -> Type
-
-with one where (m) is implicit, and rewrite (foldAutoind2 & friends) accordingly, then one can't implement them, because composing (p) with weaken leads to a Universe Inconsistency error, which doesn't appear when the weakening is done in the REPL, only when the resulting proof is loaded in the module.
-
-See (elimFirstCol-oldmaterial.idr) where (fai_regrwkn_chty) and (fai_regrwkn_chty2) are being implemented (for (foldAutoind), (foldAutoind2) resp.) for details.
-
-This differs from the error described in (ImplicitArgsError), in that the values of (p) are irrelevant in creating this Universe Inconsistency error, whereas the one in (ImplicitArgsError) would arise from the values of (p) having implicit arguments of their own.
+-- For some reason, it's not allowed to use (p . weaken) instead of (weakenThenProp p).
+fai_regrwkn_chty : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> ( w : a ** p (weaken $ FS i) w )
+		-> ( w' : a ** p (weaken $ weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** (p . weaken) (FS i) w )
+	-> ( w' : a ** (p . weaken) (weaken i) w' )
 -}
 
+fai_regrwkn : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin (S predn))
+		-> ( w : a ** p (FS i) w )
+		-> ( w' : a ** p (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** (weakenThenProp p) (FS i) w )
+	-> ( w' : a ** (weakenThenProp p) (weaken i) w' )
+fai_regrwkn = ?fai_regrwkn_pr
+{-
 
+This isn't allowed
 
+> fai_regrwkn {p} = (fai_regrwkn_chty {p=p}) . (fai_regrwkn_liftdomain {p=p})
+
+because there are implicit arguments generated such that for example
+
+	p i w
+
+is of the form ((k : s) -> Type).
+
+These are not implicit goals, so it is a failure of unification here. Perhaps we should use explicit (Sigma)s to overcome this failure of expression.
+
+-}
+
+fai_regrwkn_liftdomain2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin (S predn))
+		-> Sigma a (p $ FS i)
+		-> Sigma a (p $ weaken i) )
+	-> (i : Fin predn)
+	-> Sigma a (p $ weaken $ FS i)
+	-> Sigma a (p $ weaken $ weaken i)
+
+{-
+-- Can't do this for some reason
+fai_regrwkn_chty2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> Sigma a (p $ weaken $ FS i)
+		-> Sigma a (p $ weaken $ weaken i) )
+	-> (i : Fin predn)
+	-> Sigma a (weakenThenProp p $ FS i)
+	-> Sigma a (weakenThenProp p $ weaken i)
+-}
+
+{-
+-- In the REPL we can use a proof to force allowed use of (p . weaken).
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> { p : {m : Nat} -> Fin (S m) -> a -> Type } -> {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> Sigma a (p $ weaken $ FS i) -> Sigma a (p $ weaken $ weaken i)
+>   exact (i : Fin predn) -> Sigma a _ -> Sigma a _
+>   exact (p . weaken) $ FS i
+>   exact (p . weaken) $ weaken i
+
+but loaded from module, we get this error:
+
+Universe inconsistency.
+        Working on: p10
+        Old domain: (1,10)
+        New domain: (1,0)
+        Involved constraints: 
+                ConstraintFC {uconstraint = p10 <= q10, ufc = ZZGaussianElimination.idr:151:22}
+                ConstraintFC {uconstraint = o10 < p10, ufc = ZZGaussianElimination.idr:151:22}
+
+We also get that error when we write the simply more elaborate proof
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> _
+>   exact { p : {m : Nat} -> Fin (S m) -> a -> Type } -> _
+>   exact {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> _
+>   unfocus
+>   exact _ -> _
+>   unfocus
+>   exact Sigma a (p $ weaken $ FS i)
+>   exact Sigma a (p $ weaken $ weaken i)
+>   exact (j : Fin predn) -> _
+>   exact _ -> _
+>   exact Sigma a _
+>   unfocus
+>   exact ( p . weaken ) $ _
+>   unfocus
+>   unfocus
+>   exact FS j
+>   exact Sigma a _
+>   exact (p . weaken) $ _
+>   unfocus
+>   exact weaken j
+
+and even using weakenThenProp gives the error:
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> { p : {m : Nat} -> Fin (S m) -> a -> Type } -> {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> Sigma a (p $ weaken $ FS i) -> Sigma a (p $ weaken $ weaken i)
+>   exact (i : Fin predn) -> Sigma a _ -> Sigma a _
+>   exact (weakenThenProp p) $ FS i
+>   exact (weakenThenProp p) $ weaken i
+
+This variant makes me suspect the problem is with having (p) take an implicit argument at all.
+
+> fai_regrwkn_chty2 : ?fai_regrwkn_chty2_ty
+> fai_regrwkn_chty2_ty = proof
+>   exact {a : Type} -> { p : {m : Nat} -> Fin (S m) -> a -> Type } -> {predn : Nat} -> _
+>   exact _ -> _
+>   exact (i : Fin predn) -> Sigma a (p $ weaken $ FS i) -> Sigma a (p $ weaken $ weaken i)
+>   exact (j : Fin predn) -> Sigma a _ -> Sigma a _
+>   exact _ $ weaken $ FS j
+>   exact _ $ weaken $ weaken j
+>   intro j'
+>   intro w
+>   exact p j' w
+>   intro j'
+>   intro w
+>   let comment1 = "You cannot write `exact p {m=S $ S $ predn} j' w` here - it won't let the implicit argument be specified."
+>   let comment2 = "\"No such variable m\" from: let p' = \\mu => p {m=mu}"
+>   exact p j' w
+-}
+
+{-
+Sigma types also clarify what the failure is when processing (p . weaken).
+
+> fai_regrwkn_chty2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+> 	-> ( (i : Fin predn)
+> 		-> Sigma a (p $ weaken $ FS i)
+> 		-> Sigma a (p $ weaken $ weaken i) )
+> 	-> (i : Fin predn)
+> 	-> Sigma a (((p {m=_}) . weaken) $ FS i)
+> 	-> Sigma a (((p {m=_}) . weaken) $ weaken i)
+
+When checking an application of function Prelude.Basics..:
+        Type mismatch between
+                {m : Prelude.Nat.Nat} -> Data.Fin.Fin (Prelude.Nat.S m) ->
+                a -> Type (Type of p)
+        and
+                b -> a -> Type (Expected type)
+        
+        Specifically:
+                Type mismatch between
+                        a -> Type
+                and
+                        Type
+
+> fai_regrwkn_chty2 : { p : {m : Nat} -> Fin (S m) -> a -> Type }
+> 	-> ( (i : Fin predn)
+> 		-> Sigma a (p $ weaken $ FS i)
+> 		-> Sigma a (p $ weaken $ weaken i) )
+> 	-> (i : Fin predn)
+> 	-> Sigma a (((p {m=_}) . weaken) $ FS i)
+> 	-> Sigma a (((p {m=_}) . weaken) $ weaken i)
+
+When checking an application of function Prelude.Basics..:
+        Type mismatch between
+                a -> Type (Type of p m _)
+        and
+                b -> a -> Type (Expected type)
+        
+        Specifically:
+                Type mismatch between
+                        Type
+                and
+                        a -> Type
+
+-}
+
+fai_regrwkn_chty2 : { p : (m : Nat) -> Fin (S m) -> a -> Type }
+	-> ( (i : Fin predn)
+		-> Sigma a (p _ $ weaken $ FS i)
+		-> Sigma a (p _ $ weaken $ weaken i) )
+	-> (i : Fin predn)
+	-> Sigma a (((p _) . weaken) $ FS i)
+	-> Sigma a (((p _) . weaken) $ weaken i)
+
+-- We won't compose through fai_regrwkn_chty2 and fai_regrwkn_liftdomain2 this time.
 fai_regrwkn2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 	-> ( (i : Fin (S predn))
 		-> ( w : a ** p _ (FS i) w )
@@ -136,6 +329,79 @@ fai_regrwkn2 : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 	-> ( w' : a ** ((p _) . weaken) (weaken i) w' )
 -- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
 fai_regrwkn2 p fn i = fn (weaken i)
+
+
+
+fai_regrwkn3 : (a : Nat -> Type)
+	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
+	-> ( (i : Fin (S predn))
+		-> ( w : a (S predn) ** p _ (FS i) w )
+		-> ( w' : a (S predn) ** p _ (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w  : (a . S) predn ** ((p _) . weaken) (FS i) w )
+	-> ( w' : (a . S) predn ** ((p _) . weaken) (weaken i) w' )
+-- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
+fai_regrwkn3 a p fn i = fn (weaken i)
+
+
+
+||| A vector fold over suppressed indices
+||| Best used with those `p` which are trivial for (last) and some (a).
+foldAutoind : ( p : {m : Nat} -> Fin (S m) -> a -> Type )
+	-> ( (i : Fin predn)
+		-> ( w : a ** p (FS i) w )
+		-> ( w' : a ** p (weaken i) w' ) )
+	-> ( v : a ** p (last {n=predn}) v )
+	-> ( xs : Vect (S predn) a ** (i : Fin (S predn)) -> p i (index i xs) )
+{-
+foldAutoind {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+{-
+Bizarrely, this interprets filling in the impl. arg to (p) as filling in its (Fin (S m)) arg.
+-}
+	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) (fai_regrwkn2 (\mu => p {m=mu}) regr) (v' ** pv') )
+-- 	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) (fai_regrwkn {p=p} regr) (v' ** pv') )
+-- 	| (v' ** pv') with ( foldAutoind {predn=prededn} (p . weaken) (regr' p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew
+		-- | ( xs ** fn ) = ( xs++[v] ** ?foldAutoind_rhs_2 )
+
+-- regr' = \i => \par => rewrite sym (commuteFSWeaken i) in (regr (weaken i) par)
+-- : the ( (p . weaken) t s = p (weaken t) s ) Refl
+-}
+
+{-
+regr_alter1 : (i : Fin prededn) -> ( w : a ** p (FS $ weaken i) w ) -> ( w' : a ** p (weaken $ weaken i) w' ) )
+regr_alter1 = regr . weaken
+regr_alter2 : (i : Fin prededn) -> ( w : a ** p (weaken $ FS i) w ) -> ( w' : a ** p (weaken $ weaken i) w' ) )
+regr_alter2 i = rewrite sym (commuteFSWeaken i) in (regr_alter1 i)
+regr_alter2' i = rewrite sym (commuteFSWeaken i) in (regr . weaken) i
+-}
+
+{-
+faiNew = proof
+  intros
+  claim xsLong Vect (S (S prededn)) a
+  rewrite sym (the (S (S prededn) = (S prededn) + 1) _)
+  unfocus
+  unfocus
+  exact (xsLong ** _)
+  compute
+  refine cong
+  exact trans _ $ plusSuccRightSucc prededn Z
+  exact xs++[v]
+  unfocus
+  exact cong {f=S} $ sym $ plusZeroRightNeutral _
+  intro
+  claim extendPredDom {n : Nat} -> (q : Fin (S n) -> a -> Type) -> ((i : Fin n) -> ( v : a ** q (weaken i) v )) -> (v ** q last v) -> (j : Fin (S n)) -> (v ** q j v)
+  unfocus
+  let nearp = "extendPredDom (\fi : Fin (S (S prededn)) => p fi) _ (v ** pv) i14"
+  let nearpFnGoal = "(i : Fin (S prededn)) -> (v1 : a ** p {m=S prededn} (weaken i) v1)"
+  exact believe_me nearp
+  intros
+  exact believe_me "Didn't rename (v) in the codomain type, so this can't be implemented."
+-}
+
+
 
 ||| A vector fold over suppressed indices
 ||| Best used with those `p` which are trivial for (last) and some (a).
@@ -170,17 +436,6 @@ faiNew2 = proof
   exact rewrite (weakenedInd {xs=xs} {v=v} {k=getWitness parIsWeakened}) in fn (getWitness parIsWeakened)
 
 
-
-fai_regrwkn3 : (a : Nat -> Type)
-	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
-	-> ( (i : Fin (S predn))
-		-> ( w : a (S predn) ** p _ (FS i) w )
-		-> ( w' : a (S predn) ** p _ (weaken i) w' ) )
-	-> (i : Fin predn)
-	-> ( w  : (a . S) predn ** ((p _) . weaken) (FS i) w )
-	-> ( w' : (a . S) predn ** ((p _) . weaken) (weaken i) w' )
--- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
-fai_regrwkn3 a p fn i = fn (weaken i)
 
 ||| A vector fold over suppressed indices
 ||| The sequel to foldAutoind2
@@ -227,6 +482,15 @@ Properties of vectors and matrices.
 
 
 
+downAndNotRightOfEntryImpliesZ : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
+downAndNotRightOfEntryImpliesZ xs nel mel {n} {m} = {i : Fin n} -> {j : Fin m} -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
+{-
+Equivalent properties:
+1) map (take mel) (drop nel xs) = neutral
+2) (nel `LT` i) -> (j `LTE` mel) -> indices i j xs = Pos Z
+	# In pseudocode, because we decided not to use direct LT and LTE of Fins.
+-}
+
 downAndNotRightOfEntryImpliesZ2 : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
 downAndNotRightOfEntryImpliesZ2 xs nel mel {n} {m} = (i : Fin n) -> (j : Fin m) -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
 {-
@@ -234,18 +498,15 @@ Equivalent properties:
 1) map (take mel) (drop nel xs) = neutral
 2) (nel `LT` i) -> (j `LTE` mel) -> indices i j xs = Pos Z
 	# In pseudocode, because we decided not to use direct LT and LTE of Fins.
-
----
-
-We cannot write
-
-> downAndNotRightOfEntryImpliesZ : (xs : Matrix n m ZZ) -> (row : Fin n) -> (col : Fin m) -> Type
-> downAndNotRightOfEntryImpliesZ xs nel mel {n} {m} = {i : Fin n} -> {j : Fin m} -> (finToNat nel `LTRel` finToNat i) -> (finToNat j `LTERel` finToNat mel) -> indices i j xs = Pos Z
-
-because the error described in ImplicitArgsError applied to (i) and (j) in ({i : Fin n} -> {j : Fin m} -> ...).
 -}
 
+weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (weaken prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
 
+weakenDownAndNotRight_att2 : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+
+afterUpdateAtCurStillDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ (updateAt (weaken prednel) f mat) (FS prednel) mel)
+
+weakenDownAndNotRight2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (indices (weaken prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ2 mat (weaken prednel) mel
 
 weakenDownAndNotRight2_att2 : (downAndNotRightOfEntryImpliesZ2 mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ2 mat (weaken prednel) mel
 
@@ -312,7 +573,7 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 		ty : Fin n -> Type
 		ty nel with (leadingNonzeroCalc $ index nel xs)
 			| Right someNonZness with someNonZness
-				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ2 xs nel leadeln
+				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
 			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 
 
@@ -541,6 +802,140 @@ firstColZeroCalc ((xx::xxs)::xs) with (firstColZeroCalc xs)
 		| Yes isneut = Yes (isneut, pr)
 		| No nope = No ( nope . fst )
 
+{-
+elimFirstCol : (xs : Matrix n m ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) m ZZ ** (gexs `spanslz` xs, xs `spanslz` gexs, firstColZero $ tail gexs))
+{-
+-- Template
+elimFirstCol xs = do {
+		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+		return $ believe_me "shshs"
+		-- return (?foo ** (?bar1,?bar2,?bar3))
+	}
+-}
+-- A 0-row matrix becomes the one-neutral-row matrix
+elimFirstCol [] {m} = return (row {n=m} neutral ** ( ([] ** Refl), ([neutral] ** Refl), the (firstColZero [] {m=m}) () ))
+elimFirstCol ([]::xs) = ?elimFirstCol_widthZero
+elimFirstCol mat {n=S predn} {m=S predm} = do {
+-- elimFirstCol mat@((xx::xxs)::xs) {n=S predn} {m=S predm} = do {
+		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
+
+		{-
+		Error:
+
+		> elimFirstCol (x::xs) {m} = do {
+		> 	gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+		> 	let (v ** fn) = gcdalg _ x
+		>	-- which is a ( v : Vect _ ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
+
+			gcdalg does not have a function type (gcdOfVectAlg)
+		-}
+
+		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
+		let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
+
+		{-
+		* We want the first entry of (gexs) to be (v <:> (getCol FZ mat)), and to acquire the full vector as a linear combination of (mat) rows.
+		* index FZ (r<\>m) = r<:>(index FZ $ transpose m) = r<:>(getCol FZ m)
+		* to that end, we begin construction by appending (v<\>mat) to (mat).
+		-}
+
+		let bisWithGCD = the ((v<\>mat)::mat `spanslz` mat, mat `spanslz` (v<\>mat)::mat)
+			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
+
+		{-
+		* Use the properties of fn to construct mat', with bar1 and bar2 following by construction and divisibility
+		-}
+
+		{-
+		This has to be commented out if you reduce mat@((xx::xxs)::xs) to mat.
+		They say it's a type mismatch.
+
+		> let mat' = mat <-> (map (\i => (v <:> (getCol FZ mat))<.>(Sigma.getWitness $ fn i) <#> (index i mat)) range)
+		-}
+
+		{-
+		Typechecks, but we'll try the above for now
+
+		> let mat' = Data.Vect.zipWith (\i => \xi => updateAt i (<-> (v <:> (getCol FZ mat))<.>(Sigma.getWitness $ fn i) <#> xi) mat) range mat
+		-}
+
+		{-
+		We could just foldl with (mat ** spanslzrefl) the seed to the accumulator and accumulate by transforming the matrix to a new one and deriving a proof of its (mat) bispannability from the old proof composed with a proof the transformation preserves bispannability. Refining this fold, an accumulation of the evidence required to show that the first column becomes null below the top/gcd row of the matrix (which is invariant under the transformations).
+		-}
+
+		{-
+		(foldl Iteration 1)
+
+		This has poor qualities for applying transformations with known proofs of bispannability and composing those proofs, and it arbitrarily indirects the construction of (gexs) by accumulation through the accumulation of the tail of the (gexs) to be.
+
+		> let foldSomefuncPreservingBispan = \f => foldl {t=Vect (S predn)} {elt=Fin (S predn)} {acc=( imat : Matrix (S predn) (S predm) ZZ ** ( (v <\> mat)::imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` (v <\> mat)::imat, (i : Fin (S predn) ** {j : Fin (S predn)} -> finToNat j `LTERel` finToNat i -> indices j FZ imat = Pos Z) ) )} f
+		-}
+
+		{-
+		(foldl Iteration 2)
+
+		A rough specification at least
+		This has base case a once-updated version of mat,
+		among other undesirable qualities.
+
+		> let foldSomefuncPreservingBispan2 = \f => foldl {t=Vect (S predn)} {elt=Fin (S predn)} {acc=( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, (i : Fin (S predn) ** {j : Fin (S predn)} -> finToNat j `LTERel` finToNat i -> indices j FZ (tail imat) = Pos Z) ) )} f
+		> 	( updateAt (FS FZ) (<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS FZ) (v<\>mat)::mat))) (v<\>mat)::mat ** (spanslzSubtractiveExchangeAt FS FZ,?howel,(FZ ** ?initTheFirstRowOfTailIsZero)) ) (map FS range)
+		-}
+
+		{-
+		(foldl Iteration 3)
+		-}
+
+		let foldSomefuncPreservingBispan3 = \f => foldl {t=Vect (S predn)} {elt=Fin (S predn)} {acc=( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, (i : Fin (S (S predn)) ** (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i -> indices (FS j) FZ imat = Pos Z) ) )} f
+			( (v<\>mat)::mat ** (spanslzrefl,spanslzrefl,(FZ ** ?proveItAbs)) ) range
+		-- proveItAbs is like \j => void . ( spawnNotLTE (finToNat (FS j)) (finToNat FZ)) )
+		-- spawnNotLTE is an explicit (LTERel _ _ -> Void) to be proved, avoiding any (decLTE) (Yes/No)-case handling problems.
+		-- f should take its argument (elt:=Fin (S predn)) to its successor so it can be used to index (imat), starting in its tail, and so that it will always be non-FZ and thus never using the same (Fin (S (S predn))) as the base case has.
+
+		{-
+		Can't deduce that the final bound on the known rows zero in the first column starting from the top row of (tail endmat) is actually the final row.
+
+			"Can't match on case block in case block in elimFirstCol at [...]"
+
+		This and the redundant information in the (range) argument suggests an even cleaner structure and closer intermediary to the goal.
+
+		> let ( endmat ** ( endmatSpansMatandgcd, matandgcdSpansEndmat, (last {n=S predn} ** downImpliesZ) ) ) = foldSomefuncPreservingBispan3 fancy
+		-}
+
+		let ( endmat ** ( endmatSpansMatandgcd, matandgcdSpansEndmat, (finalind ** notUpImpliesZ) ) ) = foldSomefuncPreservingBispan3 fancy
+
+		{-
+		We need to show that for every row (i) of (mat), there is a vector (u) such that (u_(FS i)<\>(droprow (FS i) (v<\>mat)::mat) has the same value as row (i) of (mat) at column FZ). Especially that this property is preserved in each (imat).
+		-}
+
+		-- See comment to def of mat' for why this is commented
+		-- let fstcolz_mat' = the (firstColZero mat') ?lemma_fstcolz_mat'
+
+		-- let downImpliesZ' = ?determineFirstColZ downImpliesZ
+
+		-- return ( (v <\> mat)::mat' ** (?bar1,?bar2,fstcolz_mat'))
+		return ( endmat ** (spanslztrans endmatSpansMatandgcd $ fst bisWithGCD, spanslztrans (snd bisWithGCD) matandgcdSpansEndmat, ?downImpliesZ'))
+	}
+	where
+		extendedFunc : {imat : Matrix (S (S predn)) (S predm) ZZ}
+			-> (sfi : Fin (S (S predn)))
+			-> ( (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i -> indices (FS j) FZ imat = Pos Z )
+			-> (j : Fin (S predn))
+			-> finToNat (FS j) `LTERel` finToNat sfi
+			-> indices (FS j) FZ imat = Pos Z
+		fancy : {v : Vect (S predn) ZZ} -> ( imat : Matrix (S (S predn)) (S predm) ZZ ** ( imat `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat, (i : Fin (S (S predn)) ** (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i -> indices (FS j) FZ imat = Pos Z) ) )
+			-> (fi : Fin (S predn))
+			-> ( imat' : Matrix (S (S predn)) (S predm) ZZ ** ( imat' `spanslz` (v <\> mat)::mat, (v <\> mat)::mat `spanslz` imat', (i' : Fin (S (S predn)) ** (j : Fin (S predn)) -> finToNat (FS j) `LTERel` finToNat i' -> indices (FS j) FZ imat' = Pos Z) ) )
+		fancy ( imat ** (imatSpansMatandgcd, matandgcdSpansImat, (i ** downImpl)) ) fi = ( updateAt
+				(FS fi)
+				(<->(?makesXXTheHeadMatHeadless<\>(deleteRow (FS fi) imat)))
+				imat
+			** (spanslztrans (spanslzSubtractiveExchangeAt $ FS fi) imatSpansMatandgcd,
+				spanslztrans matandgcdSpansImat (spanslzSubtractivePreservationAt $ FS fi),
+				(FS fi ** extendedFunc (FS fi) downImpl)
+			) )
+-}
+
 
 
 succImplWknProp3 : (omat : Matrix predonnom (S predm) ZZ) -> (senior : Vect (S predm) ZZ) -> (nu : Nat) -> (fi : Fin (S nu)) -> Matrix (S nu) (S predm) ZZ -> Type
@@ -580,15 +975,30 @@ elimFirstCol2 mat {n=S predn} {predm} = do {
 		gcdalg <- ask @{the (MonadReader ZZGaussianElimination.gcdOfVectAlg _) %instance}
 
 		-- (v ** fn) : ( v : Vect _ ZZ ** ( i : Fin _ ) -> (index i matcolZ) `quotientOverZZ` (v <:> matcolZ) )
-		{-
-		This should still be viable it just hasn't been restored from alteration while diagnosing a compiler error.
-		> let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
-		-}
+		-- let (v ** fn) = runGCDOfVectAlg gcdalg _ (getCol FZ mat)
 		let (v ** fn) = runGCDOfVectAlg gcdalg (S predn) (getCol FZ mat)
 
 		let bisWithGCD = the ((v<\>mat)::mat `spanslz` mat, mat `spanslz` (v<\>mat)::mat)
 			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
 
+		{-
+		!!! ARCHAICLY WRITTEN COMMENT.
+		!!! At the time, foldedFully had a different type, and some of the types had different values, compared to what currently exists.
+
+		The error here is indecipherable from the message. See the form below for an improvement.
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, the ( downAndNotRightOfEntryImpliesZ ((v<\>mat)::mat) (last {n=predn}) FZ ) $ void . notSNatLastLTEAnything) )
+		
+		---
+		Here it's basically telling us it can't infer a function type for succImplWknProp _ _ _.
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, the ( succImplWknProp {omat=(v<\>mat)::mat} (S predn) (last {n=predn}) ((v<\>mat)::mat) ) ( void . notSNatLastLTEAnything )) )
+		
+		---
+		After much externalization for error isolation
+		---
+		let ( endmat ** endmatPropFn ) = foldAutoind2 (succImplWknProp {omat=(v <\> mat)::mat}) (succImplWknStep {v=v}) ( (v<\>mat)::mat ** (spanslzrefl, spanslzrefl, danrzLast {omat=(v <\> mat)::mat}) )
+		-}
 
 		{-
 		This works fine
