@@ -80,6 +80,18 @@ notSNatLastLTEAnything {n=S predn} {i=FS pri} = notSNatLastLTEAnything . fromLte
 
 
 
+finToNatWeaken : {k : Fin n} -> finToNat k = finToNat (weaken k)
+finToNatWeaken {k=FZ} = Refl
+finToNatWeaken {k=FS k} = cong {f=S} $ finToNatWeaken {k}
+
+partitionNatWknLT : (pnel : Fin n) -> (el : Fin (S n)) -> (elDown : LTRel (finToNat $ weaken pnel) (finToNat el)) -> Either ( LTRel (finToNat $ FS pnel) (finToNat el) ) ( el=FS pnel )
+partitionNatWknLT pnel el elDown = map (sym . (finToNatInjective (FS pnel) el)) $ lteToLTERel $ lteFromEqLeft (cong {f=S} $ sym finToNatWeaken) elDown
+	where
+		lteFromEqLeft : (a=b) -> LTE a c -> LTE b c
+		lteFromEqLeft pr lel = rewrite (sym pr) in lel
+
+
+
 total
 splitFinS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = weaken k ) ( i = Data.Fin.last )
 splitFinS {predn=Z} FZ = Right Refl
@@ -257,26 +269,28 @@ danrzTail : downAndNotRightOfEntryImpliesZ (x::xs) (weaken nel) mel -> downAndNo
 
 
 
--- Create (LTE) to (LTERel) isomorphism and inline this in all occurrences.
-ltToLtelike : (prednel : Fin n) -> (i : Fin (S n)) -> (iDown : LTRel (finToNat $ weaken prednel) (finToNat i)) -> Either ( LTRel (finToNat $ FS prednel) (finToNat i) ) ( i=FS prednel )
+weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> ((j : _) -> LTERel (finToNat j) (finToNat mel) -> indices (FS prednel) j mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+weakenDownAndNotRight {prednel} {mat} danrz newzfn i j iDown jNotRight = either (\b => danrz i j b jNotRight) (\pr => trans (cong {f=\e => indices e j mat} pr) $ newzfn j jNotRight) $ partitionNatWknLT prednel i iDown
+
+||| A special case of (weakenDownAndNotRight).
+weakenDownAndNotRightFZ : (downAndNotRightOfEntryImpliesZ mat (FS prednel) FZ) -> (indices (FS prednel) FZ mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) FZ
+weakenDownAndNotRightFZ {prednel} {mat} danrz newz i FZ iDown fzNotRight = either (\b => danrz i FZ b fzNotRight) (\pr => trans (cong {f=\e => indices e FZ mat} pr) newz) $ partitionNatWknLT prednel i iDown
+
 {-
-Observe
-	LTRel (finToNat $ weaken prednel) (finToNat i)
-	= LTE (S $ finToNat $ weaken prednel) (finToNat i)
-	= LTE (finToNat $ FS prednel) (finToNat i)
-convert LTE to LTERel
-	LTERel (finToNat $ FS prednel) (finToNat i)
-	= Either (LT (finToNat $ FS prednel) (finToNat i)) (FS prednel = i)
-apply (sym . (finToNatInjective (FS prednel) i)) to Rights, and leave Lefts as-is.
+Obviously you want
+
+> weakenDownAndNotRightFZ : (downAndNotRightOfEntryImpliesZ mat (FS prednel) FZ) -> (indices (FS prednel) FZ mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) FZ
+> weakenDownAndNotRightFZ {prednel} {mat} danrz newz = weakenDownAndNotRight {mel=FZ} danrz ?newzfn
+
+but the implementation of (newzfn) is not readily available, so nope.
+
+> :search {k : Nat} -> (j : Fin (S k)) -> LTERel (finToNat j) (finToNat $ FZ {k=k}) -> (j=FZ)
+No results found
+> :search {k : Nat} -> (j : Fin (S k)) -> LTE (finToNat j) (finToNat $ FZ {k=k}) -> (j=FZ)
+No results found
 -}
 
-weakenDownAndNotRightFZ : (downAndNotRightOfEntryImpliesZ mat (FS prednel) FZ) -> (indices (FS prednel) FZ mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) FZ
-weakenDownAndNotRightFZ {prednel} {mat} danrz newz i FZ iDown fzNotRight = either (\b => danrz i FZ b fzNotRight) (\pr => trans (cong {f=\e => indices e FZ mat} pr) newz) $ ltToLtelike prednel i iDown
--- weakenDownAndNotRightFZ {prednel} danrz newz i j iDown jNotRight = ?weakenDownAndNotRightFZ_pr
--- decLTENat is a quick way
 
-weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (LTERel (finToNat j) (finToNat mel) -> indices (FS prednel) j mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
-weakenDownAndNotRight danrz newzfn i j iDown jNotRight = ?weakenDownAndNotRight_pr
 
 total
 afterUpdateAtCurStillDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ (updateAt (FS prednel) f mat) (FS prednel) mel)

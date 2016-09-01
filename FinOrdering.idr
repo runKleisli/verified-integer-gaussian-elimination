@@ -73,3 +73,5 @@ instance DecLTE Nat where
 instance DecLT (Fin n) where
 	decLT {n} = decLTFin n
 -}
+
+lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b
