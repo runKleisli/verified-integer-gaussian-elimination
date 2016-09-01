@@ -72,7 +72,11 @@ LTE (S (finToNat last)) (finToNat i)  cannot be a parameter of Prelude.Uninhabit
 
 -- notSNatLastLTEAnything : LTE (S $ finToNat $ last {n=n}) (finToNat $ the (Fin (S n)) i) -> Void
 
+total
 notSNatLastLTEAnything : {n : Nat} -> {i : Fin (S n)} -> LTE (S $ finToNat $ last {n=n}) (finToNat i) -> Void
+notSNatLastLTEAnything {n} {i=FZ} = uninhabited
+notSNatLastLTEAnything {n=Z} {i=FS pri} = FinZElim pri
+notSNatLastLTEAnything {n=S predn} {i=FS pri} = notSNatLastLTEAnything . fromLteSucc
 
 
 
@@ -247,9 +251,40 @@ because the error described in ImplicitArgsError applied to (i) and (j) in ({i :
 
 
 
-weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (indices (FS prednel) mel mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+{-
+danrzTail : downAndNotRightOfEntryImpliesZ (x::xs) (weaken nel) mel -> downAndNotRightOfEntryImpliesZ xs nel mel
+-}
 
+
+
+-- Create (LTE) to (LTERel) isomorphism and inline this in all occurrences.
+ltToLtelike : (prednel : Fin n) -> (i : Fin (S n)) -> (iDown : LTRel (finToNat $ weaken prednel) (finToNat i)) -> Either ( LTRel (finToNat $ FS prednel) (finToNat i) ) ( i=FS prednel )
+{-
+Observe
+	LTRel (finToNat $ weaken prednel) (finToNat i)
+	= LTE (S $ finToNat $ weaken prednel) (finToNat i)
+	= LTE (finToNat $ FS prednel) (finToNat i)
+convert LTE to LTERel
+	LTERel (finToNat $ FS prednel) (finToNat i)
+	= Either (LT (finToNat $ FS prednel) (finToNat i)) (FS prednel = i)
+apply (sym . (finToNatInjective (FS prednel) i)) to Rights, and leave Lefts as-is.
+-}
+
+weakenDownAndNotRightFZ : (downAndNotRightOfEntryImpliesZ mat (FS prednel) FZ) -> (indices (FS prednel) FZ mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) FZ
+weakenDownAndNotRightFZ {prednel} {mat} danrz newz i FZ iDown fzNotRight = either (\b => danrz i FZ b fzNotRight) (\pr => trans (cong {f=\e => indices e FZ mat} pr) newz) $ ltToLtelike prednel i iDown
+-- weakenDownAndNotRightFZ {prednel} danrz newz i j iDown jNotRight = ?weakenDownAndNotRightFZ_pr
+-- decLTENat is a quick way
+
+weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (LTERel (finToNat j) (finToNat mel) -> indices (FS prednel) j mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+weakenDownAndNotRight danrz newzfn i j iDown jNotRight = ?weakenDownAndNotRight_pr
+
+total
 afterUpdateAtCurStillDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> (downAndNotRightOfEntryImpliesZ (updateAt (FS prednel) f mat) (FS prednel) mel)
+afterUpdateAtCurStillDownAndNotRight {prednel=FZ} {mat=x::y::xs} {mel} danrz FZ j iDown jNotRight = void $ succNotLTEzero $ iDown
+afterUpdateAtCurStillDownAndNotRight {prednel=FZ} {mat=x::y::xs} {mel} danrz (FS FZ) j iDown jNotRight = void $ succNotLTEzero $ fromLteSucc iDown
+afterUpdateAtCurStillDownAndNotRight {prednel=FZ} {mat=x::y::xs} {mel} danrz (FS $ FS i) j iDown jNotRight = danrz (FS $ FS i) j iDown jNotRight
+afterUpdateAtCurStillDownAndNotRight {prednel=FS predednel} {mat=x::xs} {f} danrz FZ j iDown jNotRight = danrz FZ j iDown jNotRight
+afterUpdateAtCurStillDownAndNotRight {prednel=FS predednel} {mat=x::xs} {mel} {f} danrz (FS i) j iDown jNotRight = afterUpdateAtCurStillDownAndNotRight {prednel=predednel} {mat=xs} {mel=mel} {f=f} (\i_xs => \j_xs => \iDown_xs => \jNotRight_xs => danrz (FS i_xs) j_xs (LTESucc iDown_xs) jNotRight_xs) i j (fromLteSucc iDown) jNotRight
 
 
 
@@ -677,7 +712,7 @@ elimFirstCol mat {n=S predn} {predm} = do {
 				primatzAtWknFi : indices (FS fi) FZ jmat = Pos Z
 				primatzAtWknFi = trans (cong {f=index FZ} $ indexUpdateAtChariz {xs=imat} {i=FS fi} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)}) $ trans (zipWithEntryChariz {i=FZ {k=predm}} {m=(<+>)} {x=index (FS fi) imat} {y=inverse $ (Sigma.getWitness $ fn (FS fi)) <#> senior}) $ trans (cong {f=plusZ $ indices (FS fi) FZ imat} $ trans (indexCompatInverse ((<#>) (Sigma.getWitness $ fn $ FS fi) senior) FZ) (cong {f=inverse} $ indexCompatScaling (Sigma.getWitness $ fn $ FS fi) senior FZ)) $ trans (cong {f=(<->) $ indices (FS fi) FZ imat} $ trans (cong {f=((Sigma.getWitness $ fn $ FS fi)<.>)} $ indexFZIsheadValued {xs=senior}) $ getProof $ fn $ FS fi) $ groupInverseIsInverseL $ indices (FS fi) FZ imat
 				jmatDANRZ : downAndNotRightOfEntryImpliesZ jmat (weaken fi) FZ
-				jmatDANRZ = weakenDownAndNotRight {prednel=fi} {mel=FZ} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)} imatDANRZ) primatzAtWknFi
+				jmatDANRZ = weakenDownAndNotRightFZ {prednel=fi} {mat=jmat} (afterUpdateAtCurStillDownAndNotRight {mat=imat} {prednel=fi} {mel=FZ} {f=(<-> (Sigma.getWitness $ fn (FS fi)) <#> senior)} imatDANRZ) primatzAtWknFi
 				missingstep : head imat = (Algebra.unity::Algebra.neutral) <\> deleteRow (FS fi) imat
 				missingstep = sym $ trans
 					( timesVectMatAsLinearCombo (Algebra.unity::Algebra.neutral) $ deleteRow (FS fi) imat )
