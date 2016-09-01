@@ -154,7 +154,14 @@ fai_regrwkn : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 fai_regrwkn p fn i = fn (weaken i)
 
 ||| A vector fold over suppressed indices
-||| Best used with those `p` which are trivial for (last) and some (a).
+|||
+||| Extends one witness for some predicate
+|||
+||| p : (m : Nat) -> Fin (S m) -> a -> Type
+|||
+||| to a (Vect) of them.
+|||
+||| Best used with those (p) which are trivial for (last) and some (a).
 foldAutoind : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
 	-> ( (i : Fin predn)
 		-> ( w : a ** p _ (FS i) w )
@@ -199,7 +206,13 @@ fai2_regrwkn : (a : Nat -> Type)
 fai2_regrwkn a p fn i = fn (weaken i)
 
 ||| A vector fold over suppressed indices
-||| The sequel to foldAutoind
+|||
+||| Same strength of result as foldAutoind, but where the predicate is of the form
+|||
+||| p : (m : Nat) -> Fin (S m) -> (a m) -> Type
+|||
+||| for when it isn't naturally expressed or proved without affecting
+||| the type (a _) of the witnesses dealt with by this process.
 {-
 (a : Nat -> Type) is not made implicit because Idris isn't likely to deduce it and will likely spend a long time trying anyway.
 -}
