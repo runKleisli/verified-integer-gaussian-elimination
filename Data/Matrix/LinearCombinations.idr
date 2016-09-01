@@ -6,6 +6,9 @@ import Classes.Verified -- definition of verified algebras other than modules
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
+import Data.Vect.Structural
+import Data.Matrix.Structural
+
 import Data.ZZ
 
 
@@ -58,46 +61,6 @@ etaBinary f = trans (eta f) $ trans baz1 $ trans bar baz2
 		baz1 = sym flipIsInvolutionExtensional
 		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
 		baz2 = flipIsInvolutionExtensional
-
-
-
-total
-zeroVecEq : {a : Vect 0 r} -> {b : Vect 0 r} -> a = b
-zeroVecEq {a=[]} {b=[]} = Refl
-
-
-
-total
-vecSingletonReplicateEq : ((u : a) -> v=u) -> (xs : Vect n a) -> (xs = replicate n v)
-vecSingletonReplicateEq f [] = Refl
-vecSingletonReplicateEq f (x::xs) {v} = rewrite sym (f x) in cong {f=(v::)} (vecSingletonReplicateEq f xs)
-
-
-
-total
-zeroVecVecId : (xs : Vect n (Vect 0 a)) -> (xs = replicate n [])
-zeroVecVecId = vecSingletonReplicateEq (\b => zeroVecEq {a=[]} {b=b})
-
-
-
-total
-headMapChariz : {xs : Vect (S n) _} -> head $ map f xs = f $ head xs
-headMapChariz {xs=x::xs} = Refl
-
-mapheadrec : with Data.Vect ( map head (v::vs) = (head v) :: (map head vs) )
-mapheadrec = Refl
-
-headtails : (v : Vect (S predk) _) -> v = (head v) :: (tail v)
-headtails (vv::vvs) = Refl
-
-
-
--- The theorem below this one should not be a necessary weakening, since the functions have equivalent definitions.
--- indexFZIshead : index FZ = Data.Vect.head
-
-total
-indexFZIsheadValued : index FZ xs = head xs
-indexFZIsheadValued {xs=x :: xs} = Refl
 
 
 
@@ -310,14 +273,6 @@ lem3_lemma_1 = proof
 	intro
 	compute
 	exact id
-
-
-
-transposeNHead: with Data.Vect ( head $ transpose xs = map head xs )
-
-transposeNTail : with Data.Vect ( transpose $ tail $ transpose xs = map tail xs )
-
-transposeIsInvolution : with Data.Vect ( transpose $ transpose xs = xs )
 
 
 

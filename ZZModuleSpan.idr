@@ -12,6 +12,9 @@ import Data.ZZ
 import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 
+import Data.Vect.Structural
+-- import Data.Matrix.Structural
+
 import Control.Isomorphism
 
 
@@ -19,11 +22,6 @@ import Control.Isomorphism
 {-
 Trivial lemmas and plumbing
 -}
-
-vecHeadtailsEq : {xs,ys : Vect _ _} -> ( headeq : x = y ) -> ( taileq : xs = ys ) -> x::xs = y::ys
-vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq) $ cong {f=(::ys)} headeq
--- Also a solid proof:
--- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
 
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to
@@ -367,6 +365,9 @@ spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** zippyScale {n'=n'} {n=n} vs xs 
 spanslz : (xs : Matrix n w ZZ) -> (ys : Matrix n' w ZZ) -> Type
 spanslz {n} {n'} xs ys = (vs : Matrix n' n ZZ ** vs `zippyScale` xs = ys)
 
+bispanslz : (xs : Matrix n w ZZ) -> (ys : Matrix n' w ZZ) -> Type
+bispanslz xs ys = (xs `spanslz` ys, ys `spanslz` xs)
+
 
 
 {-
@@ -471,10 +472,26 @@ spanslztrans {na} {ni} {nu} {m} {xs} {ys} {zs} (vsx ** prvsx) (vsy ** prvsy) = (
 		spanslztrans_linearcombprop : spanslztrans_matrix `zippyScale` xs = zs
 		spanslztrans_linearcombprop = trans (cong {f=(flip zippyScale) xs} $ timesMatMatAsMultipleLinearCombos vsy vsx) $ trans (sym $ zippyScaleIsAssociative {l=vsy} {c=vsx} {r=xs}) $ trans (cong {f=zippyScale vsy} prvsx) prvsy
 
+bispanslztrans : {xs : Matrix na m ZZ} -> {ys : Matrix ni m ZZ} -> {zs : Matrix nu m ZZ} -> bispanslz {n=na} {n'=ni} xs ys -> bispanslz {n=ni} {n'=nu} ys zs -> bispanslz xs zs
+bispanslztrans (sxy,syx) (syz,szy) = (spanslztrans sxy syz, spanslztrans szy syx)
+
+
+
+bispanslzsym : xs `bispanslz` ys -> ys `bispanslz` xs
+bispanslzsym = swap
+
 
 
 spanslzrefl : spanslz xs xs
 spanslzrefl = ( Id ** zippyScaleIdLeftNeutral _ )
+
+bispanslzrefl : bispanslz xs xs
+bispanslzrefl = (spanslzrefl, spanslzrefl)
+
+spanslzreflFromEq : (xs=ys) -> xs `spanslz` ys
+spanslzreflFromEq pr = ( Id ** trans (zippyScaleIdLeftNeutral _) pr )
+
+bispanslzreflFromEq : (xs=ys) -> xs `bispanslz` ys
 
 
 
@@ -645,3 +662,13 @@ spanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<+>(
 spanslzAdditiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes {f=\argxx => \argxxs => argxx<+>(z<\>argxxs) } (\argxx => \argxxs => spanslzAdditiveExchange {y=argxx} {xs=argxxs} {z=z}) nel xs
 
 spanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<->(z<\>(deleteRow nel xs))) xs) xs
+
+spanslzAdditivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs)
+
+spanslzSubtractivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<->(z<\>(deleteRow nel xs))) xs)
+
+bispanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
+bispanslzAdditiveExchangeAt nel = (spanslzAdditiveExchangeAt nel, spanslzAdditivePreservationAt nel)
+
+bispanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt nel (<->(z<\>(deleteRow nel xs))) xs) xs
+bispanslzSubtractiveExchangeAt nel = (spanslzSubtractiveExchangeAt nel, spanslzSubtractivePreservationAt nel)
