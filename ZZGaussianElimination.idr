@@ -796,14 +796,49 @@ elimFirstCol mat {n=S predn} {predm} = do {
 			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
 		foldedFully v vmatQfunc = foldAutoind2 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp mat (v <\> mat)) (succImplWknStep (v <\> mat) vmatQfunc) ( (v<\>mat)::mat ** (Refl, danrzLast ((v <\> mat)::mat), bispanslzrefl) )
 
+-- Convert pattern matching on (n') to an actual figure for the final length of (gexs) to enable proof of totality. May require nasty type rewrites (cpr. plusOneVectIsSuccVect, appendedSingletonAsSuccVect).
+||| Equal to their sum
+elimLength : (n, m : Nat) -> Nat
+elimLength n Z = n
+elimLength n (S predm) = S (elimLength n predm)
+
+gaussElimlzIfGCD : Reader ZZGaussianElimination.gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
+
+gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (elimLength n (S predm)) (S predm) ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))
+{-
+-- Template
+gaussElimlzIfGCD2 xs = do {
+		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+		return $ believe_me "shshs"
+		-- return (?foo ** (?bar1,?bar2,?bar3))
+	}
+-}
+gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (getWitness k ** ( echFromDanrz $ fst $ getProof k, snd $ getProof k))) $ elimFirstCol xs
+	where
+		echFromDanrz : downAndNotRightOfEntryImpliesZ mat FZ FZ
+			-> rowEchelon mat
+{-
+gaussElimlzIfGCD2 xs {predm = S prededm} = do {
+		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+
+		xsFCZ <- elimFirstCol xs
+
+		return $ believe_me "shshs"
+		-- return (?foo ** (?bar1,?bar2,?bar3))
+	}
+-}
 {-
 Reference
 -----
-gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
+	where
+		ty : Fin n -> Type
+		ty nel with (leadingNonzeroCalc $ index nel xs)
+			| Right someNonZness with someNonZness
+				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
+			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 -}
-
-gaussElimlzIfGCD : Reader gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
--- gaussElimlzIfGCD2 : (xs : Matrix n m ZZ) -> Reader gcdOfVectAlg (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))
 
 
 
