@@ -813,9 +813,19 @@ gaussElimlzIfGCD2 xs = do {
 		-- return (?foo ** (?bar1,?bar2,?bar3))
 	}
 -}
+{-
+( echFromDanrz $ fst $ getProof k, snd $ getProof k)
+-->
+(\f => \(a,b) => (f a, b)) echFromDanrz $ getProof k
+
+"
+When checking deferred type of ZZGaussianElimination.case block in gaussElimlzIfGCD2 at ZZGaussianElimination.idr:821:71:
+No such variable mu
+"
+-}
 gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (getWitness k ** ( echFromDanrz $ fst $ getProof k, snd $ getProof k))) $ elimFirstCol xs
 	where
-		echFromDanrz : downAndNotRightOfEntryImpliesZ mat FZ FZ
+		echFromDanrz : {mat : Matrix _ (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 			-> rowEchelon mat
 {-
 gaussElimlzIfGCD2 xs {predm = S prededm} = do {
