@@ -25,6 +25,8 @@ import FinOrdering
 import Control.Monad.Identity
 import Control.Monad.Reader
 
+import Control.Isomorphism
+
 
 
 {-
@@ -815,6 +817,27 @@ spanImpliesSameFirstColNeutrality : xs `spanslz` ys -> getCol FZ xs = Algebra.ne
 
 echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs
 
+{-
+When we use this type signature we get the error "No such variable k" when using it,
+as in the ImplicitArgsError error message.
+Presumably (k) would be the Nat whose successor is the length of (x).
+
+> echelonHeadnonzerovecExtension : ( leadingNonzeroCalc x = Right ( FZ ** pr ) )
+> 	-> rowEchelon xs
+> 	-> rowEchelon (x::xs)
+
+specifically, we got the error from using the line
+
+> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} (getProof headxFCELeadingNonzero) xsNullcolextElimEch
+
+(in (gaussElimlzIfGCD2)'s (No) case) instead of what would now be written
+
+> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
+-}
+echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ) )
+	-> rowEchelon xs
+	-> rowEchelon (x::xs)
+
 
 
 gaussElimlzIfGCD : Reader ZZGaussianElimination.gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
@@ -911,7 +934,29 @@ gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol
 					<- gaussElimlzIfGCD2 $ map tail xs
 				return ( nold ** (map ((Pos 0)::) matold ** (echelonNullcolExtension echold, bispansNullcolExtension prNeut bisold)) )
 			}
-		gaussElimlzIfGCD2_gen (No prNonneut) = ?gaussElimlzIfGCD2_caseno
+		gaussElimlzIfGCD2_gen (No prNonneut) = do {
+				(xFCE::xsFCE ** (xnxsFCEdanrz, fceBisxs))
+					<- elimFirstCol xs
+				(elimLen ** (xselim ** (xselimEch, coltailxsFCEBisElim)))
+					<- gaussElimlzIfGCD2 $ map tail xsFCE
+
+				let endmat = xFCE::map ((Pos Z)::) xselim
+
+				let xsNullcolextElimBisFCE = bispansNulltailcolExtension
+					xnxsFCEdanrz coltailxsFCEBisElim
+				let endmatBisxnFCE = bispansSamevecExtension
+					xsNullcolextElimBisFCE xFCE
+				let endmatBisxs = bispanslztrans endmatBisxnFCE fceBisxs
+
+				let xsNullcolextElimEch = echelonNullcolExtension
+					xselimEch
+				let xnxsFCEFCZOrHeadxFCELeadingNonzero = mirror $ danrzLeadingZeroAlt xnxsFCEdanrz
+				let xsFCZOrHeadxFCELeadingNonzero = map (spanImpliesSameFirstColNeutrality $ fst fceBisxs) xnxsFCEFCZOrHeadxFCELeadingNonzero
+				let headxFCELeadingNonzero = runIso eitherBotRight $ map prNonneut xsFCZOrHeadxFCELeadingNonzero
+				let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
+
+				return (_ ** (endmat ** (endmatEch, endmatBisxs)))
+			}
 {-
 Reference
 -----
