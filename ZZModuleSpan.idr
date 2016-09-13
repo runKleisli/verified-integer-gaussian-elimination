@@ -672,3 +672,13 @@ bispanslzAdditiveExchangeAt nel = (spanslzAdditiveExchangeAt nel, spanslzAdditiv
 
 bispanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt nel (<->(z<\>(deleteRow nel xs))) xs) xs
 bispanslzSubtractiveExchangeAt nel = (spanslzSubtractiveExchangeAt nel, spanslzSubtractivePreservationAt nel)
+
+bispansSamevecExtension : xs `bispanslz` ys -> (v : Vect _ ZZ) -> (v::xs) `bispanslz` (v::ys)
+
+bispansNullcolExtension : (getCol FZ xs=Algebra.neutral)
+	-> ys `bispanslz` map tail xs
+	-> map ((Pos Z)::) ys `bispanslz` xs
+
+
+
+spansImpliesSameFirstColNeutrality : xs `spanslz` ys -> getCol FZ xs = Algebra.neutral -> getCol FZ ys = Algebra.neutral

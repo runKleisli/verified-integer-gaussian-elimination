@@ -800,20 +800,12 @@ elimFirstCol mat {n=S predn} {predm} = do {
 
 
 
-bispansSamevecExtension : xs `bispanslz` ys -> (v : Vect _ ZZ) -> (v::xs) `bispanslz` (v::ys)
-
-bispansNullcolExtension : (getCol FZ xs=Algebra.neutral)
-	-> ys `bispanslz` map tail xs
-	-> map ((Pos Z)::) ys `bispanslz` xs
-
 bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
 	-> ys `bispanslz` map tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
 
 -- Corrollary : decEq w/ eitherBotRight lets you extract rowEchelon proofs.
 danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ))
-
-spanImpliesSameFirstColNeutrality : xs `spanslz` ys -> getCol FZ xs = Algebra.neutral -> getCol FZ ys = Algebra.neutral
 
 echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs
 
@@ -965,7 +957,7 @@ gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol
 				let xsNullcolextElimEch = echelonNullcolExtension
 					xselimEch
 				let xnxsFCEFCZOrHeadxFCELeadingNonzero = mirror $ danrzLeadingZeroAlt xnxsFCEdanrz
-				let xsFCZOrHeadxFCELeadingNonzero = map (spanImpliesSameFirstColNeutrality $ fst fceBisxs) xnxsFCEFCZOrHeadxFCELeadingNonzero
+				let xsFCZOrHeadxFCELeadingNonzero = map (spansImpliesSameFirstColNeutrality $ fst fceBisxs) xnxsFCEFCZOrHeadxFCELeadingNonzero
 				let headxFCELeadingNonzero = runIso eitherBotRight $ map prNonneut xsFCZOrHeadxFCELeadingNonzero
 				let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
 
