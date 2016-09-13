@@ -872,88 +872,50 @@ No such variable mu
 -}
 gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (_ ** (getWitness k ** ( echelonFromDanrzLast $ fst $ getProof k, snd $ getProof k)))) $ elimFirstCol xs
 {-
--- There was this initial attempt
-
--- Was either their sum or the successor of their sum,
--- for matrix-width-many iterations of (elimFirstCol).
-elimLength : Nat -> Nat -> Nat
-
-gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (elimLength n predm) (S predm) ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))
-gaussElimlzIfGCD2 xs {predm = S prededm} = do {
-
-		(xFCZ::xsFCZ ** (xnxsFCZdanrz, fczBisxs)) <- elimFirstCol xs
-
-		(xselim ** (xselimEch, coltailxsFCZBisElim)) <- gaussElimlzIfGCD2 $ map tail xsFCZ
-
-		let endmat = xFCZ::map ((Pos Z)::) xselim
-
-		let xsNullcolextElimBisFCZ = bispansNulltailcolExtension xnxsFCZdanrz coltailxsFCZBisElim
-		let endmatBisxnFCZ = bispansSamevecExtension xsNullcolextElimBisFCZ xFCZ
-		let endmatBisxs = bispanslztrans endmatBisxnFCZ fczBisxs
-
-		{-
-		For rowEchelon we need to permute the entries of the
-		result of elimFirstCol in such a way that for the leading nonzero
-		entry (k), DANRZ FZ k -- a first step towards (rowEchelon).
-		This is true already if the leading nonzero entry is FZ, of course.
-		However, if the gcd of the first column was zero, this is not the case.
-		This is of course true if and only if the first column was zero.
-		Hence we may want to wait and, instead of performing (elimFirstCol)
-		on (xs), perform in on the deepest null-column reduction.
-		That should save us from having to permute the matrix, since then we
-		can guarantee that either the original matrix was zero or the
-		column we performed (elimFirstCol) on had a nonzero (gcd).
-			But that means modifying (elimFirstCol) to prove that looks best.
-		But it's obvious its first row is either neutral or has first col
-		with first entry nonzero - that's the content of DANRZ FZ FZ.
-		So we just have to note that and nest into null-columns here
-		before processing and recursing.
-			However, we can work around getting our proof of non-neutral.
-		We can get the same from a proof that is one matrix spans another, whether
-		their first row is neutral is the same.
-		-}
-
-		return $ believe_me "shshs"
-		-- return (endmat ** (?bar1,?bar2,?bar3))
-	}
-
--- Then we came up with the plan
-
--- If first col neutral then we can eliminate the (map tail) and extend.
--- Otherwise, we can show that since the elimFirstCol is DANRZ FZ FZ,
--- its first row's leading nonzero entry is FZ. That promotes the DANRZ to a rowEchelon,
--- or rather it promotes the (rowEchelon) of the gaussElim-ed matrix tail's map tail.
-
--- Then we wanted to match on the value of (decEq (getCol FZ xs) Algebra.neutral),
--- so we recalled that (with) blocks only match on dependent pairs and (case) blocks
--- can give totality troubles, and arrived at the below setup.
+We handle recursion in different ways depending on whether the first column is neutral.
+Since (with) blocks only handle matching on dependent pairs, and (case) blocks have
+totality problems, we write it as a wrapping of a local function which pattern matches on the equality decision.
 -}
--- If first col neutral then we can eliminate the (map tail) and extend.
--- Otherwise, we can show that since the elimFirstCol is DANRZ FZ FZ,
--- its first row's leading nonzero entry is FZ. That promotes the DANRZ to a rowEchelon,
--- or rather it promotes the (rowEchelon) of the gaussElim-ed matrix tail's map tail.
 gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol FZ xs) Algebra.neutral
 	where
 		gaussElimlzIfGCD2_gen : Dec (getCol FZ xs = Algebra.neutral) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat ** (gexs : Matrix n' (S $ S prededm) ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
+		{-
+		If first col neutral then we can reduce the process
+		to that on the value of (map tail).
+		-}
 		gaussElimlzIfGCD2_gen (Yes prNeut) = do {
 				( nold ** (matold ** (echold, bisold)) )
 					<- gaussElimlzIfGCD2 $ map tail xs
 				return ( nold ** (map ((Pos 0)::) matold ** (echelonNullcolExtension echold, bispansNullcolExtension prNeut bisold)) )
 			}
+		{-
+		Otherwise it's nonneutral, so we can show that since the elimFirstCol
+		is DANRZ FZ FZ, its first row's leading nonzero entry is FZ. This leads
+		to promoting the (rowEchelon) of one matrix to one with the same
+		first row as the elimFirstCol.
+		-}
 		gaussElimlzIfGCD2_gen (No prNonneut) = do {
+				-- Perform elimination on the first column.
 				(xFCE::xsFCE ** (xnxsFCEdanrz, fceBisxs))
 					<- elimFirstCol xs
+				-- Recurse, eliminating the tail.
 				(elimLen ** (xselim ** (xselimEch, coltailxsFCEBisElim)))
 					<- gaussElimlzIfGCD2 $ map tail xsFCE
 
+				{-
+				Add the head of the first-column elimination
+				to the tail's elimination to get the final elim.
+				-}
 				let endmat = xFCE::map ((Pos Z)::) xselim
 
+				-- The final elim is bispannable with the original matrix.
 				let xsNullcolextElimBisFCE = bispansNulltailcolExtension
 					xnxsFCEdanrz coltailxsFCEBisElim
 				let endmatBisxnFCE = bispansSamevecExtension
 					xsNullcolextElimBisFCE xFCE
 				let endmatBisxs = bispanslztrans endmatBisxnFCE fceBisxs
 
+				-- The final elim is in row echelon form.
 				let xsNullcolextElimEch = echelonNullcolExtension
 					xselimEch
 				let xnxsFCEFCZOrHeadxFCELeadingNonzero = mirror $ danrzLeadingZeroAlt xnxsFCEdanrz
