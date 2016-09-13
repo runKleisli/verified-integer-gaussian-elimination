@@ -838,6 +838,10 @@ echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ *
 	-> rowEchelon xs
 	-> rowEchelon (x::xs)
 
+echelonFromDanrzLast : {mat : Matrix _ (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
+	-> rowEchelon mat
+
 
 
 gaussElimlzIfGCD : Reader ZZGaussianElimination.gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
@@ -861,10 +865,7 @@ When checking deferred type of ZZGaussianElimination.case block in gaussElimlzIf
 No such variable mu
 "
 -}
-gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (_ ** (getWitness k ** ( echFromDanrz $ fst $ getProof k, snd $ getProof k)))) $ elimFirstCol xs
-	where
-		echFromDanrz : {mat : Matrix _ (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
-			-> rowEchelon mat
+gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (_ ** (getWitness k ** ( echelonFromDanrzLast $ fst $ getProof k, snd $ getProof k)))) $ elimFirstCol xs
 {-
 -- There was this initial attempt
 
