@@ -842,6 +842,19 @@ echelonFromDanrzLast : {mat : Matrix _ (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> rowEchelon mat
 
+{-
+Reference
+-----
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
+	where
+		ty : Fin n -> Type
+		ty nel with (leadingNonzeroCalc $ index nel xs)
+			| Right someNonZness with someNonZness
+				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
+			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+-}
+
 
 
 gaussElimlzIfGCD : Reader ZZGaussianElimination.gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
@@ -958,18 +971,6 @@ gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol
 
 				return (_ ** (endmat ** (endmatEch, endmatBisxs)))
 			}
-{-
-Reference
------
-rowEchelon : (xs : Matrix n m ZZ) -> Type
-rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
-	where
-		ty : Fin n -> Type
-		ty nel with (leadingNonzeroCalc $ index nel xs)
-			| Right someNonZness with someNonZness
-				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
--}
 
 
 
