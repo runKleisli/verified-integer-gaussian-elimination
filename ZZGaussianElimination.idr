@@ -909,18 +909,61 @@ gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol
 				let endmat = xFCE::map ((Pos Z)::) xselim
 
 				-- The final elim is bispannable with the original matrix.
+				{-
+				Chopping off a column of leading zeros of a matrix,
+				finding a matrix bispannable with that, and adding
+				leading zeros to that produces a matrix bispannable to
+				the first matrix.
+
+				Equivalently, we may let that first matrix equal the tail
+				of one for which we have proof that the first column is
+				zero below the matrix's head.
+
+				We let the first matrix be the tail of the
+				first-column elimination of (xs).
+				-}
 				let xsNullcolextElimBisFCE = bispansNulltailcolExtension
 					xnxsFCEdanrz coltailxsFCEBisElim
+				{-
+				Introducing the head of the first-column elimination
+				of (xs) to two matrices preserves their bispannability.
+
+				Hence, from a matrix bispannable with the tail of the
+				first-column elimination we produce one bispannable with
+				the first-column elimination.
+				-}
 				let endmatBisxnFCE = bispansSamevecExtension
 					xsNullcolextElimBisFCE xFCE
+				-- This is hence bispannable with the original matrix.
 				let endmatBisxs = bispanslztrans endmatBisxnFCE fceBisxs
 
 				-- The final elim is in row echelon form.
+				{-
+				Adding a column of leading zeros preserves row echelon.
+				Hence the eliminated tail of the original matrix is.
+				-}
 				let xsNullcolextElimEch = echelonNullcolExtension
 					xselimEch
+				{-
+				Since the first-column elimination is zero in the first
+				column while below the first row, it is either zero in
+				the whole column or its first row's head is nonzero.
+
+				But if the first column were zero, so would the original
+				matrix have been, which we assumed was false.
+
+				Hence, the leading nonzero entry of the first row
+				is the head.
+				-}
 				let xnxsFCEFCZOrHeadxFCELeadingNonzero = mirror $ danrzLeadingZeroAlt xnxsFCEdanrz
 				let xsFCZOrHeadxFCELeadingNonzero = map (spansImpliesSameFirstColNeutrality $ fst fceBisxs) xnxsFCEFCZOrHeadxFCELeadingNonzero
 				let headxFCELeadingNonzero = runIso eitherBotRight $ map prNonneut xsFCZOrHeadxFCELeadingNonzero
+				{-
+				Thus, since the first row is the same for the final elim,
+				they have the same leading zero, and this gives proof
+				that the matrix is zero down and not right of the head's
+				leading zero. This shows the final elim is (rowEchelon).
+				-}
 				let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
 
 				return (_ ** (endmat ** (endmatEch, endmatBisxs)))
