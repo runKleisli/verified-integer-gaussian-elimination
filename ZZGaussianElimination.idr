@@ -25,6 +25,8 @@ import FinOrdering
 import Control.Monad.Identity
 import Control.Monad.Reader
 
+import Control.Isomorphism
+
 
 
 {-
@@ -796,14 +798,176 @@ elimFirstCol mat {n=S predn} {predm} = do {
 			-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ ** (i : Fin (S (S predn))) -> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
 		foldedFully v vmatQfunc = foldAutoind2 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ) (succImplWknProp mat (v <\> mat)) (succImplWknStep (v <\> mat) vmatQfunc) ( (v<\>mat)::mat ** (Refl, danrzLast ((v <\> mat)::mat), bispanslzrefl) )
 
+
+
+bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
+	-> ys `bispanslz` map tail xs
+	-> map ((Pos Z)::) ys `bispanslz` xs
+
+-- Corrollary : decEq w/ eitherBotRight lets you extract rowEchelon proofs.
+danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ))
+
+echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs
+
+{-
+When we use this type signature we get the error "No such variable k" when using it,
+as in the ImplicitArgsError error message.
+Presumably (k) would be the Nat whose successor is the length of (x).
+
+> echelonHeadnonzerovecExtension : ( leadingNonzeroCalc x = Right ( FZ ** pr ) )
+> 	-> rowEchelon xs
+> 	-> rowEchelon (x::xs)
+
+specifically, we got the error from using the line
+
+> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} (getProof headxFCELeadingNonzero) xsNullcolextElimEch
+
+(in (gaussElimlzIfGCD2)'s (No) case) instead of what would now be written
+
+> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
+-}
+echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ) )
+	-> rowEchelon xs
+	-> rowEchelon (x::xs)
+
+echelonFromDanrzLast : {mat : Matrix _ (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
+	-> rowEchelon mat
+
 {-
 Reference
 -----
-gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
+	where
+		ty : Fin n -> Type
+		ty nel with (leadingNonzeroCalc $ index nel xs)
+			| Right someNonZness with someNonZness
+				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
+			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 -}
 
-gaussElimlzIfGCD : Reader gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
--- gaussElimlzIfGCD2 : (xs : Matrix n m ZZ) -> Reader gcdOfVectAlg (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))
+
+
+gaussElimlzIfGCD : Reader ZZGaussianElimination.gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))) )
+
+gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat ** (gexs : Matrix n' (S predm) ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
+{-
+-- Template
+gaussElimlzIfGCD2 xs = do {
+		gcdalg <- ask @{the (MonadReader gcdOfVectAlg _) %instance}
+		return $ believe_me "shshs"
+		-- return (the Nat _ ** (?foo ** (?bar1,?bar2,?bar3)))
+	}
+-}
+{-
+( echFromDanrz $ fst $ getProof k, snd $ getProof k)
+-->
+(\f => \(a,b) => (f a, b)) echFromDanrz $ getProof k
+
+"
+When checking deferred type of ZZGaussianElimination.case block in gaussElimlzIfGCD2 at ZZGaussianElimination.idr:821:71:
+No such variable mu
+"
+-}
+gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (_ ** (getWitness k ** ( echelonFromDanrzLast $ fst $ getProof k, snd $ getProof k)))) $ elimFirstCol xs
+{-
+We handle recursion in different ways depending on whether the first column is neutral.
+Since (with) blocks only handle matching on dependent pairs, and (case) blocks have
+totality problems, we write it as a wrapping of a local function which pattern matches on the equality decision.
+-}
+gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol FZ xs) Algebra.neutral
+	where
+		gaussElimlzIfGCD2_gen : Dec (getCol FZ xs = Algebra.neutral) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat ** (gexs : Matrix n' (S $ S prededm) ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
+		{-
+		If first col neutral then we can reduce the process
+		to that on the value of (map tail).
+		-}
+		gaussElimlzIfGCD2_gen (Yes prNeut) = do {
+				( nold ** (matold ** (echold, bisold)) )
+					<- gaussElimlzIfGCD2 $ map tail xs
+				return ( nold ** (map ((Pos 0)::) matold ** (echelonNullcolExtension echold, bispansNullcolExtension prNeut bisold)) )
+			}
+		{-
+		Otherwise it's nonneutral, so we can show that since the elimFirstCol
+		is DANRZ FZ FZ, its first row's leading nonzero entry is FZ. This leads
+		to promoting the (rowEchelon) of one matrix to one with the same
+		first row as the elimFirstCol.
+		-}
+		gaussElimlzIfGCD2_gen (No prNonneut) = do {
+				-- Perform elimination on the first column.
+				(xFCE::xsFCE ** (xnxsFCEdanrz, fceBisxs))
+					<- elimFirstCol xs
+				-- Recurse, eliminating the tail.
+				(elimLen ** (xselim ** (xselimEch, coltailxsFCEBisElim)))
+					<- gaussElimlzIfGCD2 $ map tail xsFCE
+
+				{-
+				Add the head of the first-column elimination
+				to the tail's elimination to get the final elim.
+				-}
+				let endmat = xFCE::map ((Pos Z)::) xselim
+
+				-- The final elim is bispannable with the original matrix.
+				{-
+				Chopping off a column of leading zeros of a matrix,
+				finding a matrix bispannable with that, and adding
+				leading zeros to that produces a matrix bispannable to
+				the first matrix.
+
+				Equivalently, we may let that first matrix equal the tail
+				of one for which we have proof that the first column is
+				zero below the matrix's head.
+
+				We let the first matrix be the tail of the
+				first-column elimination of (xs).
+				-}
+				let xsNullcolextElimBisFCE = bispansNulltailcolExtension
+					xnxsFCEdanrz coltailxsFCEBisElim
+				{-
+				Introducing the head of the first-column elimination
+				of (xs) to two matrices preserves their bispannability.
+
+				Hence, from a matrix bispannable with the tail of the
+				first-column elimination we produce one bispannable with
+				the first-column elimination.
+				-}
+				let endmatBisxnFCE = bispansSamevecExtension
+					xsNullcolextElimBisFCE xFCE
+				-- This is hence bispannable with the original matrix.
+				let endmatBisxs = bispanslztrans endmatBisxnFCE fceBisxs
+
+				-- The final elim is in row echelon form.
+				{-
+				Adding a column of leading zeros preserves row echelon.
+				Hence the eliminated tail of the original matrix is.
+				-}
+				let xsNullcolextElimEch = echelonNullcolExtension
+					xselimEch
+				{-
+				Since the first-column elimination is zero in the first
+				column while below the first row, it is either zero in
+				the whole column or its first row's head is nonzero.
+
+				But if the first column were zero, so would the original
+				matrix have been, which we assumed was false.
+
+				Hence, the leading nonzero entry of the first row
+				is the head.
+				-}
+				let xnxsFCEFCZOrHeadxFCELeadingNonzero = mirror $ danrzLeadingZeroAlt xnxsFCEdanrz
+				let xsFCZOrHeadxFCELeadingNonzero = map (spansImpliesSameFirstColNeutrality $ fst fceBisxs) xnxsFCEFCZOrHeadxFCELeadingNonzero
+				let headxFCELeadingNonzero = runIso eitherBotRight $ map prNonneut xsFCZOrHeadxFCELeadingNonzero
+				{-
+				Thus, since the first row is the same for the final elim,
+				they have the same leading zero, and this gives proof
+				that the matrix is zero down and not right of the head's
+				leading zero. This shows the final elim is (rowEchelon).
+				-}
+				let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
+
+				return (_ ** (endmat ** (endmatEch, endmatBisxs)))
+			}
 
 
 
@@ -823,7 +987,7 @@ Main algorithm
 
 
 
-gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))
+gaussElimlz : (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)))
 gaussElimlz = runIdentity $ runReaderT gaussElimlzIfGCD (\k => gcdOfVectZZ {n=k})
 -- Why is this wrong, for if we put the argument inside the ReaderT gaussElimlzIfGCD?
 -- gaussElimlz = runIdentity . ((flip runReaderT) $ (\k => gcdOfVectZZ {n=k})) . gaussElimlzIfGCD2
