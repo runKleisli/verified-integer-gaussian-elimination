@@ -35,6 +35,11 @@ Trivial lemmas and plumbing
 
 
 
+bileibniz : (f : a -> b -> c) -> (x1=x2) -> (y1=y2) -> f x1 y1 = f x2 y2
+bileibniz f {x1} {x2} {y1} {y2} xeq yeq = rewrite (cong {f=f} xeq) in cong {f=f x2} yeq
+
+
+
 total
 FinSZAreFZ : (x : Fin 1) -> x=FZ
 FinSZAreFZ FZ = Refl
@@ -482,7 +487,7 @@ divisorByDistrib z (xx::xxs) {n=S predn} fn = ( dxx<+>dxxs ** divisorByDistrib' 
 		which is not at all what's wrong, and is an unhelpful error message.
 		-}
 		divisorByDistrib' : (dxx<+>dxxs)<.>z = LinearCombinations.monoidsum (xx::xxs)
-		divisorByDistrib' = ?divisorByDistrib_pr
+		divisorByDistrib' = trans (ringOpIsDistributiveR dxx dxxs z) $ trans (bileibniz (<+>) prxx prxxs) $ sym $ monoidrec1D {v=xx} {vs=xxs}
 
 
 
