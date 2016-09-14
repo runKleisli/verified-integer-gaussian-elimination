@@ -13,11 +13,12 @@ These show what other kind of theorems are needed, but about the wrong objects t
 ## ZZGaussianElimination
 
 Contents:
-* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, bispanslz gexs xs))`
+* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, bispanslz gexs xs)))`
 * Implementation of the second property, `rowEchelon`.
 * `leadingNonzeroCalc`, which takes a `Vect n ZZ` to its first index to a nonzero entry or a proof that all entries are zero.
 * `downAndNotRightOfEntryImpliesZ`, which says a matrix is zero below an index and at or to the left of a second index.
 * Implementation of column-zero elimination, `elimFirstCol : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (downAndNotRightOfEntryImpliesZ gexs FZ FZ, bispanslz gexs xs))`.
+* Implementation of the inductive step for elimination, `gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat ** (gexs : Matrix n' (S predm) ZZ ** (rowEchelon gexs, bispanslz gexs xs)) )`
 * `foldAutoind` - A vector fold over suppressed indices. Extends one witness for some predicate `p : (m : Nat) -> Fin (S m) -> a -> Type` to a `Vect` of them.
 * `foldAutoind2` - Same strength of result as `foldAutoind`, but applies where the predicate `p : (m : Nat) -> Fin (S m) -> (a m) -> Type` isn't naturally expressed or proved without affecting the type of the witnesses dealt with by this process.
 
@@ -25,7 +26,7 @@ Contents:
 
 Contents:
 * Definition of the *linearly spans* relation `spanslz` between two Vects of Vects of integers (where integers means inhabitants of Data.ZZ).
-** Its symmetric closure `bispanslz xs ys = (spanslz xs ys, spanslz ys xs)`.
+** Its maximal symmetric subrelation `bispanslz xs ys = (spanslz xs ys, spanslz ys xs)`.
 * Some definitions related to linear spans.
 * Proof of transitivity and reflexivity of `spanslz` using some unproved but known theorems.
 ** Their analogues for `bispanslz`, plus proof it's symmetric.

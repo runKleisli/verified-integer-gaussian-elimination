@@ -849,7 +849,7 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 
 
 
-gaussElimlzIfGCD : Reader ZZGaussianElimination.gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
+gaussElimlzIfGCD : Reader ZZGaussianElimination.gcdOfVectAlg ( (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))) )
 
 gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat ** (gexs : Matrix n' (S predm) ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)) )
 {-
@@ -987,7 +987,7 @@ Main algorithm
 
 
 
-gaussElimlz : (xs : Matrix n m ZZ) -> (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs))
+gaussElimlz : (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, gexs `bispanslz` xs)))
 gaussElimlz = runIdentity $ runReaderT gaussElimlzIfGCD (\k => gcdOfVectZZ {n=k})
 -- Why is this wrong, for if we put the argument inside the ReaderT gaussElimlzIfGCD?
 -- gaussElimlz = runIdentity . ((flip runReaderT) $ (\k => gcdOfVectZZ {n=k})) . gaussElimlzIfGCD2
