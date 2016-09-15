@@ -40,6 +40,13 @@ bileibniz f {x1} {x2} {y1} {y2} xeq yeq = rewrite (cong {f=f} xeq) in cong {f=f 
 
 
 
+zzZOrOrPosNeg : (z : ZZ) -> Either (z=Pos 0) $ Either (k : _ ** z = Pos (S k)) $ (k : _ ** z = NegS k)
+zzZOrOrPosNeg (Pos Z) = Left Refl
+zzZOrOrPosNeg (Pos (S k)) = Right (Left (k ** Refl))
+zzZOrOrPosNeg (NegS k) = Right (Right (k ** Refl))
+
+
+
 total
 FinSZAreFZ : (x : Fin 1) -> x=FZ
 FinSZAreFZ FZ = Refl
@@ -805,33 +812,26 @@ elimFirstCol mat {n=S predn} {predm} = do {
 
 
 
+danrzTailHasLeadingZeros : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> getCol FZ xs = Algebra.neutral
+
 bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
 	-> ys `bispanslz` map tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
 
+leadingNonzeroIsFZIfNonzero : Not (index FZ x = Pos Z) -> map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
+leadingNonzeroIsFZIfNonzero {x=x::xs} nonz with ( runIso eitherBotRight $ map nonz $ mirror $ zzZOrOrPosNeg x )
+	| Left (k ** prposS) = rewrite prposS in Refl
+	| Right (k ** prnegS) = rewrite prnegS in Refl
+
 -- Corrollary : decEq w/ eitherBotRight lets you extract rowEchelon proofs.
-danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ))
+danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ)
+danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
+	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
+	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
 
 echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs
 
-{-
-When we use this type signature we get the error "No such variable k" when using it,
-as in the ImplicitArgsError error message.
-Presumably (k) would be the Nat whose successor is the length of (x).
-
-> echelonHeadnonzerovecExtension : ( leadingNonzeroCalc x = Right ( FZ ** pr ) )
-> 	-> rowEchelon xs
-> 	-> rowEchelon (x::xs)
-
-specifically, we got the error from using the line
-
-> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} (getProof headxFCELeadingNonzero) xsNullcolextElimEch
-
-(in (gaussElimlzIfGCD2)'s (No) case) instead of what would now be written
-
-> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
--}
-echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ) )
+echelonHeadnonzerovecExtension : map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
 	-> rowEchelon xs
 	-> rowEchelon (x::xs)
 
