@@ -837,39 +837,40 @@ echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ *
 
 gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel (finToNat $ FZ {k=nu}) $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
 
+natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
+
 ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
 
 danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> downAndNotRightOfEntryImpliesZ mat FZ mel
 
-sglColDanrzImpliesTailNeutral : {x : Vect (S Z) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> xs=Algebra.neutral
-
 danrzLastcolImpliesTailNeutral : {x : Vect (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu}) -> xs=Algebra.neutral
 
-indexNeutralIsNeutral : (k : Fin n) -> index k $ Algebra.neutral {a=Matrix n m ZZ} = Algebra.neutral
-indexNeutralIsNeutral FZ = Refl
-indexNeutralIsNeutral (FS k) = indexNeutralIsNeutral k
+indexNeutralIsNeutral1D : (k : Fin n) -> index k $ Algebra.neutral {a=Vect n ZZ} = Algebra.neutral
+indexNeutralIsNeutral1D FZ = Refl
+indexNeutralIsNeutral1D (FS k) = indexNeutralIsNeutral1D k
+
+indexNeutralIsNeutral2D : (k : Fin n) -> index k $ Algebra.neutral {a=Matrix n m ZZ} = Algebra.neutral
+indexNeutralIsNeutral2D FZ = Refl
+indexNeutralIsNeutral2D (FS k) = indexNeutralIsNeutral2D k
 
 -- echelonTrivial : rowEchelon [x]
 
-{-
-danrz : downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu})
------
-(nelow : Fin n) -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = Algebra.neutral
--}
 
 
 echelonFromDanrzLast : {mat : Matrix (S n) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> rowEchelon mat
-echelonFromDanrzLast {mat=x::xs} {n} {mu=Z} danrz FZ with (leadingNonzeroCalc x)
+echelonFromDanrzLast {mat=x::xs} {n} {mu} danrz FZ with (leadingNonzeroCalc x)
 	| Right someNonZness with someNonZness
 		| (leadeln ** _) = danrzLastcolImpliesAllcol {mel=leadeln} danrz
-	| Left _ = ?echelonFromDanrzLast_rhs_1_1
-	-- Doing this made the module take 20 seconds longer to compile, 2:40 total.
-	-- | Left _ = \nelow => \ltpr => trans (cong {f=\ts => Vect.index nelow (x::ts)} $ sglColDanrzImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral _
+	| Left _ = ?echelonFromDanrzLast_rhs_1
 	{-
+	Doing this made the module take 20 seconds longer to compile, 2:40 total.
+
+	> | Left _ = \nelow => \ltpr => trans (cong {f=\ts => Vect.index nelow (x::ts)} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral2D _
+
 	The above was debugged by making a hole like this
 
 	> | Left _ = ?echelonFromDanrzLast_rhs_1_1
@@ -879,15 +880,21 @@ echelonFromDanrzLast {mat=x::xs} {n} {mu=Z} danrz FZ with (leadingNonzeroCalc x)
 	mismatch occurred looking at the type expected and assuming it was a value from
 	the context that was needed as an implicit argument somewhere.
 	-}
-{-
-echelonFromDanrzLast {mat=x::xs} {mu=Z} danrz (FS k) = ?echelonFromDanrzLast_rhs_1_2
-echelonFromDanrzLast {mat=x::xs} {mu=S prededm} danrz FZ = ?echelonFromDanrzLast_rhs_2_1
-echelonFromDanrzLast {mat=x::xs} {mu=S prededm} danrz (FS k) = ?echelonFromDanrzLast_rhs_2_2
--}
+echelonFromDanrzLast {mat=x::xs} danrz (FS k) with (leadingNonzeroCalc $ index k xs)
+	-- indexNeutralIsNeutral1D
+	| Right someNonZness with (someNonZness)
+		| (leadeln ** (_, prNonZ)) = void $ prNonZ $ flip trans (indexNeutralIsNeutral1D leadeln) $ cong {f=index leadeln} $ trans (cong {f=index k} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ indexNeutralIsNeutral2D k
+	| Left _ = ?echelonFromDanrzLast_rhs_2
 
-echelonFromDanrzLast_rhs_1_1 = proof
+echelonFromDanrzLast_rhs_1 = proof
   intros
-  exact trans (cong {f=\ts => Vect.index nelow (x::ts)} $ sglColDanrzImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral _
+  exact trans (cong {f=\ts => Vect.index nelow (x::ts)} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral2D _
+
+echelonFromDanrzLast_rhs_2 = proof
+  intros
+  exact trans (cong {f=\ts => Vect.index nelow (x::ts)} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow $ natGtAnyImpliesGtZ (S $ finToNat k) (finToNat nelow) ltpr) $ indexNeutralIsNeutral2D _
+
+
 
 {-
 Reference
