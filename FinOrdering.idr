@@ -3,6 +3,7 @@ module FinOrdering
 
 import Data.Fin
 import Data.ZZ
+import Control.Isomorphism
 
 
 -- Note that unlike (=) the types do not inherently need to be ambiguous
@@ -75,3 +76,9 @@ instance DecLT (Fin n) where
 -}
 
 lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b
+
+gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel (finToNat $ FZ {k=nu}) $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
+
+natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
+
+ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)

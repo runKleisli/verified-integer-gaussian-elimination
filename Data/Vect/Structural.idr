@@ -200,3 +200,10 @@ indexCompatSub : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -
 indexCompatSub xs ys i ?= trans (indexCompatAdd xs (inverse ys) i) $ cong {f=((index i xs)<+>)} $ indexCompatInverse ys i
 
 indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
+
+
+
+
+indexNeutralIsNeutral1D : Ring a => (k : Fin n) -> index k $ Algebra.neutral {a=Vect n a} = Algebra.neutral
+indexNeutralIsNeutral1D FZ = Refl
+indexNeutralIsNeutral1D (FS k) = indexNeutralIsNeutral1D k

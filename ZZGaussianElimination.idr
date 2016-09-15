@@ -835,25 +835,11 @@ echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ *
 	-> rowEchelon xs
 	-> rowEchelon (x::xs)
 
-gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel (finToNat $ FZ {k=nu}) $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
-
-natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
-
-ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
-
 danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> downAndNotRightOfEntryImpliesZ mat FZ mel
 
 danrzLastcolImpliesTailNeutral : {x : Vect (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu}) -> xs=Algebra.neutral
-
-indexNeutralIsNeutral1D : (k : Fin n) -> index k $ Algebra.neutral {a=Vect n ZZ} = Algebra.neutral
-indexNeutralIsNeutral1D FZ = Refl
-indexNeutralIsNeutral1D (FS k) = indexNeutralIsNeutral1D k
-
-indexNeutralIsNeutral2D : (k : Fin n) -> index k $ Algebra.neutral {a=Matrix n m ZZ} = Algebra.neutral
-indexNeutralIsNeutral2D FZ = Refl
-indexNeutralIsNeutral2D (FS k) = indexNeutralIsNeutral2D k
 
 -- echelonTrivial : rowEchelon [x]
 
