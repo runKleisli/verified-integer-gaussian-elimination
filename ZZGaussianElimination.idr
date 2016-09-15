@@ -380,7 +380,7 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 		ty nel with (leadingNonzeroCalc $ index nel xs)
 			| Right someNonZness with someNonZness
 				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
 
 
 
@@ -835,9 +835,59 @@ echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ *
 	-> rowEchelon xs
 	-> rowEchelon (x::xs)
 
-echelonFromDanrzLast : {mat : Matrix _ (S mu) ZZ}
+gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel (finToNat $ FZ {k=nu}) $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
+
+ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
+
+danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
+	-> downAndNotRightOfEntryImpliesZ mat FZ mel
+
+sglColDanrzImpliesTailNeutral : {x : Vect (S Z) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> xs=Algebra.neutral
+
+danrzLastcolImpliesTailNeutral : {x : Vect (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu}) -> xs=Algebra.neutral
+
+indexNeutralIsNeutral : (k : Fin n) -> index k $ Algebra.neutral {a=Matrix n m ZZ} = Algebra.neutral
+indexNeutralIsNeutral FZ = Refl
+indexNeutralIsNeutral (FS k) = indexNeutralIsNeutral k
+
+-- echelonTrivial : rowEchelon [x]
+
+{-
+danrz : downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu})
+-----
+(nelow : Fin n) -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = Algebra.neutral
+-}
+
+
+echelonFromDanrzLast : {mat : Matrix (S n) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> rowEchelon mat
+echelonFromDanrzLast {mat=x::xs} {n} {mu=Z} danrz FZ with (leadingNonzeroCalc x)
+	| Right someNonZness with someNonZness
+		| (leadeln ** _) = danrzLastcolImpliesAllcol {mel=leadeln} danrz
+	| Left _ = ?echelonFromDanrzLast_rhs_1_1
+	-- Doing this made the module take 20 seconds longer to compile, 2:40 total.
+	-- | Left _ = \nelow => \ltpr => trans (cong {f=\ts => Vect.index nelow (x::ts)} $ sglColDanrzImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral _
+	{-
+	The above was debugged by making a hole like this
+
+	> | Left _ = ?echelonFromDanrzLast_rhs_1_1
+
+	making sure a correct REPL proof existed, then finding some missing implicit args
+	required by the compiler by putting that proof in the module, and whenever a type
+	mismatch occurred looking at the type expected and assuming it was a value from
+	the context that was needed as an implicit argument somewhere.
+	-}
+{-
+echelonFromDanrzLast {mat=x::xs} {mu=Z} danrz (FS k) = ?echelonFromDanrzLast_rhs_1_2
+echelonFromDanrzLast {mat=x::xs} {mu=S prededm} danrz FZ = ?echelonFromDanrzLast_rhs_2_1
+echelonFromDanrzLast {mat=x::xs} {mu=S prededm} danrz (FS k) = ?echelonFromDanrzLast_rhs_2_2
+-}
+
+echelonFromDanrzLast_rhs_1_1 = proof
+  intros
+  exact trans (cong {f=\ts => Vect.index nelow (x::ts)} $ sglColDanrzImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral _
 
 {-
 Reference
@@ -849,7 +899,7 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 		ty nel with (leadingNonzeroCalc $ index nel xs)
 			| Right someNonZness with someNonZness
 				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
 -}
 
 
@@ -878,8 +928,9 @@ No such variable mu
 gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (_ ** (getWitness k ** ( echelonFromDanrzLast $ fst $ getProof k, snd $ getProof k)))) $ elimFirstCol xs
 {-
 We handle recursion in different ways depending on whether the first column is neutral.
-Since (with) blocks only handle matching on dependent pairs, and (case) blocks have
-totality problems, we write it as a wrapping of a local function which pattern matches on the equality decision.
+Since (with) blocks can't access local functions (unless local to the case?), and (case)
+blocks have totality problems, we write it as a wrapping of a local function which
+pattern matches on the equality decision.
 -}
 gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol FZ xs) Algebra.neutral
 	where
