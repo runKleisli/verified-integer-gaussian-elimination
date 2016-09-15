@@ -77,8 +77,13 @@ instance DecLT (Fin n) where
 
 lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b
 
-gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel (finToNat $ FZ {k=nu}) $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
+gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel Z $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
 
 natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
 
 ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
+
+ltenatLastIsTrue2 : (i : Fin (S nu)) -> LTERel (finToNat i) $ finToNat $ last {n=nu}
+
+zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)
+zLtSuccIsTrue _ = LTESucc LTEZero
