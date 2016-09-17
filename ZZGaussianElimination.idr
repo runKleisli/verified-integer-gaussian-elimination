@@ -832,9 +832,67 @@ danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
 
 echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs
 
-echelonHeadnonzerovecExtension : map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
+echelonHeadnonzerovecExtension : {xs : Matrix n (S m) ZZ}
+	-> map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
 	-> rowEchelon xs
 	-> rowEchelon (x::xs)
+{-
+So the below doesn't work because we can't get the value of the (rowEchelon xs) at (nargxs) to take into account that (index nargxs xs = Algebra.neutral).
+
+Perhaps then (rowEchelon) should be rewritten as
+
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+rowEchelon {n} {m} xs = (narg : Fin n) -> either ( const ((nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral) ) ( (downAndNotRightOfEntryImpliesZ xs narg) . getWitness ) $ leadingNonzeroCalc $ index narg xs
+
+However, the problem isn't with producing (rowEchelon) values (see (echelonFromDanrzLast)), it's with inspecting them based on the known (leadingNonzeroCalc) value. So if a combinator can be written which converts it to the above form, the (rowEchelon) as it is shouldn't be a problem. But since the above form is superficially the same as the current one, perhaps it won't affect anything if we swap the definitions!
+
+Another possibility is matching on not just
+
+	(leadingNonzeroCalc $ index nargxs xs)
+
+but
+
+	(leadingNonzeroCalc $ index nargxs xs, echxs nargxs)
+
+-----
+
+echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs FZ with (leadingNonzeroCalc x)
+	| Right someNonZness with someNonZness
+		| (leadeln ** _) = ?echelonHeadnonzerovecExtension_rhs_1_right
+	-- Contradicts prleadFZ
+	| Left _ = ?echelonHeadnonzerovecExtension_rhs_1_left
+-- Roughly: echelonHeadnonzerovecExtension prleadFZ echxs (FS nargxs) = echxs nargxs
+echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs (FS nargxs) with (leadingNonzeroCalc $ index nargxs xs)
+	| Right someNonZness with someNonZness
+		| (leadeln ** _) = ?echelonHeadnonzerovecExtension_rhs_2_right
+	| Left _ = echxnxs
+		where {
+			mkLTwkn : (S predn) `LTRel` (finToNat nelow) -> (nelow = FS prednelow) -> predn `LTRel` finToNat prednelow
+			runEchxs : (nelow : Fin n) -> (ltpr : (finToNat nargxs) `LTRel` (finToNat nelow)) -> Vect.index nelow xs = Algebra.neutral
+			{-
+			Can't figure out that (echxs) matched the (Left _) pattern.
+			Instead, we might be able to give (echxs) the (Left _) value
+			by rewriting (echxs nargxs), the value of which is a (with) block expressed in terms of (leadingNonzeroCalc (index nargxs xs)), by a proof that (leadingNonzeroCalc (index nargxs)) of the form (Left _).
+			However, a proof of (index nargxs xs = Pos 0 :: replicate m (Pos 0)) doesn't seem to affect the value alone, so.
+			-}
+			runEchxs ?= echxs nargxs
+			echxnxs : (snelow : Fin (S n)) -> (ltpr : (finToNat $ FS nargxs) `LTRel` (finToNat snelow)) -> Vect.index snelow (x::xs) = Algebra.neutral
+			echxnxs snelow ltpr = ( \nelow_succeq : (nelow : Fin n ** snelow = FS nelow) => trans (cong {f=\i => index i (x::xs)} $ getProof nelow_succeq) $ runEchxs (getWitness nelow_succeq) (mkLTwkn {nelow=snelow} ltpr $ getProof nelow_succeq) ) $ gtnatFZImpliesIsFinSucc snelow $ natGtAnyImpliesGtZ (finToNat $ FS nargxs) (finToNat snelow) ltpr
+		}
+-}
+
+{-
+Reference
+-----
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
+	where
+		ty : Fin n -> Type
+		ty nel with (leadingNonzeroCalc $ index nel xs)
+			| Right someNonZness with someNonZness
+				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
+			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
+-}
 
 danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
@@ -884,21 +942,6 @@ echelonFromDanrzLast_rhs_1 = proof
 echelonFromDanrzLast_rhs_2 = proof
   intros
   exact trans (cong {f=\ts => Vect.index nelow (x::ts)} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow $ natGtAnyImpliesGtZ (S $ finToNat k) (finToNat nelow) ltpr) $ indexNeutralIsNeutral2D _
-
-
-
-{-
-Reference
------
-rowEchelon : (xs : Matrix n m ZZ) -> Type
-rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
-	where
-		ty : Fin n -> Type
-		ty nel with (leadingNonzeroCalc $ index nel xs)
-			| Right someNonZness with someNonZness
-				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
--}
 
 
 
