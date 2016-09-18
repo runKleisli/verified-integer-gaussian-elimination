@@ -854,6 +854,24 @@ but
 
 	(leadingNonzeroCalc $ index nargxs xs, echxs nargxs)
 
+but trying that:
+
+echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs (FS nargxs) with ((leadingNonzeroCalc $ index nargxs xs, echxs nargxs))
+	| (Right someNonZness, echval) with someNonZness
+		| (leadeln ** _) = ?echelonHeadnonzerovecExtension_rhs_2_right
+	| (Left _, echval) = ?echelonHeadnonzerovecExtension_rhs_2_left
+
+the (with) block is not resolved.
+
+Letting (rowEchelon2) be written as the above alternative definition for (rowEchelon), there is a problem with the type which is preventing us from writing a (rowEchelon2 xs -> rowEchelon xs), where if you try and accept the (rowEchelon2 xs) argument and the argument (narg : Fin n) to the intended value, even when the latter is only matched on by a local function, at the same time as you pattern match on the (leadingNonzeroCalc $ index narg xs), then you'll get an error
+
+"
+Type mismatch between
+        Fin n
+and
+        Fin m
+"
+
 -----
 
 echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs FZ with (leadingNonzeroCalc x)
