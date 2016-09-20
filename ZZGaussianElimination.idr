@@ -915,6 +915,7 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> downAndNotRightOfEntryImpliesZ mat FZ mel
+danrzLastcolImpliesAllcol danrzlast i j ltrel _ = danrzlast i j ltrel $ ltenatLastIsTrue2 j
 
 danrzLastcolImpliesTailNeutral : {xs : Matrix n (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu}) -> xs=Algebra.neutral
 danrzLastcolImpliesTailNeutral {x} {xs} {n} {mu} danrz = uniformValImpliesReplicate (replicate (S mu) $ Pos 0) xs $ \na => uniformValImpliesReplicate (Pos 0) (index na xs) (fn na)
