@@ -842,7 +842,7 @@ So the below doesn't work because we can't get the value of the (rowEchelon xs) 
 Perhaps then (rowEchelon) should be rewritten as
 
 rowEchelon : (xs : Matrix n m ZZ) -> Type
-rowEchelon {n} {m} xs = (narg : Fin n) -> either ( const ((nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral) ) ( (downAndNotRightOfEntryImpliesZ xs narg) . getWitness ) $ leadingNonzeroCalc $ index narg xs
+rowEchelon {n} {m} xs = (narg : Fin n) -> either ( const ((nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral) ) ( (downAndNotRightOfEntryImpliesZ xs narg) . Sigma.getWitness ) $ leadingNonzeroCalc $ index narg xs
 
 However, the problem isn't with producing (rowEchelon) values (see (echelonFromDanrzLast)), it's with inspecting them based on the known (leadingNonzeroCalc) value. So if a combinator can be written which converts it to the above form, the (rowEchelon) as it is shouldn't be a problem. But since the above form is superficially the same as the current one, perhaps it won't affect anything if we swap the definitions!
 
