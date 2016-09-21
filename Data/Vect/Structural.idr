@@ -11,6 +11,8 @@ import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
 {-
 Theorem (vecHeadtailsEq) for proving equality of (Vect)s by proving equality of their heads and tails. Often used after (headtails).
+
+Theorem (vecIndexwiseEq) for proving equality of (Vect)s by proving indexwise equality of their entries.
 -}
 
 
@@ -19,6 +21,10 @@ vecHeadtailsEq : {xs,ys : Vect _ _} -> ( headeq : x = y ) -> ( taileq : xs = ys 
 vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (vectConsCong x xs ys taileq) $ cong {f=(::ys)} headeq
 -- Also a solid proof:
 -- vecHeadtailsEq {x} {xs} {ys} headeq taileq = trans (cong {f=(::xs)} headeq) $ replace {P=\l => l::xs = l::ys} headeq $ vectConsCong x xs ys taileq
+
+vecIndexwiseEq : ((i : Fin _) -> index i xs = index i ys) -> xs = ys
+vecIndexwiseEq fn {xs=[]} {ys=[]} = Refl
+vecIndexwiseEq fn {xs=x::xs} {ys=y::ys} = vecHeadtailsEq (fn FZ) $ vecIndexwiseEq {xs=xs} {ys=ys} (\i => fn $ FS i)
 
 
 
