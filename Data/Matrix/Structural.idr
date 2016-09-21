@@ -32,16 +32,3 @@ headVecMatMultChariz : Ring a => {xs : Matrix _ (S _) a} -> head $ v<\>xs = v <:
 headVecMatMultChariz {v} {xs} = trans (sym $ indexFZIsheadValued {xs=v<\>xs})
 	$ trans (indexMapChariz {k=FZ} {f=(v<:>)} {xs=transpose xs})
 	$ cong {f=(v<:>)} $ tranposeIndexChariz {k=FZ} {xs=xs}
-
-
-
-{-
-Theorems about the module (Matrix n m a) over a ring (a):
-* Compatibility between the Algebra.neutral of the ring (a) and of (Matrix n m a) as a module under (index).
--}
-
-
-
-indexNeutralIsNeutral2D : Ring a => (k : Fin n) -> index k $ Algebra.neutral {a=Matrix n m a} = Algebra.neutral
-indexNeutralIsNeutral2D FZ = Refl
-indexNeutralIsNeutral2D (FS k) = indexNeutralIsNeutral2D k
