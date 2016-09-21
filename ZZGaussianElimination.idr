@@ -813,6 +813,8 @@ elimFirstCol mat {n=S predn} {predm} = do {
 
 
 danrzTailHasLeadingZeros : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> getCol FZ xs = Algebra.neutral
+-- Should do this by noting (getCol FZ xs = map (index FZ) xs) and (\j => danrz j FZ ?lt ?lte : (j : Fin _) -> index FZ $ index j xs = Pos 0) becomes by (trans (indexMapChariz {f=index FZ})) a ((j : Fin _) -> index j $ map (index FZ) xs = Pos 0). So we just need a function ( ((i : Fin _) -> index i xs = index i ys) -> xs = ys ).
+danrzTailHasLeadingZeros danrz = vecIndexwiseEq (\j => trans (indexMapChariz {f=index FZ}) $ trans (danrz (FS j) FZ (zLtSuccIsTrue $ finToNat j) $ Right Refl) $ sym $ indexNeutralIsNeutral1D j)
 
 bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
 	-> ys `bispanslz` map tail xs
