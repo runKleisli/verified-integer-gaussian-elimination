@@ -204,6 +204,9 @@ Theorems about the module (Vect n a) over a ring (a):
 -- For completeness's sake, these should have (index FZ) as (head) forms proved.
 
 indexCompatInverse : VerifiedRingWithUnity a => (xs : Vect n a) -> (i : Fin n) -> index i $ inverse xs = inverse $ index i xs
+indexCompatInverse [] i = FinZElim i
+indexCompatInverse (x::xs) FZ = Refl
+indexCompatInverse (x::xs) (FS preli) = indexCompatInverse xs preli
 
 indexCompatAdd : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <+> ys = index i xs <+> index i ys
 indexCompatAdd xs ys i = zipWithEntryChariz {x=xs} {y=ys} {i=i} {m=(<+>)}
@@ -221,6 +224,9 @@ indexCompatSub : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -
 indexCompatSub xs ys i ?= trans (indexCompatAdd xs (inverse ys) i) $ cong {f=((index i xs)<+>)} $ indexCompatInverse ys i
 
 indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
+indexCompatScaling r [] i = FinZElim i
+indexCompatScaling r (x::xs) FZ = ?indexCompatScaling_lemma_1 -- Should be Refl
+indexCompatScaling r (x::xs) (FS preli) = indexCompatScaling r xs preli
 
 
 
