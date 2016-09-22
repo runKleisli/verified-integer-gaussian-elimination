@@ -26,6 +26,11 @@ transposeIsInvolution : with Data.Vect ( transpose $ transpose xs = xs )
 transposeIsInvolution {xs} = vecIndexwiseEq (\i => vecIndexwiseEq (\j => trans (transposeIndicesChariz j i) $ transposeIndicesChariz i j))
 
 transposeNTail : with Data.Vect ( transpose $ tail $ transpose xs = map tail xs )
+transposeNTail {xs} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j => trans (transposeIndicesChariz j i)
+	$ trans (cong {f=(index i) . (index $ FS j)} $ sym $ headtails $ transpose xs)
+	$ trans (transposeIndicesChariz i (FS j))
+	$ trans (cong {f=index $ FS j} $ headtails $ index i xs)
+	$ sym $ cong {f=index j} indexMapChariz
 
 
 
