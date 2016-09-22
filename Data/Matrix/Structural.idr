@@ -12,15 +12,20 @@ import Data.Vect.Structural
 
 
 
-transposeNHead: with Data.Vect ( head $ transpose xs = map head xs )
-
 transposeIndexChariz : {xs : Matrix n m a} -> index k $ transpose xs = getCol k xs
 transposeIndexChariz {xs=[]} {k} = indexReplicateChariz
 transposeIndexChariz {xs=x::xs} {k} = trans zipWithEntryChariz $ vectConsCong _ _ _ transposeIndexChariz
 
-transposeNTail : with Data.Vect ( transpose $ tail $ transpose xs = map tail xs )
+transposeNHead: with Data.Vect ( head $ transpose xs = map head xs )
+transposeNHead = trans (sym indexFZIsheadValued) $ trans transposeIndexChariz $ extensionalEqToMapEq (\xs => indexFZIsheadValued {xs=xs}) _
+
+transposeIndicesChariz : {xs : Matrix n m a} -> (i : Fin n) -> (j : Fin m) -> indices j i $ transpose xs = indices i j xs
+transposeIndicesChariz i j = trans (cong {f=index i} transposeIndexChariz) indexMapChariz
 
 transposeIsInvolution : with Data.Vect ( transpose $ transpose xs = xs )
+transposeIsInvolution {xs} = vecIndexwiseEq (\i => vecIndexwiseEq (\j => trans (transposeIndicesChariz j i) $ transposeIndicesChariz i j))
+
+transposeNTail : with Data.Vect ( transpose $ tail $ transpose xs = map tail xs )
 
 
 

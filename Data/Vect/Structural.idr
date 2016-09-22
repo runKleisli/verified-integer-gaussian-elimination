@@ -32,6 +32,7 @@ vecIndexwiseEq fn {xs=x::xs} {ys=y::ys} = vecHeadtailsEq (fn FZ) $ vecIndexwiseE
 * Theorems characterizing (Vect)s of degenerate qualities.
 * Theorems characterizing the index or head of a list created with a certain operation.
 * The theorem (weakenedInd) about comparing an index of a list to an index of its (init).
+* The theorem (extensionalEqToMapEq) extending an extensional equality between functions to one between their (map)s over (Vect)s.
 -}
 
 
@@ -181,6 +182,12 @@ weakenedInd : {xs : Vect n a} -> index (weaken k) $ appendedSingletonAsSuccVect 
 weakenedInd {xs=[]} {k} = absurd k
 weakenedInd {xs=x::xs} {k=FZ} {v} = Refl
 weakenedInd {xs=x::xs} {k=FS j} {v} = weakenedInd {xs=xs} {k=j} {v}
+
+
+
+extensionalEqToMapEq : (exteq : (a : ty) -> (f a = g a)) -> (xs : Vect n ty) -> (map f xs = map g xs)
+extensionalEqToMapEq exteq [] = Refl
+extensionalEqToMapEq exteq (x::xs) = vecHeadtailsEq (exteq x) $ extensionalEqToMapEq exteq xs
 
 
 
