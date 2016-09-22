@@ -103,12 +103,10 @@ lemma_VectAddEntrywise (FS npredi) (vv::vvs) (ww::wws) = lemma_VectAddEntrywise 
 
 
 monoidrec1D : {v : ZZ} -> {vs : Vect n ZZ} -> monoidsum (v::vs) = v <+> monoidsum vs
+monoidrec1D = monoidrec _ _
 
--- the foldr needs to be converted to a foldl
 monoidrec2D : {v : Vect m ZZ} -> {vs : Vect n (Vect m ZZ)} -> monoidsum (v::vs) = v <+> (monoidsum vs)
-monoidrec2D {v} {vs=[]} = Refl
--- monoidrec {v} {vs=(vsv::vss)} = rewrite (the ( foldrImpl (<+>) neutral (v::vs) = foldrImpl (<+>) (neutral . (v <+>)) vs ) Refl) in (monoidrec {v=vsv} {vs=vss})
-monoidrec2D {v} {vs=(vsv::vss)} = ?monoidrec'
+monoidrec2D = monoidrec _ _
 
 total
 headOfSumIsSumOfHeadsArg : ((v : Vect (S n) ZZ) ->

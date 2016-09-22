@@ -206,3 +206,19 @@ indexCompatSub : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -
 indexCompatSub xs ys i ?= trans (indexCompatAdd xs (inverse ys) i) $ cong {f=((index i xs)<+>)} $ indexCompatInverse ys i
 
 indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
+
+
+
+{-
+* The recursive equation for (foldr) over (Vect)s.
+* The recursive equation for sums in (Monoid)s over a (Vect _).
+-}
+
+
+
+foldrImplRec : (f : t -> acc -> acc) -> (e : acc) -> (go : acc -> acc) -> (x : t) -> (xs : Vect n t) -> (foldrImpl f e go (x::xs) = go $ f x $ foldrImpl f e Basics.id xs)
+foldrImplRec f e go x [] = Refl
+foldrImplRec f e go x (xx::xxs) = trans (foldrImplRec f e (go . (f x)) xx xxs) $ cong {f=go . (f x)} $ sym $ foldrImplRec f e id xx xxs
+
+monoidrec : Monoid a => (v : a) -> (vs : Vect n a) -> sum' (v::vs) = v <+> sum' vs
+monoidrec = foldrImplRec (<+>) Algebra.neutral id
