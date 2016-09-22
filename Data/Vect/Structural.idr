@@ -103,6 +103,9 @@ updateAtSuccRowVanishesUnderHead : head $ updateAt (FS k) f xs = head xs
 updateAtSuccRowVanishesUnderHead {xs=x::xs} = Refl
 
 zipWithEntryChariz : index i $ Vect.zipWith m x y = m (index i x) (index i y)
+zipWithEntryChariz {x=[]} {y=[]} {i} = FinZElim i
+zipWithEntryChariz {x=(x::xs)} {y=(y::ys)} {i=FZ} = Refl
+zipWithEntryChariz {x=(x::xs)} {y=(y::ys)} {i=FS preli} = zipWithEntryChariz {x=xs} {y=ys} {i=preli}
 
 
 
