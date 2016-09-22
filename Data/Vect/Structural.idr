@@ -76,6 +76,11 @@ indexFZIsheadValued {xs=x :: xs} = Refl
 
 
 
+indexReplicateChariz : Data.Vect.index k $ replicate n a = a
+indexReplicateChariz {n=Z} {k} = FinZElim k
+indexReplicateChariz {n=S predn} {k=FZ} = Refl
+indexReplicateChariz {n=S predn} {k=FS prelk} = indexReplicateChariz {k=prelk}
+
 indexMapChariz : Data.Vect.index k $ map f xs = f $ index k xs
 indexMapChariz {xs=[]} {k} = FinZElim k
 -- indexMapChariz {xs} {f} {k=FZ} = trans indexFZIsheadValued $ trans headMapChariz $ sym $ cong indexFZIsheadValued

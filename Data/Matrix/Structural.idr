@@ -14,7 +14,9 @@ import Data.Vect.Structural
 
 transposeNHead: with Data.Vect ( head $ transpose xs = map head xs )
 
-transposeIndexChariz : index k $ transpose xs = getCol k xs
+transposeIndexChariz : {xs : Matrix n m a} -> index k $ transpose xs = getCol k xs
+transposeIndexChariz {xs=[]} {k} = indexReplicateChariz
+transposeIndexChariz {xs=x::xs} {k} = trans zipWithEntryChariz $ vectConsCong _ _ _ transposeIndexChariz
 
 transposeNTail : with Data.Vect ( transpose $ tail $ transpose xs = map tail xs )
 
