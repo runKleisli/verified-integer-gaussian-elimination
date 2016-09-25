@@ -32,6 +32,7 @@ vecIndexwiseEq fn {xs=x::xs} {ys=y::ys} = vecHeadtailsEq (fn FZ) $ vecIndexwiseE
 * Theorems characterizing (Vect)s of degenerate qualities.
 * Theorems characterizing the index or head of a list created with a certain operation.
 * The theorem (weakenedInd) about comparing an index of a list to an index of its (init).
+* The theorem (extensionalEqToMapEq) extending an extensional equality between functions to one between their (map)s over (Vect)s.
 -}
 
 
@@ -76,6 +77,11 @@ indexFZIsheadValued {xs=x :: xs} = Refl
 
 
 
+indexReplicateChariz : Data.Vect.index k $ replicate n a = a
+indexReplicateChariz {n=Z} {k} = FinZElim k
+indexReplicateChariz {n=S predn} {k=FZ} = Refl
+indexReplicateChariz {n=S predn} {k=FS prelk} = indexReplicateChariz {k=prelk}
+
 indexMapChariz : Data.Vect.index k $ map f xs = f $ index k xs
 indexMapChariz {xs=[]} {k} = FinZElim k
 -- indexMapChariz {xs} {f} {k=FZ} = trans indexFZIsheadValued $ trans headMapChariz $ sym $ cong indexFZIsheadValued
@@ -97,6 +103,9 @@ updateAtSuccRowVanishesUnderHead : head $ updateAt (FS k) f xs = head xs
 updateAtSuccRowVanishesUnderHead {xs=x::xs} = Refl
 
 zipWithEntryChariz : index i $ Vect.zipWith m x y = m (index i x) (index i y)
+zipWithEntryChariz {x=[]} {y=[]} {i} = FinZElim i
+zipWithEntryChariz {x=(x::xs)} {y=(y::ys)} {i=FZ} = Refl
+zipWithEntryChariz {x=(x::xs)} {y=(y::ys)} {i=FS preli} = zipWithEntryChariz {x=xs} {y=ys} {i=preli}
 
 
 
@@ -179,6 +188,12 @@ weakenedInd {xs=x::xs} {k=FS j} {v} = weakenedInd {xs=xs} {k=j} {v}
 
 
 
+extensionalEqToMapEq : (exteq : (a : ty) -> (f a = g a)) -> (xs : Vect n ty) -> (map f xs = map g xs)
+extensionalEqToMapEq exteq [] = Refl
+extensionalEqToMapEq exteq (x::xs) = vecHeadtailsEq (exteq x) $ extensionalEqToMapEq exteq xs
+
+
+
 {-
 Theorems about the module (Vect n a) over a ring (a):
 * Compatibility between the operations of the ring (a) and of (Vect n a) as a module under (index).
@@ -189,6 +204,9 @@ Theorems about the module (Vect n a) over a ring (a):
 -- For completeness's sake, these should have (index FZ) as (head) forms proved.
 
 indexCompatInverse : VerifiedRingWithUnity a => (xs : Vect n a) -> (i : Fin n) -> index i $ inverse xs = inverse $ index i xs
+indexCompatInverse [] i = FinZElim i
+indexCompatInverse (x::xs) FZ = Refl
+indexCompatInverse (x::xs) (FS preli) = indexCompatInverse xs preli
 
 indexCompatAdd : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <+> ys = index i xs <+> index i ys
 indexCompatAdd xs ys i = zipWithEntryChariz {x=xs} {y=ys} {i=i} {m=(<+>)}
@@ -206,6 +224,9 @@ indexCompatSub : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -
 indexCompatSub xs ys i ?= trans (indexCompatAdd xs (inverse ys) i) $ cong {f=((index i xs)<+>)} $ indexCompatInverse ys i
 
 indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
+indexCompatScaling r [] i = FinZElim i
+indexCompatScaling r (x::xs) FZ = ?indexCompatScaling_lemma_1 -- Should be Refl
+indexCompatScaling r (x::xs) (FS preli) = indexCompatScaling r xs preli
 
 
 
