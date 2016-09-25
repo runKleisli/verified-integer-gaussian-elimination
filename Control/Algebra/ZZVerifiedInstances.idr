@@ -181,9 +181,9 @@ ringOpIsDistributiveL_ZZ (Pos (S predl)) (NegS c) (NegS r) = cong {f=NegS . S}
 		$ cong $ plusCommutative _ r)
 	$ plusAssociative c (mult predl $ S c) $ plus r $ mult predl $ S r
 -- Reduces to 7 and the special case (negOneDistributesL_ZZ)
--- mirrors the proof of rhs_4 / case (NegS l) (NegS c) (Pos r).
+-- mirrors the proof of case [(NegS l) (NegS c) (Pos r)].
 ringOpIsDistributiveL_ZZ (NegS l) (NegS c) (NegS r) = trans (rewrite sym $ plusZeroRightNeutral l in Refl)
-	-- THIS LINE HERE IS CLEARER THAN IN rhs_4's proof! Change (NegS r) to (Pos r).
+	-- THIS LINE HERE IS CLEARER THAN IN case [(NegS l) (NegS c) (Pos r)]'s proof! Change (NegS r) to (Pos r).
 	$ trans (sym $ ringOpIsAssociative_ZZ (inverse Algebra.unity) (Pos (S l)) $ NegS c <+> NegS r)
 	$ trans (cong {f=multZ $ inverse unity} $ assert_total $ ringOpIsDistributiveL_ZZ (Pos (S l)) (NegS c) (NegS r))
 	$ trans (negOneDistributesL_ZZ (Pos (S l) <.> NegS c) (Pos (S l) <.> NegS r))
