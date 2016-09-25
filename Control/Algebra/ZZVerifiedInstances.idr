@@ -31,6 +31,12 @@ plusNegOneMinusNatProduction Z (S predb) = rewrite plusZeroRightNeutral predb in
 plusNegOneMinusNatProduction (S preda) Z = Refl
 plusNegOneMinusNatProduction (S preda) (S predb) = plusNegOneMinusNatProduction preda predb
 
+abelianGroupOpIsCommutative_ZZ : (l, r : ZZ) -> l <+> r = r <+> l
+abelianGroupOpIsCommutative_ZZ (Pos n) (Pos m) = cong $ plusCommutative _ _
+abelianGroupOpIsCommutative_ZZ (NegS n) (NegS m) = cong {f=NegS . S} $ plusCommutative _ _
+abelianGroupOpIsCommutative_ZZ (Pos n) (NegS m) = Refl
+abelianGroupOpIsCommutative_ZZ (NegS n) (Pos m) = Refl
+
 semigroupOpIsAssociative_ZZ : (l, c, r : ZZ) -> l <+> (c <+> r) = l <+> c <+> r
 semigroupOpIsAssociative_ZZ (Pos l) (Pos c) (Pos r) = cong $ plusAssociative _ _ _
 semigroupOpIsAssociative_ZZ (Pos l) (Pos Z) (NegS r) = rewrite plusZeroRightNeutral l in Refl
@@ -41,7 +47,7 @@ semigroupOpIsAssociative_ZZ (Pos Z) (NegS Z) (Pos (S predr)) = Refl
 semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS Z) (Pos (S predr)) = rewrite plusSuccRightSucc predl predr in Refl
 semigroupOpIsAssociative_ZZ (Pos Z) (NegS (S predc)) (Pos r) = monoidNeutralIsNeutralR_ZZ _
 semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS (S predc)) (Pos Z) = sym $ monoidNeutralIsNeutralL_ZZ _
-semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS (S predc)) (Pos (S predr)) = ?semigroupOpIsAssociative_ZZ_rhs_3
+semigroupOpIsAssociative_ZZ (Pos l) (NegS (S predc)) (Pos (S predr)) = ?semigroupOpIsAssociative_ZZ_rhs_3
 semigroupOpIsAssociative_ZZ (Pos Z) (NegS c) (NegS r) = Refl
 semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS Z) (NegS r) = Refl
 semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS (S predc)) (NegS r) = ?semigroupOpIsAssociative_ZZ_rhs_4
@@ -69,7 +75,9 @@ semigroupOpIsAssociative_ZZ_rhs_2 = proof
 
 semigroupOpIsAssociative_ZZ_rhs_3 = proof
   intros
-  exact semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS $ S predc) (Pos $ S predr)
+  exact trans (semigroupOpIsAssociative_ZZ (Pos l) (NegS predc) (Pos predr)) $ _
+  exact trans (cong {f=(<+> Pos predr)} $ trans (sym $ onePlusMinusNatReduction l (S predc)) $ abelianGroupOpIsCommutative_ZZ (Pos 1) (minusNatZ l $ S $ S predc)) $ _
+  exact sym $ semigroupOpIsAssociative_ZZ _ (Pos 1) (Pos predr)
 
 semigroupOpIsAssociative_ZZ_rhs_4 = proof
   intros
@@ -102,12 +110,6 @@ groupInverseIsInverseR_ZZ : (r : ZZ) -> inverse r <+> r = Algebra.neutral
 groupInverseIsInverseR_ZZ (Pos Z) = Refl
 groupInverseIsInverseR_ZZ (Pos (S predn)) = trans (cong {f=minusNatZ predn} $ multOneRightNeutral predn) $ minusNatZSelfZ predn
 groupInverseIsInverseR_ZZ (NegS n) = trans (cong {f=flip minusNatZ n} $ multOneRightNeutral n) $ minusNatZSelfZ n
-
-abelianGroupOpIsCommutative_ZZ : (l, r : ZZ) -> l <+> r = r <+> l
-abelianGroupOpIsCommutative_ZZ (Pos n) (Pos m) = cong $ plusCommutative _ _
-abelianGroupOpIsCommutative_ZZ (NegS n) (NegS m) = cong {f=NegS . S} $ plusCommutative _ _
-abelianGroupOpIsCommutative_ZZ (Pos n) (NegS m) = Refl
-abelianGroupOpIsCommutative_ZZ (NegS n) (Pos m) = Refl
 
 multZPosZRightZero : (left : ZZ) -> multZ left (Pos 0) = Pos 0
 multZPosZRightZero (Pos n) = cong {f=Pos} $ multZeroRightZero _
