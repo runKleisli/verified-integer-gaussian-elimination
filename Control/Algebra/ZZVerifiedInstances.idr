@@ -37,24 +37,28 @@ abelianGroupOpIsCommutative_ZZ (NegS n) (NegS m) = cong {f=NegS . S} $ plusCommu
 abelianGroupOpIsCommutative_ZZ (Pos n) (NegS m) = Refl
 abelianGroupOpIsCommutative_ZZ (NegS n) (Pos m) = Refl
 
+total
 semigroupOpIsAssociative_ZZ : (l, c, r : ZZ) -> l <+> (c <+> r) = l <+> c <+> r
 semigroupOpIsAssociative_ZZ (Pos l) (Pos c) (Pos r) = cong $ plusAssociative _ _ _
 semigroupOpIsAssociative_ZZ (Pos l) (Pos Z) (NegS r) = rewrite plusZeroRightNeutral l in Refl
 semigroupOpIsAssociative_ZZ (Pos l) (Pos (S predc)) (NegS Z) = rewrite sym $ plusSuccRightSucc l predc in Refl
-semigroupOpIsAssociative_ZZ (Pos l) (Pos (S predc)) (NegS (S predr)) = ?semigroupOpIsAssociative_ZZ_rhs_2
+semigroupOpIsAssociative_ZZ (Pos l) (Pos (S predc)) (NegS (S predr)) = rewrite sym $ plusSuccRightSucc l predc in assert_total $ semigroupOpIsAssociative_ZZ (Pos l) (Pos predc) (NegS predr)
 semigroupOpIsAssociative_ZZ (Pos l) (NegS Z) (Pos Z) = sym $ monoidNeutralIsNeutralL_ZZ _
 semigroupOpIsAssociative_ZZ (Pos Z) (NegS Z) (Pos (S predr)) = Refl
 semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS Z) (Pos (S predr)) = rewrite plusSuccRightSucc predl predr in Refl
 semigroupOpIsAssociative_ZZ (Pos Z) (NegS (S predc)) (Pos r) = monoidNeutralIsNeutralR_ZZ _
 semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS (S predc)) (Pos Z) = sym $ monoidNeutralIsNeutralL_ZZ _
-semigroupOpIsAssociative_ZZ (Pos l) (NegS (S predc)) (Pos (S predr)) = ?semigroupOpIsAssociative_ZZ_rhs_3
+semigroupOpIsAssociative_ZZ (Pos l) (NegS (S predc)) (Pos (S predr)) = trans (assert_total $ semigroupOpIsAssociative_ZZ (Pos l) (NegS predc) (Pos predr))
+	$ trans (cong {f=(<+> Pos predr)}
+		$ trans (sym $ onePlusMinusNatReduction l (S predc))
+		$ abelianGroupOpIsCommutative_ZZ (Pos 1) (minusNatZ l $ S $ S predc))
+	$ sym $ assert_total $ semigroupOpIsAssociative_ZZ _ (Pos 1) (Pos predr)
 semigroupOpIsAssociative_ZZ (Pos Z) (NegS c) (NegS r) = Refl
 semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS Z) (NegS r) = Refl
-semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS (S predc)) (NegS r) = ?semigroupOpIsAssociative_ZZ_rhs_4
+semigroupOpIsAssociative_ZZ (Pos (S predl)) (NegS (S predc)) (NegS r) = assert_total $ semigroupOpIsAssociative_ZZ (Pos predl) (NegS predc) (NegS r)
 semigroupOpIsAssociative_ZZ (NegS l) (Pos Z) (Pos r) = Refl
 semigroupOpIsAssociative_ZZ (NegS Z) (Pos (S predc)) (Pos r) = Refl
-semigroupOpIsAssociative_ZZ (NegS (S predl)) (Pos (S predc)) (Pos r) = ?semigroupOpIsAssociative_ZZ_rhs_5
--- This one's harder
+semigroupOpIsAssociative_ZZ (NegS (S predl)) (Pos (S predc)) (Pos r) = assert_total $ semigroupOpIsAssociative_ZZ (NegS predl) (Pos predc) (Pos r)
 semigroupOpIsAssociative_ZZ (NegS l) (Pos Z) (NegS Z) = Refl
 semigroupOpIsAssociative_ZZ (NegS l) (Pos Z) (NegS (S predr)) = Refl
 semigroupOpIsAssociative_ZZ (NegS l) (Pos (S predc)) (NegS Z) = sym $ plusNegOneMinusNatProduction predc l
@@ -62,40 +66,14 @@ semigroupOpIsAssociative_ZZ (NegS l) (Pos (S predc)) (NegS Z) = sym $ plusNegOne
 * Recurses to case [ (NegS l) (Pos predc) (NegS predr) ]
 * Depends on cases for [ x (NegS 0) (NegS predr) ]
 -}
-semigroupOpIsAssociative_ZZ (NegS l) (Pos (S predc)) (NegS (S predr)) = ?semigroupOpIsAssociative_ZZ_rhs_6
+semigroupOpIsAssociative_ZZ (NegS l) (Pos (S predc)) (NegS (S predr)) = trans (assert_total $ semigroupOpIsAssociative_ZZ (NegS l) (Pos predc) (NegS predr))
+	$ trans (cong {f=flip plusZ $ NegS predr} $ sym $ plusNegOneMinusNatProduction predc l)
+	$ sym $ assert_total $ semigroupOpIsAssociative_ZZ ((NegS l)<+>(Pos (S predc))) (NegS 0) (NegS predr)
 semigroupOpIsAssociative_ZZ (NegS l) (NegS Z) (Pos Z) = Refl
 semigroupOpIsAssociative_ZZ (NegS l) (NegS Z) (Pos (S predr)) = rewrite plusZeroRightNeutral l in Refl
 semigroupOpIsAssociative_ZZ (NegS l) (NegS c) (Pos Z) = Refl
-semigroupOpIsAssociative_ZZ (NegS l) (NegS (S predc)) (Pos (S predr)) = ?semigroupOpIsAssociative_ZZ_rhs_7
+semigroupOpIsAssociative_ZZ (NegS l) (NegS (S predc)) (Pos (S predr)) = rewrite sym $ plusSuccRightSucc l predc in assert_total $ semigroupOpIsAssociative_ZZ (NegS l) (NegS predc) (Pos predr)
 semigroupOpIsAssociative_ZZ (NegS l) (NegS c) (NegS r) = rewrite sym $ plusSuccRightSucc l (c+r) in cong {f=NegS . S . S} $ plusAssociative l c r
-
-semigroupOpIsAssociative_ZZ_rhs_2 = proof
-  intros
-  exact rewrite sym $ plusSuccRightSucc l predc in semigroupOpIsAssociative_ZZ (Pos l) (Pos predc) (NegS predr)
-
-semigroupOpIsAssociative_ZZ_rhs_3 = proof
-  intros
-  exact trans (semigroupOpIsAssociative_ZZ (Pos l) (NegS predc) (Pos predr)) $ _
-  exact trans (cong {f=(<+> Pos predr)} $ trans (sym $ onePlusMinusNatReduction l (S predc)) $ abelianGroupOpIsCommutative_ZZ (Pos 1) (minusNatZ l $ S $ S predc)) $ _
-  exact sym $ semigroupOpIsAssociative_ZZ _ (Pos 1) (Pos predr)
-
-semigroupOpIsAssociative_ZZ_rhs_4 = proof
-  intros
-  exact semigroupOpIsAssociative_ZZ (Pos predl) (NegS predc) (NegS r)
-
-semigroupOpIsAssociative_ZZ_rhs_5 = proof
-  intros
-  exact semigroupOpIsAssociative_ZZ (NegS predl) (Pos predc) (Pos r)
-
-semigroupOpIsAssociative_ZZ_rhs_6 = proof
-  intros
-  exact trans (semigroupOpIsAssociative_ZZ (NegS l) (Pos predc) (NegS predr)) $ _
-  exact trans (cong {f=flip plusZ $ NegS predr} $ sym $ plusNegOneMinusNatProduction predc l) $ _
-  exact sym $ semigroupOpIsAssociative_ZZ ((NegS l)<+>(Pos (S predc))) (NegS 0) (NegS predr)
-
-semigroupOpIsAssociative_ZZ_rhs_7 = proof
-  intros
-  exact rewrite sym $ plusSuccRightSucc l predc in semigroupOpIsAssociative_ZZ (NegS l) (NegS predc) (Pos predr)
 
 minusNatZSelfZ : (n : Nat) -> minusNatZ n n = Pos 0
 minusNatZSelfZ Z = Refl
@@ -145,6 +123,7 @@ negativeIsNegOneTimesRight (NegS r) = cong {f=Pos . S} $ trans (multOneRightNeut
 minusNatZNegOneTimesFlip : multZ (NegS 0) $ minusNatZ a b = minusNatZ b a
 minusNatZNegOneTimesFlip {a=Z} {b=Z} = Refl
 minusNatZNegOneTimesFlip {a=Z} {b=S predb} = cong {f=Pos . S} $ plusZeroRightNeutral predb
+minusNatZNegOneTimesFlip {a=S preda} {b=Z} = cong {f=NegS} $ plusZeroRightNeutral preda
 minusNatZNegOneTimesFlip {a=S preda} {b=S predb} = minusNatZNegOneTimesFlip {a=preda} {b=predb}
 
 negOneDistributesL_ZZ : (c, r : ZZ) -> (inverse Algebra.unity) <.> (c <+> r) = (inverse Algebra.unity)<.>c <+> (inverse Algebra.unity)<.>r
@@ -158,22 +137,38 @@ negOneDistributesL_ZZ (NegS c) (Pos Z) = rewrite plusZeroRightNeutral c in rewri
 negOneDistributesL_ZZ (NegS c) (Pos (S predr)) = rewrite plusZeroRightNeutral c in rewrite plusZeroRightNeutral predr in minusNatZNegOneTimesFlip
 negOneDistributesL_ZZ (NegS c) (NegS r) = cong {f=Pos . S} $ rewrite plusZeroRightNeutral (c+r) in rewrite plusZeroRightNeutral c in rewrite plusZeroRightNeutral r in plusSuccRightSucc c r
 
-{-
-If the cases where values are given as proofs are to be given as values, the totality checker must accept that, though they reference other cases of (ringOpIsDistributiveL_ZZ), (ringOpIsDistributiveL_ZZ) remains total.
--}
+total
 ringOpIsDistributiveL_ZZ : ( l, c, r : ZZ ) -> l <.> (c <+> r) = l <.> c <+> l <.> r
 ringOpIsDistributiveL_ZZ (Pos l) (Pos c) (Pos r) = cong {f=Pos} $ multDistributesOverPlusRight _ _ _
 ringOpIsDistributiveL_ZZ (NegS l) (Pos Z) (Pos r) = rewrite (multZeroRightZero l) in sym $ plusZeroLeftNeutralZ _
 ringOpIsDistributiveL_ZZ (NegS l) (Pos (S predc)) (Pos r) = trans (cong {f=negNat} $ multDistributesOverPlusRight (S l) (S predc) r) $ sym $ negPlusNegnatToNegnatPlus _ _
 ringOpIsDistributiveL_ZZ (Pos l) (NegS c) (Pos Z) = rewrite multZeroRightZero l in sym $ plusZeroRightNeutralZ _
 -- if (r) is a successor, induce from the theorem on its predecessor.
-ringOpIsDistributiveL_ZZ (Pos l) (NegS c) (Pos (S predr)) = ?ringOpIsDistributiveL_ZZ_rhs_3_2
+ringOpIsDistributiveL_ZZ (Pos l) (NegS c) (Pos (S predr)) = trans (trans (cong $ sym $ onePlusMinusNatReduction predr c) $
+	trans (assert_total $ ringOpIsDistributiveL_ZZ (Pos l) (Pos 1) (minusNatZ predr (S c))) $ rewrite multOneRightNeutral l in Refl)
+	$ trans (cong {f=((Pos l)<+>)} $ assert_total $ ringOpIsDistributiveL_ZZ (Pos l) (NegS c) (Pos predr))
+	$ trans (semigroupOpIsAssociative_ZZ (Pos l) (negNat $ mult l $ S c) $ Pos $ mult l predr)
+	$ trans ( trans (cong {f=flip plusZ $ Pos $ mult l predr} $ abelianGroupOpIsCommutative_ZZ (Pos l) (negNat $ mult l $ S c))
+		$ sym $ semigroupOpIsAssociative_ZZ (negNat $ mult l $ S c) (Pos l) (Pos $ mult l predr))
+	$ cong {f=(plusZ $ negNat $ mult l $ S c) . Pos}
+		$ trans (cong {f=flip plus $ mult l predr} $ sym $ multOneRightNeutral l)
+		$ sym $ multDistributesOverPlusRight l 1 predr
 -- reduces to 3 and the special case (negOneDistributesL_ZZ)
-ringOpIsDistributiveL_ZZ (NegS l) (NegS c) (Pos r) = ?ringOpIsDistributiveL_ZZ_rhs_4
+ringOpIsDistributiveL_ZZ (NegS l) (NegS c) (Pos r) = trans (cong {f=(flip multZ $ minusNatZ r $ S c) . NegS} $ sym $ plusZeroRightNeutral l)
+	$ trans (sym $ ringOpIsAssociative_ZZ (inverse Algebra.unity) (Pos (S l)) $ minusNatZ r (S c))
+	$ trans (cong {f=multZ $ inverse unity} $ assert_total $ ringOpIsDistributiveL_ZZ (Pos (S l)) (NegS c) (Pos r))
+	$ trans (negOneDistributesL_ZZ (Pos (S l) <.> NegS c) (Pos (S l) <.> Pos r))
+	$ trans (cong $ sym $ negativeIsNegOneTimesRight (Pos (S l) <.> Pos r))
+	$ trans (cong {f=(flip plusZ $ negNat (mult (plus r (mult l r)) 1)) . Pos . S} $ plusZeroRightNeutral _)
+	$ cong {f=plusZ $ Pos $ S $ plus c $ mult l $ S c} $ cong {f=negNat} $ multOneRightNeutral _
 -- reduces to 3
-ringOpIsDistributiveL_ZZ (Pos l) (Pos c) (NegS r) = ?ringOpIsDistributiveL_ZZ_rhs_5
+ringOpIsDistributiveL_ZZ (Pos l) (Pos c) (NegS r) = trans (cong {f=((Pos l) <.>)} $ abelianGroupOpIsCommutative_ZZ (Pos c) (NegS r))
+	$ trans (assert_total $ ringOpIsDistributiveL_ZZ (Pos l) (NegS r) (Pos c))
+	$ abelianGroupOpIsCommutative_ZZ ((Pos l)<.>(NegS r)) ((Pos l)<.>(Pos c))
 -- reduces to 4
-ringOpIsDistributiveL_ZZ (NegS l) (Pos c) (NegS r) = ?ringOpIsDistributiveL_ZZ_rhs_6
+ringOpIsDistributiveL_ZZ (NegS l) (Pos c) (NegS r) = trans (cong {f=((NegS l) <.>)} $ abelianGroupOpIsCommutative_ZZ (Pos c) (NegS r))
+	$ trans (assert_total $ ringOpIsDistributiveL_ZZ (NegS l) (NegS r) (Pos c))
+	$ abelianGroupOpIsCommutative_ZZ ((NegS l)<.>(NegS r)) ((NegS l)<.>(Pos c))
 ringOpIsDistributiveL_ZZ (Pos Z) (NegS c) (NegS r) = Refl
 ringOpIsDistributiveL_ZZ (Pos (S predl)) (NegS c) (NegS r) = cong {f=NegS . S}
 	$ trans (cong
@@ -186,59 +181,19 @@ ringOpIsDistributiveL_ZZ (Pos (S predl)) (NegS c) (NegS r) = cong {f=NegS . S}
 		$ cong $ plusCommutative _ r)
 	$ plusAssociative c (mult predl $ S c) $ plus r $ mult predl $ S r
 -- Reduces to 7 and the special case (negOneDistributesL_ZZ)
-ringOpIsDistributiveL_ZZ (NegS l) (NegS c) (NegS r) = ?ringOpIsDistributiveL_ZZ_rhs_8
-
-ringOpIsDistributiveL_ZZ_rhs_3_2 = proof
-  intros
-  exact trans (trans (cong $ sym $ onePlusMinusNatReduction predr c) $ trans (ringOpIsDistributiveL_ZZ (Pos l) (Pos 1) (minusNatZ predr (S c))) $ rewrite multOneRightNeutral l in Refl) $ trans (cong {f=((Pos l)<+>)} $ ringOpIsDistributiveL_ZZ (Pos l) (NegS c) (Pos predr)) $ trans (semigroupOpIsAssociative_ZZ (Pos l) (negNat $ mult l $ S c) $ Pos $ mult l predr) $ trans (trans (cong {f=flip plusZ $ Pos $ mult l predr} $ abelianGroupOpIsCommutative_ZZ (Pos l) (negNat $ mult l $ S c)) $ sym $ semigroupOpIsAssociative_ZZ (negNat $ mult l $ S c) (Pos l) (Pos $ mult l predr)) $ cong {f=(plusZ $ negNat $ mult l $ S c) . Pos} $ trans (cong {f=flip plus $ mult l predr} $ sym $ multOneRightNeutral l) $ sym $ multDistributesOverPlusRight l 1 predr
-
-{-
--- As written in REPL
-ringOpIsDistributiveL_ZZ_rhs_4 = proof
-  intros
-  exact trans (cong {f=(flip multZ $ minusNatZ r $ S c) . NegS} $ sym $ plusZeroRightNeutral l) $ trans (sym $ ringOpIsAssociative_ZZ (inverse Algebra.unity) (Pos (S l)) $ minusNatZ r (S c)) _
-  exact trans (cong {f=multZ $ inverse unity} $ ringOpIsDistributiveL_ZZ (Pos (S l)) (NegS c) (Pos r)) $ _
-  exact trans (negOneDistributesL_ZZ (Pos (S l) <.> NegS c) (Pos (S l) <.> Pos r)) _
-  exact trans (cong $ sym $ negativeIsNegOneTimesRight (Pos (S l) <.> Pos r)) _
-  exact trans (rewrite plusZeroRightNeutral $ c+l*(S c) in Refl) $ cong {f=plusZ $ Pos $ S $ plus c $ mult l $ S c} _
-  exact cong {f=negNat} $ multOneRightNeutral _
-
------
-
--- Two lines, works in REPL. Patched to derive proof seen below.
-ringOpIsDistributiveL_ZZ_rhs_4 = proof
-  intros
-  exact trans (cong {f=(flip multZ $ minusNatZ r $ S c) . NegS} $ sym $ plusZeroRightNeutral l) $ trans (sym $ ringOpIsAssociative_ZZ (inverse Algebra.unity) (Pos (S l)) $ minusNatZ r (S c)) $ trans (cong {f=multZ $ inverse unity} $ ringOpIsDistributiveL_ZZ (Pos (S l)) (NegS c) (Pos r)) $ trans (negOneDistributesL_ZZ (Pos (S l) <.> NegS c) (Pos (S l) <.> Pos r)) $ trans (cong $ sym $ negativeIsNegOneTimesRight (Pos (S l) <.> Pos r)) $ _
-  exact trans (rewrite plusZeroRightNeutral $ c+l*(S c) in Refl) $ cong {f=plusZ $ Pos $ S $ plus c $ mult l $ S c} $ cong {f=negNat} $ multOneRightNeutral _
--}
--- One line/ squashed.
-ringOpIsDistributiveL_ZZ_rhs_4 = proof
-  intros
-  exact trans (cong {f=(flip multZ $ minusNatZ r $ S c) . NegS} $ sym $ plusZeroRightNeutral l) $ trans (sym $ ringOpIsAssociative_ZZ (inverse Algebra.unity) (Pos (S l)) $ minusNatZ r (S c)) $ trans (cong {f=multZ $ inverse unity} $ ringOpIsDistributiveL_ZZ (Pos (S l)) (NegS c) (Pos r)) $ trans (negOneDistributesL_ZZ (Pos (S l) <.> NegS c) (Pos (S l) <.> Pos r)) $ trans (cong $ sym $ negativeIsNegOneTimesRight (Pos (S l) <.> Pos r)) $ trans (cong {f=(flip plusZ $ negNat (mult (plus r (mult l r)) 1)) . Pos . S} $ plusZeroRightNeutral _) $ cong {f=plusZ $ Pos $ S $ plus c $ mult l $ S c} $ cong {f=negNat} $ multOneRightNeutral _
-
-ringOpIsDistributiveL_ZZ_rhs_5 = proof
-	intros
-	exact trans (cong {f=((Pos l) <.>)} $ abelianGroupOpIsCommutative_ZZ (Pos c) (NegS r)) $ trans (ringOpIsDistributiveL_ZZ (Pos l) (NegS r) (Pos c)) $ abelianGroupOpIsCommutative_ZZ ((Pos l)<.>(NegS r)) ((Pos l)<.>(Pos c))
-
-ringOpIsDistributiveL_ZZ_rhs_6 = proof
-	intros
-	exact trans (cong {f=((NegS l) <.>)} $ abelianGroupOpIsCommutative_ZZ (Pos c) (NegS r)) $ trans (ringOpIsDistributiveL_ZZ (NegS l) (NegS r) (Pos c)) $ abelianGroupOpIsCommutative_ZZ ((NegS l)<.>(NegS r)) ((NegS l)<.>(Pos c))
-
 -- mirrors the proof of rhs_4 / case (NegS l) (NegS c) (Pos r).
-ringOpIsDistributiveL_ZZ_rhs_8 = proof
-  intros
-  exact trans (rewrite sym $ plusZeroRightNeutral l in Refl) $ _
-  -- THIS LINE HERE IS CLEARER THAN IN rhs_4's proof! Change (NegS r) to (Pos r).
-  exact trans (sym $ ringOpIsAssociative_ZZ (inverse Algebra.unity) (Pos (S l)) $ NegS c <+> NegS r) $ _
-  exact trans (cong {f=multZ $ inverse unity} $ ringOpIsDistributiveL_ZZ (Pos (S l)) (NegS c) (NegS r)) $ _
-  exact trans (negOneDistributesL_ZZ (Pos (S l) <.> NegS c) (Pos (S l) <.> NegS r)) _
-  exact trans ( cong {f=plusZ (multZ (NegS 0) (Pos (S l) <.> NegS c))} $ sym $ negativeIsNegOneTimesRight (Pos (S l) <.> NegS r) ) $ _
-  {-
-  HERE THE PROOF IS DIFFERENT BECAUSE THE CONGs ON THE (multOneRightNeutral)
-  WOULD HAVE TO BE DIFFERENT.
-  -}
-  exact trans (rewrite plusZeroRightNeutral $ c+l*(S c) in Refl) $ _
-  exact rewrite multOneRightNeutral (r+l*(S r)) in Refl
+ringOpIsDistributiveL_ZZ (NegS l) (NegS c) (NegS r) = trans (rewrite sym $ plusZeroRightNeutral l in Refl)
+	-- THIS LINE HERE IS CLEARER THAN IN rhs_4's proof! Change (NegS r) to (Pos r).
+	$ trans (sym $ ringOpIsAssociative_ZZ (inverse Algebra.unity) (Pos (S l)) $ NegS c <+> NegS r)
+	$ trans (cong {f=multZ $ inverse unity} $ assert_total $ ringOpIsDistributiveL_ZZ (Pos (S l)) (NegS c) (NegS r))
+	$ trans (negOneDistributesL_ZZ (Pos (S l) <.> NegS c) (Pos (S l) <.> NegS r))
+	$ trans ( cong {f=plusZ (multZ (NegS 0) (Pos (S l) <.> NegS c))} $ sym $ negativeIsNegOneTimesRight (Pos (S l) <.> NegS r) )
+	{-
+	HERE THE PROOF IS DIFFERENT BECAUSE THE CONGs ON THE (multOneRightNeutral)
+	WOULD HAVE TO BE DIFFERENT.
+	-}
+	$ trans (rewrite plusZeroRightNeutral $ c+l*(S c) in Refl)
+	$ rewrite multOneRightNeutral (r+l*(S r)) in Refl
 
 ringOpIsCommutative_ZZ : ( l, r : ZZ ) -> l <.> r = r <.> l
 ringOpIsCommutative_ZZ (Pos l) (Pos r) = cong $ multCommutative l r
