@@ -533,6 +533,8 @@ timesMatMatAsMultipleLinearCombos' = proof
 Prove matrix multiplication distributes over vector addition and whatnot.
 -}
 
+
+
 -- See (dotproductRewrite) and (monoidrec1D)
 -- This would be better with binary cong / leibniz equality on the (<+>)s.
 dotProductRightDistributesOverVectorPlus : (l, c, r : Vect n ZZ) -> (l<+>c)<:>r = (l<:>r)<+>(c<:>r)
