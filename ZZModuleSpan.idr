@@ -584,9 +584,16 @@ spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
 mergeSpannedLZs : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys++zs)
 
 spanslzRowTimesSelf : spanslz xs [v<\>xs]
+spanslzRowTimesSelf {xs} {v} = ([v] ** cong {f=(::[])} $ sym $ timesVectMatAsLinearCombo v xs)
+
+preserveSpanningLZByCons : spanslz xs ys -> spanslz (z::xs) ys
 
 extendSpanningLZsByPreconcatTrivially : spanslz xs ys -> spanslz (zs++xs) ys
+extendSpanningLZsByPreconcatTrivially {zs=[]} prsp = prsp
+extendSpanningLZsByPreconcatTrivially {zs=z::zs} prsp = preserveSpanningLZByCons {z=z} $ extendSpanningLZsByPreconcatTrivially {zs=zs} prsp
 
+-- Could be done by (spanslztrans) of above with a reversal permutation `spanslz`.
+-- Equality of the (Fin) types and induced eq of the (Iso) types w/ (Auto)s suffices.
 extendSpanningLZsByPostconcatTrivially : spanslz xs ys -> spanslz (xs++zs) ys
 
 concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
@@ -620,6 +627,7 @@ spanslzSubtractiveExchange2 : spanslz xs ys -> spanslz ((zs<->ys)++xs) (zs++xs)
 -}
 
 spanslzAdditivePreservation : spanslz (y::xs) ((y<+>(z<\>xs))::xs)
+spanslzAdditivePreservation {xs} {y} {z} = ?spanslzAdditivePreservation'
 
 spanslzSubtractivePreservation : spanslz (y::xs) ((y<->(z<\>xs))::xs)
 
