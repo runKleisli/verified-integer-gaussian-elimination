@@ -11,6 +11,8 @@ import Data.Matrix.Structural
 
 import Data.ZZ
 
+import Control.Algebra.ZZVerifiedInstances
+
 
 
 monoidsum : (Foldable t, Monoid a) => t a -> a
@@ -27,6 +29,7 @@ monoidsum = sum'
 {-
 Basic theorems regarding
 * Functions
+* Abelian groups
 * Vect _ _
 * Matrix _ _ _
 * Vect _ ZZ
@@ -61,6 +64,15 @@ etaBinary f = trans (eta f) $ trans baz1 $ trans bar baz2
 		baz1 = sym flipIsInvolutionExtensional
 		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
 		baz2 = flipIsInvolutionExtensional
+
+
+
+doubleSumInnerSwap : VerifiedAbelianGroup t => (a, b, c, d : t) -> (a<+>b)<+>(c<+>d) = (a<+>c)<+>(b<+>d)
+doubleSumInnerSwap a b c d = trans (sym $ semigroupOpIsAssociative a b (c<+>d))
+	$ trans ( cong {f=(a<+>)} $ trans (semigroupOpIsAssociative b c d)
+		$ trans (cong {f=(<+>d)} $ abelianGroupOpIsCommutative b c)
+		$ sym $ semigroupOpIsAssociative c b d)
+	$ semigroupOpIsAssociative a c (b<+>d)
 
 
 
@@ -514,3 +526,26 @@ timesMatMatAsMultipleLinearCombos' = proof
 	rewrite sym $ headtails ((v::vs)<>xs)
 	rewrite sym $ timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs
 	exact cong {f=(( monoidsum $ zipWith (<#>) v xs )::)} $ timesMatMatAsMultipleLinearCombos vs xs
+
+
+
+{-
+Prove matrix multiplication distributes over vector addition and whatnot.
+-}
+
+-- See (dotproductRewrite) and (monoidrec1D)
+-- This would be better with binary cong / leibniz equality on the (<+>)s.
+dotProductRightDistributesOverVectorPlus : (l, c, r : Vect n ZZ) -> (l<+>c)<:>r = (l<:>r)<+>(c<:>r)
+dotProductRightDistributesOverVectorPlus [] [] [] = Refl
+dotProductRightDistributesOverVectorPlus (l::ls) (c::cs) (r::rs) = trans monoidrec1D $
+	trans (cong {f=(((l<+>c)<.>r) <+>)} $ dotProductRightDistributesOverVectorPlus ls cs rs)
+	$ trans (cong {f=(<+>((ls<:>rs)<+>(cs<:>rs)))} $ ringOpIsDistributiveR_ZZ l c r)
+	$ trans (doubleSumInnerSwap (l<.>r) (c<.>r) (ls<:>rs) (cs<:>rs))
+	$ rewrite monoidrec1D {v=l<.>r} {vs=zipWith (<.>) ls rs} in rewrite monoidrec1D {v=c<.>r} {vs=zipWith (<.>) cs rs} in Refl
+
+matrixMultLeftDistributesOverVectorPlus : (l : Matrix n m ZZ) -> (c, r : Vect m ZZ) -> l</>(c<+>r) = (l</>c)<+>(l</>r)
+matrixMultLeftDistributesOverVectorPlus [] c r = Refl
+matrixMultLeftDistributesOverVectorPlus (x::xs) c r = vecHeadtailsEq (dotProductRightDistributesOverVectorPlus c r x) $ matrixMultLeftDistributesOverVectorPlus xs c r
+
+matrixMultRightDistributesOverVectorPlus : (l, c : Vect n ZZ) -> (r : Matrix n m ZZ) -> (l<+>c)<\>r = (l<\>r)<+>(c<\>r)
+matrixMultRightDistributesOverVectorPlus l c r = matrixMultLeftDistributesOverVectorPlus (transpose r) l c
