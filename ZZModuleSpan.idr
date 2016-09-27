@@ -537,6 +537,12 @@ spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scal
 spanScalelz : (z : ZZ) -> spanslz xs ys -> spanslz xs (z<#>ys)
 
 spanAdd : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <+> zs)
+spanAdd {xs} {ys} {zs} spXY spXZ = ((getWitness spXY)<+>(getWitness spXZ) **
+	trans (sym $ timesMatMatAsMultipleLinearCombos ((getWitness spXY)<+>(getWitness spXZ)) xs)
+	$ trans (matrixMultRightDistributesOverMatrixPlus (getWitness spXY) (getWitness spXZ) xs)
+	$ trans (cong {f=(((getWitness spXY)<>xs)<+>)} $ trans (timesMatMatAsMultipleLinearCombos (getWitness spXZ) xs) $ getProof spXZ)
+	$ cong {f=(<+>zs)} $ trans (timesMatMatAsMultipleLinearCombos (getWitness spXY) xs) $ getProof spXY
+	)
 
 spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
 spanSub {xs} {ys} {zs} prxy prxz = ?spanSub'
