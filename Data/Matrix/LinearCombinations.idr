@@ -535,6 +535,7 @@ timesMatMatAsMultipleLinearCombos' = proof
 * Prove ZZ matrices form a ring (should work for any ring).
 * Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
 * Prove transposition is an antiendomorphism of multiplication and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
+* Some Algebra.neutral is a zero element proofs.
 -}
 
 
@@ -679,3 +680,22 @@ matrixTransposeAntiendoMatrixMult x y = vecIndexwiseEq
 			$ trans (cong {f=index j} $ sym $ indexMapChariz {k=i} {f=(<\>(transpose x))} {xs=transpose y})
 				-- index j $ index i $ map (<\> (transpose x)) (transpose y)
 -}
+
+
+
+neutralVectIsDotProductZero_L : (x : Vect nu ZZ) -> Algebra.neutral <:> x = Algebra.neutral
+neutralVectIsDotProductZero_L [] = Refl
+neutralVectIsDotProductZero_L (x::xs) = trans monoidrec1D
+	$ trans (cong {f=(<+>(Algebra.neutral<:>xs))} $ multZPosZLeftZero x)
+	$ trans ( cong $ neutralVectIsDotProductZero_L xs )
+	$ monoidNeutralIsNeutralR_ZZ _
+
+neutralVectIsVectTimesZero : (x : Matrix nu mu ZZ) -> Algebra.neutral <\> x = Algebra.neutral
+neutralVectIsVectTimesZero xs {mu=Z} = zeroVecEq
+neutralVectIsVectTimesZero xs {mu=S predmu} = trans timesVectMatAsHeadTail_ByTransposeElimination
+	$ vecHeadtailsEq
+		(neutralVectIsDotProductZero_L $ map head xs)
+		$ neutralVectIsVectTimesZero $ map tail xs
+
+neutralMatIsMultZeroL : (x : Matrix nu mu ZZ) -> Algebra.neutral <> x = Algebra.neutral
+neutralMatIsMultZeroL x = vecIndexwiseEq $ \i => trans indexMapChariz $ trans (cong {f=(<\>x)} indexReplicateChariz) $ trans (neutralVectIsVectTimesZero x) $ sym $ indexReplicateChariz

@@ -495,6 +495,9 @@ bispanslzreflFromEq : (xs=ys) -> xs `bispanslz` ys
 
 
 
+spanslzNeutral : {xs : Matrix n w ZZ} -> spanslz xs $ the (Matrix m w ZZ) Algebra.neutral
+spanslzNeutral = (Algebra.neutral ** trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ neutralMatIsMultZeroL _)
+
 updateAtEquality : {ls : Matrix n k ZZ} -> {rs : Matrix k m ZZ} -> (updi : Fin n) -> (f : (i : Nat) -> Vect i ZZ -> Vect i ZZ) -> ( (la : Vect k ZZ) -> (f k la) <\> rs = f m $ la <\> rs ) -> (updateAt updi (f k) ls) `zippyScale` rs = updateAt updi (f m) (ls `zippyScale` rs)
 updateAtEquality {ls=[]} updi f fnpreq = FinZElim updi
 updateAtEquality {ls=l::ls} {rs} FZ f fnpreq = vecHeadtailsEq {xs=tail $ (l::ls) `zippyScale` rs} ( trans (sym $ timesVectMatAsLinearCombo (f _ l) rs) $ trans (fnpreq l) $ cong {f=f _} $ timesVectMatAsLinearCombo l rs ) Refl
@@ -566,6 +569,7 @@ spanSub' = proof
 
 {-
 -- I feel like typechecking this shouldn't be a problem for Idris.
+-- Perhaps (unity) needed to be (Algebra.unity).
 
 
 spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
@@ -607,6 +611,30 @@ concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
 
 
 spanslzAdditiveExchange : spanslz ((y<+>(z<\>xs))::xs) (y::xs)
+spanslzAdditiveExchange {xs} {y} {z} =
+	-- Subtract two matrices
+	(spanSub
+		(spanslzrefl {xs=(y<+>(z<\>xs))::xs})
+		-- Treat head subtraction as matrix subtraction by appending neutral mat:
+		-- (y<+>(z<\>xs))::xs `spanslz` (z<\>xs)::Algebra.neutral
+		$ mergeSpannedLZs
+			-- (y<+>(z<\>xs))::xs `spanslz` [z<\>xs]
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				spanslzRowTimesSelf)
+			spanslzNeutral)
+	-- Then simplify the subtraction
+	`spanslztrans` (spanslzreflFromEq
+		$ vecHeadtailsEq
+			-- Regroup element next to its inverse, then cancel
+			(trans
+				(sym $ semigroupOpIsAssociative_Vect y (z<\>xs) $ inverse $ z<\>xs)
+				$ trans (cong $ groupInverseIsInverseL_Vect $ z<\>xs)
+				$ monoidNeutralIsNeutralL_Vect y)
+			-- (<->Algebra.neutral) is a no-op.
+			$ trans
+				(cong {f=(xs<+>)} $ neutralSelfInverse)
+				$ monoidNeutralIsNeutralL xs)
 
 spanslzSubtractiveExchange : spanslz ((y<->(z<\>xs))::xs) (y::xs)
 
