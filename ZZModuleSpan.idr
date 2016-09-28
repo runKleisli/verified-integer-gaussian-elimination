@@ -492,6 +492,7 @@ spanslzreflFromEq : (xs=ys) -> xs `spanslz` ys
 spanslzreflFromEq pr = ( Id ** trans (zippyScaleIdLeftNeutral _) pr )
 
 bispanslzreflFromEq : (xs=ys) -> xs `bispanslz` ys
+bispanslzreflFromEq pr = (spanslzreflFromEq pr, spanslzreflFromEq $ sym pr)
 
 
 
