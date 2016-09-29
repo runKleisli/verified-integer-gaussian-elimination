@@ -13,7 +13,7 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 
 import Data.Vect.Structural
--- import Data.Matrix.Structural
+import Data.Matrix.Structural
 
 import Control.Isomorphism
 
@@ -212,7 +212,21 @@ matTimesVerMonoid {r} {n} = matTimesVerMonoid'
 Associative property for matrix multiplication
 -}
 
-timesMatMatIsAssociative : Ring a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
+matMultIndicesChariz : Ring a => {l : Matrix _ _ a} -> {r : Matrix _ _ a} -> indices i j (l<>r) = (index i l)<:>(getCol j r)
+matMultIndicesChariz {l} {r} {i} {j} = trans (cong {f=index j} $ indexMapChariz {f=(<\>r)}) $ trans (indexMapChariz {f=((index i l)<:>)}) $ cong {f=((Vect.index i l)<:>)} transposeIndexChariz
+
+-- but probably (VerifiedCommutativeRing a)
+timesMatMatIsAssociative : VerifiedRing a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
+timesMatMatIsAssociative = vecIndexwiseEq
+	$ \i => vecIndexwiseEq
+		$ \j => trans matMultIndicesChariz $ trans indicesAssoc $ sym $ matMultIndicesChariz
+	where
+		indicesAssoc : VerifiedRing a => {l : Matrix _ _ a}
+			-> {c : Matrix _ _ a}
+			-> {r : Matrix _ _ a}
+			-> (index i l) <:> (getCol j $ c<>r)
+				= (index i $ l<>c) <:> (getCol j r)
+		indicesAssoc = ?indicesAssoc_pr
 
 
 
