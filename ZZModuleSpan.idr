@@ -752,7 +752,13 @@ headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs
 spanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
 spanslzAdditiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes {f=\argxx => \argxxs => argxx<+>(z<\>argxxs) } (\argxx => \argxxs => spanslzAdditiveExchange {y=argxx} {xs=argxxs} {z=z}) nel xs
 
+-- Code mirrors (spanslzAdditiveExchangeAt), but is more compactly written.
 spanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<->(z<\>(deleteRow nel xs))) xs) xs
+spanslzSubtractiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes
+	{f=(.(z<\>)).(<->)}
+	(\argxx => \argxxs => spanslzSubtractiveExchange)
+	nel
+	xs
 
 spanslzAdditivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs)
 
