@@ -652,9 +652,23 @@ spanslzAdditiveExchange {xs} {y} {z} =
 				$ monoidNeutralIsNeutralL xs)
 
 spanslzSubtractiveExchange : spanslz ((y<->(z<\>xs))::xs) (y::xs)
+spanslzSubtractiveExchange {y} {z} {xs} = spanslztrans
+	(spanAdd
+		spanslzrefl
+		$ mergeSpannedLZs
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				spanslzRowTimesSelf)
+			spanslzNeutral)
+	$ spanslzreflFromEq
+	$ vecHeadtailsEq (
+		trans (sym $ semigroupOpIsAssociative_Vect y (inverse $ z<\> xs) (z<\>xs))
+		$ trans (cong {f=(y<+>)} $ groupInverseIsInverseR_Vect $ z<\>xs)
+		$ monoidNeutralIsNeutralL_Vect y)
+	$ monoidNeutralIsNeutralL xs
 
 {-
-Should actually be as follows, as it will make the proof easier:
+Equivalent alternatives:
 
 spanslzAdditiveExchange : spanslz ((y<+>(monoidsum $ zipWith (<#>) z xs))::xs) (y::xs)
 
@@ -676,9 +690,29 @@ spanslzSubtractiveExchange2 : spanslz xs ys -> spanslz ((zs<->ys)++xs) (zs++xs)
 -}
 
 spanslzAdditivePreservation : spanslz (y::xs) ((y<+>(z<\>xs))::xs)
-spanslzAdditivePreservation {xs} {y} {z} = ?spanslzAdditivePreservation'
+spanslzAdditivePreservation {xs} = spanslztrans
+	(spanAdd
+		spanslzrefl
+		$ mergeSpannedLZs
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				$ spanslzRowTimesSelf)
+			spanslzNeutral)
+	$ spanslzreflFromEq $ cong $ monoidNeutralIsNeutralL xs
 
 spanslzSubtractivePreservation : spanslz (y::xs) ((y<->(z<\>xs))::xs)
+spanslzSubtractivePreservation {xs} = spanslztrans
+	(spanSub
+		spanslzrefl
+		$ mergeSpannedLZs
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				spanslzRowTimesSelf)
+			spanslzNeutral)
+	$ spanslzreflFromEq $ cong
+	-- (<->Algebra.neutral) is a no-op.
+	$ trans (cong {f=(xs<+>)} $ neutralSelfInverse)
+	$ monoidNeutralIsNeutralL xs
 
 {-
 Implication of bispannability: Transformations of this form preserve the span of the vectors, the span of both sides of the transformation is the same ZZ-submodule of ZZ^n.
