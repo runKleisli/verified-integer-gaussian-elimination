@@ -678,6 +678,15 @@ tailnote' = proof
   rewrite sym $ headtails vs
   exact Refl
 
+{-
+-- Alternate theorem & proof
+spanslzTail : spanslz (x::xs) xs
+spanslzTail {x} {xs} = (map ((Pos 0)::) Id
+	** trans (sym $ timesMatMatAsMultipleLinearCombos (map ((Pos 0)::) Id) (x::xs))
+		$ trans (matMultCancelsHeadWithZeroColExtensionL {xs=Id} {ys=xs} {z=x})
+		$ multIdLeftNeutral xs )
+-}
+
 spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
 spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
 spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = ?spannedlzByZeroId'
@@ -842,6 +851,7 @@ spanslzRowTimesSelf : spanslz xs [v<\>xs]
 spanslzRowTimesSelf {xs} {v} = ([v] ** cong {f=(::[])} $ sym $ timesVectMatAsLinearCombo v xs)
 
 preserveSpanningLZByCons : spanslz xs ys -> spanslz (z::xs) ys
+preserveSpanningLZByCons {z} {xs} spXY = spanslztrans (spanslzTail {xs=z::xs} spanslzrefl) spXY
 
 extendSpanningLZsByPreconcatTrivially : spanslz xs ys -> spanslz (zs++xs) ys
 extendSpanningLZsByPreconcatTrivially {zs=[]} prsp = prsp
@@ -1001,6 +1011,11 @@ bispanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt ne
 bispanslzSubtractiveExchangeAt nel = (spanslzSubtractiveExchangeAt nel, spanslzSubtractivePreservationAt nel)
 
 bispansSamevecExtension : xs `bispanslz` ys -> (v : Vect _ ZZ) -> (v::xs) `bispanslz` (v::ys)
+bispansSamevecExtension {xs} {ys} (prXY, prYX) v =
+	( mergeSpannedLZs (spanslzHeadV v xs) $ preserveSpanningLZByCons prXY,
+		mergeSpannedLZs (spanslzHeadV v ys) $ preserveSpanningLZByCons prYX )
+	where
+		spanslzHeadV : (z : _) -> (zs : _) -> (z::zs) `spanslz` [z]
 
 bispansNullcolExtension : (getCol FZ xs=Algebra.neutral)
 	-> ys `bispanslz` map tail xs

@@ -683,32 +683,41 @@ matrixTransposeAntiendoMatrixMult x y = vecIndexwiseEq
 
 
 
+{-
+dotCancelsHeadWithLeadingZeroL : VerifiedRing a => (x, y : Vect n a) -> (Algebra.neutral::x)<:>(r::y) = x<:>y
+dotCancelsHeadWithLeadingZeroL x y {r} = trans (monoidrec (Algebra.neutral<.>r) $ zipWith (<.>) x y)
+	$ trans (cong {f=((Algebra.neutral<.>r)<+>)} ?dotcancelsLpatch) -- something like dotproductRewrite, up to sym
+	$ trans (cong {f=(<+> (x<:>y))} $ ringNeutralIsMultZeroL r)
+	$ monoidNeutralIsNeutralR $ x<:>y
+
+dotCancelsHeadWithLeadingZeroR : VerifiedRing a => (x, y : Vect n a) -> (r::x)<:>(Algebra.neutral::y) = x<:>y
+-}
+
+dotCancelsHeadWithLeadingZeroL : (x, y : Vect n ZZ) -> (Algebra.neutral::x)<:>(r::y) = x<:>y
+dotCancelsHeadWithLeadingZeroL x y {r} = trans monoidrec1D
+	$ trans (cong {f=(<+> (x<:>y))} $ ringNeutralIsMultZeroL r)
+	$ monoidNeutralIsNeutralR $ x<:>y
+
+dotCancelsHeadWithLeadingZeroR : (x, y : Vect n ZZ) -> (r::x)<:>(Algebra.neutral::y) = x<:>y
+dotCancelsHeadWithLeadingZeroR x y {r} = trans monoidrec1D
+	$ trans (cong {f=(<+> (x<:>y))} $ ringNeutralIsMultZeroR r)
+	$ monoidNeutralIsNeutralR $ x<:>y
+
 neutralVectIsDotProductZero_L : (x : Vect nu ZZ) -> Algebra.neutral <:> x = Algebra.neutral
 neutralVectIsDotProductZero_L [] = Refl
-neutralVectIsDotProductZero_L (x::xs) = trans monoidrec1D
-	$ trans (cong {f=(<+>(Algebra.neutral<:>xs))} $ multZPosZLeftZero x)
-	$ trans ( cong $ neutralVectIsDotProductZero_L xs )
-	$ monoidNeutralIsNeutralR_ZZ _
+neutralVectIsDotProductZero_L (x::xs) = trans (dotCancelsHeadWithLeadingZeroL Algebra.neutral xs) $ neutralVectIsDotProductZero_L xs
 
 {-
--- Mixture of instance problems and a
--- "Unifying a and Vect predn a would lead to infinite value"
--- problem, probably just a missing, required implicit that hasn't been tracked down.
+-- Mixture of instance problems and problem generalizing (dotCancelsHeadWithLeadingZeroR).
 
 neutralVectIsDotProductZero_R : VerifiedRing a => (x : Vect n a) -> x<:>Algebra.neutral = Algebra.neutral {a=a}
 neutralVectIsDotProductZero_R [] = ?neutralVectIsDotProductZero_R_ReflCase
-neutralVectIsDotProductZero_R {a} {n=S predn} (x::xs) = trans (monoidrec (x<.>Algebra.neutral) (xs<:>(Algebra.neutral {a=Vect predn a})))
-	$ trans (cong {f=(<+>(xs<:>(Algebra.neutral {a=Vect predn a})))} $ ringNeutralIsMultZeroR x)
-	$ trans ( cong $ neutralVectIsDotProductZero_R xs )
-	$ monoidNeutralIsNeutralR _
+neutralVectIsDotProductZero_R (x::xs) = trans (dotCancelsHeadWithLeadingZeroR xs Algebra.neutral) $ neutralVectIsDotProductZero_R xs
 -}
 
 neutralVectIsDotProductZero_R : (x : Vect nu ZZ) -> x <:> Algebra.neutral = Algebra.neutral
 neutralVectIsDotProductZero_R [] = Refl
-neutralVectIsDotProductZero_R (x::xs) = trans monoidrec1D
-	$ trans (cong {f=(<+>(xs<:>Algebra.neutral))} $ multZPosZRightZero x)
-	$ trans ( cong $ neutralVectIsDotProductZero_R xs )
-	$ monoidNeutralIsNeutralL_ZZ _
+neutralVectIsDotProductZero_R (x::xs) = trans (dotCancelsHeadWithLeadingZeroR xs Algebra.neutral) $ neutralVectIsDotProductZero_R xs
 
 neutralVectIsVectTimesZero : (x : Matrix nu mu ZZ) -> Algebra.neutral <\> x = Algebra.neutral
 neutralVectIsVectTimesZero xs {mu=Z} = zeroVecEq
@@ -719,3 +728,11 @@ neutralVectIsVectTimesZero xs {mu=S predmu} = trans timesVectMatAsHeadTail_ByTra
 
 neutralMatIsMultZeroL : (x : Matrix nu mu ZZ) -> Algebra.neutral <> x = Algebra.neutral
 neutralMatIsMultZeroL x = vecIndexwiseEq $ \i => trans indexMapChariz $ trans (cong {f=(<\>x)} indexReplicateChariz) $ trans (neutralVectIsVectTimesZero x) $ sym $ indexReplicateChariz
+
+matMultCancelsHeadWithZeroColExtensionL : (map ((Pos 0)::) xs)<>(z::ys) = xs<>ys
+matMultCancelsHeadWithZeroColExtensionL {xs} {ys} {z} = vecIndexwiseEq
+	$ \i => vecIndexwiseEq
+		$ \j => trans (matMultIndicesChariz {l=map ((Pos 0)::) xs} {r=z::ys})
+			$ trans (cong {f=(<:>(getCol j $ z::ys))} indexMapChariz)
+			$ trans (dotCancelsHeadWithLeadingZeroL {r=index j z} (index i xs) (getCol j ys))
+			$ sym $ matMultIndicesChariz {l=xs} {r=ys}
