@@ -115,9 +115,240 @@ deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::[]} {y} 
 		fin1elIsFZ (FS el) = FinZElim el
 deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::xxs} {y} {ys=yy::yys} = ?deleteAtAsPermTail_rhs_2
 
+replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
+replaceAtIndexForm1 {j} pr {v=[]} = FinZElim j
+replaceAtIndexForm1 {j=FZ} pr {v=v::vs} = rewrite pr in Refl
+replaceAtIndexForm1 {j=FS predj} {i=FZ} pr = void $ FZNotFS pr
+replaceAtIndexForm1 {j=FS predj} {i=FS predi} pr {v=v::vs} = replaceAtIndexForm1 {i=predi} {j=predj} $ FSinjective pr
+
+replaceAtIndexForm2 : ((i=j)->Void) -> index i $ replaceAt j a v = index i v
+replaceAtIndexForm2 {i} {v=[]} pr = FinZElim i
+replaceAtIndexForm2 {i=FZ} {j=FZ} pr = void $ pr Refl
+replaceAtIndexForm2 {i=FZ} {j=FS predj} {v=v::vs} pr = Refl
+replaceAtIndexForm2 {i=FS predi} {j=FZ} {v=v::vs} pr = Refl
+replaceAtIndexForm2 {i=FS predi} {j=FS predj} {v=v::vs} pr = replaceAtIndexForm2 {i=predi} {j=predj} $ pr . cong
+
+{-
+-- This style of definition for kroneckerDelta will not work.
+-- Though when matching on (decEq i j), one can see an equality with (kroneckerDelta i j)
+-- reduces to one with (Algebra.unity) for (Yes _) and with (Algebra.neutral) for (No _),
+-- matching on (decEq i j, decEq j i) will reduce neither side of the goal
+-- (kroneckerDelta i j = kroneckerDelta j i).
+-- Pattern matching on (i) and (j) allows implementation of (kroneckerDeltaSym)
+-- with exact values, but not a recursively defined case.
+-- This foreshadows the problems with working with (rowEchelon), and in both cases
+-- the values of the function can't be compared, so effectively can't be read.
+-- However, that recursion step could be implemented if one of these existed:
+-- 	kroneckerDelta i j = kroneckerDelta j i
+-- 		-> kroneckerDelta (FS i) (FS j) = kroneckerDelta (FS j) (FS i)
+
+> kroneckerDelta : RingWithUnity a => Fin n -> Fin n -> a
+> kroneckerDelta i j with (decEq i j)
+> 	| Yes _ = Algebra.unity
+> 	| No _ = Algebra.neutral
+
+> kroneckerDeltaSym : RingWithUnity a => kroneckerDelta {a=a} i j = kroneckerDelta {a=a} j i
+> kroneckerDeltaSym {i} {j} with ((decEq i j, decEq j i))
+> 	| (Yes prij, No prji) = void $ prji $ sym prij
+> 	| (Yes prij, Yes prji) = ?kroneckerDeltaSym_yespr
+> 	| (No prij, No prji) = ?kroneckerDeltaSym_nopr
+> 	| (No prij, Yes prji) = void $ prij $ sym prji
+
+> kroneckerDeltaSym : RingWithUnity a => kroneckerDelta {a=a} i j = kroneckerDelta {a=a} j i
+> kroneckerDeltaSym {i=FZ} {j=FZ} = Refl
+> kroneckerDeltaSym {i=FS predi} {j=FZ} = Refl
+> kroneckerDeltaSym {i=FZ} {j=FS predj} = Refl
+> -- kroneckerDeltaSym {a} {i=FS predi} {j=FS predj} = kroneckerDeltaSym {a=a} {i=predi} {j=predj}
+> kroneckerDeltaSym {a} {i=FS predi} {j=FS predj} with (kroneckerDeltaSym {a=a} {i=predi} {j=predj})
+> 	| pr = ?kroneckerDeltaSym_pr
+
+---
+-- Corollaries:
+
+idMatIndicesChariz : RingWithUnity a => indices i j $ Id {a=a} {d=d} = kroneckerDelta {a=a} i j
+idMatIndicesChariz {d} {i} {j} = ?idMatIndicesChariz'
+
+idMatSelfTranspose : RingWithUnity a => Id {a=a} {d=d} = transpose $ Id {a=a}
+idMatSelfTranspose {a} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+	trans (idMatIndicesChariz {a=a} {i=i} {j=j})
+	$ trans kroneckerDeltaSym
+	$ trans (sym $ idMatIndicesChariz {a=a} {i=j} {j=i})
+	$ sym $ transposeIndicesChariz j i
+
+---
+-- Extra thoughts:
+
+decEither : Iso (Dec a) $ Either a (Not a)
+decEither {a} = MkIso to from toFrom fromTo
+	where
+		to : Dec a -> Either a (Not a)
+		to (Yes pr) = Left pr
+		to (No pr) = Right pr
+		from : Either a (Not a) -> Dec a
+		from (Left pr) = Yes pr
+		from (Right pr) = No pr
+		toFrom : (y : _) -> to (from y) = y
+		toFrom (Left pr) = Refl
+		toFrom (Right pr) = Refl
+		fromTo : (y : _) -> from (to y) = y
+		fromTo (Yes pr) = Refl
+		fromTo (No pr) = Refl
+-}
+
+-- By not passing through (decEq i j) itself, this function can be proved symmetric.
+kroneckerDelta : RingWithUnity a => Fin n -> Fin n -> a
+kroneckerDelta {a} i j = ifThenElse (i==j) Algebra.unity Algebra.neutral
+
+kroneckerDeltaSym : RingWithUnity a => kroneckerDelta {a=a} i j = kroneckerDelta {a=a} j i
+kroneckerDeltaSym {i=FZ} {j=FZ} = Refl
+kroneckerDeltaSym {i=FS predi} {j=FZ} = Refl
+kroneckerDeltaSym {i=FZ} {j=FS predj} = Refl
+kroneckerDeltaSym {i=FS predi} {j=FS predj} = kroneckerDeltaSym {i=predi} {j=predj}
+
+FSPreservesBoolEq : (i, j : Fin n) -> (FS i == FS j) = (i == j)
+FSPreservesBoolEq FZ FZ = Refl
+FSPreservesBoolEq (FS predi) FZ = Refl
+FSPreservesBoolEq FZ (FS predj) = Refl
+FSPreservesBoolEq (FS predi) (FS predj) with (predi==predj)
+	| True = Refl
+	| False = Refl
+
+eqTrue_Fin : (i, j : Fin n) -> (i=j) -> (i==j)=True
+eqTrue_Fin FZ FZ pr = Refl
+eqTrue_Fin (FS predi) FZ pr = void $ FZNotFS $ sym pr
+eqTrue_Fin FZ (FS predj) pr = void $ FZNotFS $ pr
+eqTrue_Fin (FS predi) (FS predj) pr = trans (FSPreservesBoolEq predi predj) $ eqTrue_Fin predi predj $ FSinjective pr
+
+notEqFalse_Fin : (i, j : Fin n) -> Not (i=j) -> (i==j)=False
+notEqFalse_Fin FZ FZ pr = void $ pr Refl
+notEqFalse_Fin (FS predi) FZ pr = Refl
+notEqFalse_Fin FZ (FS predj) pr = Refl
+notEqFalse_Fin (FS predi) (FS predj) pr = trans (FSPreservesBoolEq predi predj) $ notEqFalse_Fin predi predj $ pr . cong
+
+indexFinsIsIndex : index i $ fins n = i
+indexFinsIsIndex {i} {n=Z} = FinZElim i
+indexFinsIsIndex {i=FZ} {n=S predn} = Refl
+indexFinsIsIndex {i=FS preli} {n=S predn} = trans indexMapChariz $ cong indexFinsIsIndex
+
+idMatIndexChariz : RingWithUnity a => index i $ Id {a=a} = basis i
+idMatIndexChariz = trans (indexMapChariz {f=\n => basis n}) $ cong {f=basis} $ indexFinsIsIndex
+
+idMatIndicesChariz : RingWithUnity a => indices i j $ Id {a=a} = kroneckerDelta {a=a} i j
+idMatIndicesChariz {i} {j} with (decEq i j)
+	| Yes pr = trans (cong {f=index j} idMatIndexChariz)
+		-- = index j $ basis i
+		$ trans (replaceAtIndexForm1 {i=j} {j=i} $ sym pr)
+		-- = Algebra.unity {a=a}
+		$ rewrite (eqTrue_Fin i j pr) in Refl
+	| No pr = trans (cong {f=index j} idMatIndexChariz)
+		-- = index j $ basis i
+		$ trans (replaceAtIndexForm2 {i=j} {j=i} $ negEqSym pr)
+		$ trans indexReplicateChariz
+		$ rewrite (notEqFalse_Fin i j pr) in Refl
+
+-- The {d} is so (Id) can be specialized in applications.
+idMatSelfTranspose : RingWithUnity a => Id {a=a} {d=d} = transpose $ Id {a=a}
+idMatSelfTranspose {a} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+	trans (idMatIndicesChariz {a=a} {i=i} {j=j})
+	$ trans kroneckerDeltaSym
+	$ trans (sym $ idMatIndicesChariz {a=a} {i=j} {j=i})
+	$ sym $ transposeIndicesChariz j i
+
+{-
+These are not real, because
+
+	neutralVectIsDotProductZero_R : (x : Vect nu ZZ) -> x <:> neutral = neutral
+
+can't be generalized to
+
+	neutralVectIsDotProductZero_R : VerifiedRing a => (x : Vect n a) -> x<:>Algebra.neutral = Algebra.neutral {a=a}
+
+due to (issue#24), & thus (dotBasisRIsIndex), (dotBasisLIsIndex) can't be proved in general.
+
+-----
+
+dotBasisRIsIndex : VerifiedRingWithUnity a => (v : Vect d a) -> v<:>(basis i) = index i v
+dotBasisRIsIndex [] {i} = FinZElim i
+-- dotBasisRIsIndex (v::vs) {i=FZ} = -- neutralVectIsDotProductZero_R
+
+dotBasisLIsIndex : VerifiedRingWithUnity a => (v : Vect d a) -> (basis i)<:>v = index i v
+
 multIdLeftNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> Id <> a = a
+multIdLeftNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i Id <:> getCol j a
+		$ trans (cong {f=(<:>(getCol j a))} idMatIndexChariz)
+		-- = basis i <:> getCol j a
+		$ trans (dotBasisLIsIndex $ getCol j a)
+		$ trans (cong $ sym $ transposeIndexChariz {k=j})
+		$ transposeIndicesChariz i j
 
 multIdRightNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> a <> Id = a
+multIdRightNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i a <:> getCol j Id
+		$ trans (cong {f=((index i a)<:>)}
+			$ trans (sym transposeIndexChariz)
+			$ trans (cong {f=index j} $ sym $ idMatSelfTranspose)
+			-- = index i a <:> index j Id
+			$ idMatIndexChariz)
+			-- = index i a <:> basis j
+		$ dotBasisRIsIndex $ index i a
+-}
+
+dotBasisRIsIndex : (v : Vect d ZZ) -> v <:> basis i = index i v
+dotBasisRIsIndex [] {i} = FinZElim i
+dotBasisRIsIndex (v::vs) {i=FZ} = trans monoidrec1D
+	$ trans (cong $ neutralVectIsDotProductZero_R vs)
+	$ trans (monoidNeutralIsNeutralL $ v<.>Algebra.unity)
+	$ ringWithUnityIsUnityL v
+dotBasisRIsIndex (v::vs) {i=FS preli} = trans monoidrec1D
+	-- #bicong #binarycong #bileibniz #binaryleibniz
+	$ trans (cong {f=(<+>(vs<:>basis preli))} $ ringNeutralIsMultZeroR v)
+	$ trans (monoidNeutralIsNeutralR $ vs<:>basis preli)
+	$ dotBasisRIsIndex vs {i=preli}
+-- This goal appears to match the type of (dotBasisRIsIndex vs {i=preli}).
+-- dotBasisRIsIndex (v::vs) {i=FS preli} = ?dotBasisRIsIndex_pr
+-- This never finished typechecking, so I don't know what lemma(s) it creates.
+-- dotBasisRIsIndex (v::vs) {i=FS preli} ?= dotBasisRIsIndex vs {i=preli}
+
+dotBasisLIsIndex : (v : Vect d ZZ) -> basis i <:> v = index i v
+dotBasisLIsIndex [] {i} = FinZElim i
+dotBasisLIsIndex (v::vs) {i=FZ} = trans monoidrec1D
+	$ trans (cong $ neutralVectIsDotProductZero_L vs)
+	$ trans (monoidNeutralIsNeutralL $ Algebra.unity<.>v)
+	$ ringWithUnityIsUnityR v
+dotBasisLIsIndex (v::vs) {i=FS preli} = trans monoidrec1D
+	-- #bicong #binarycong #bileibniz #binaryleibniz
+	$ trans (cong {f=(<+>(basis preli<:>vs))} $ ringNeutralIsMultZeroL v)
+	$ trans (monoidNeutralIsNeutralR $ basis preli<:>vs)
+	$ dotBasisLIsIndex vs {i=preli}
+
+multIdLeftNeutral : (a : Matrix _ _ ZZ) -> Id <> a = a
+multIdLeftNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i Id <:> getCol j a
+		$ trans (cong {f=(<:>(getCol j a))} idMatIndexChariz)
+		-- = basis i <:> getCol j a
+		$ trans (dotBasisLIsIndex $ getCol j a)
+		$ trans (cong $ sym $ transposeIndexChariz {k=j})
+		$ transposeIndicesChariz i j
+
+multIdRightNeutral : (a : Matrix _ _ ZZ) -> a <> Id = a
+multIdRightNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i a <:> getCol j Id
+		$ trans (cong {f=((index i a)<:>)}
+			$ trans (sym transposeIndexChariz)
+			$ trans (cong {f=index j} $ sym $ idMatSelfTranspose)
+			-- = index i a <:> index j Id
+			$ idMatIndexChariz)
+			-- = index i a <:> basis j
+		$ dotBasisRIsIndex $ index i a
 
 {-
 When checking type of ZZModuleSpan.rewriteMultInv:
@@ -212,9 +443,6 @@ matTimesVerMonoid {r} {n} = matTimesVerMonoid'
 Associative property for matrix multiplication
 -}
 
-matMultIndicesChariz : Ring a => {l : Matrix _ _ a} -> {r : Matrix _ _ a} -> indices i j (l<>r) = (index i l)<:>(getCol j r)
-matMultIndicesChariz {l} {r} {i} {j} = trans (cong {f=index j} $ indexMapChariz {f=(<\>r)}) $ trans (indexMapChariz {f=((index i l)<:>)}) $ cong {f=((Vect.index i l)<:>)} transposeIndexChariz
-
 -- but probably (VerifiedCommutativeRing a)
 timesMatMatIsAssociative : VerifiedRing a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
 timesMatMatIsAssociative = vecIndexwiseEq
@@ -305,9 +533,11 @@ zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale`
 -- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
 zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
 
+-- Note this typechecks when (multIdLeftNeutral) has the class-generic type signature.
 zippyScaleIdLeftNeutral : (a : Matrix n m ZZ) -> Id `zippyScale` a = a
 zippyScaleIdLeftNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdLeftNeutral _
 
+-- Note this typechecks when (multIdLeftNeutral) has the class-generic type signature.
 zippyScaleIdRightNeutral : (a : Matrix _ _ ZZ) -> a `zippyScale` Id = a
 zippyScaleIdRightNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdRightNeutral _
 

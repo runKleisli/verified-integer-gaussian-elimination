@@ -690,6 +690,26 @@ neutralVectIsDotProductZero_L (x::xs) = trans monoidrec1D
 	$ trans ( cong $ neutralVectIsDotProductZero_L xs )
 	$ monoidNeutralIsNeutralR_ZZ _
 
+{-
+-- Mixture of instance problems and a
+-- "Unifying a and Vect predn a would lead to infinite value"
+-- problem, probably just a missing, required implicit that hasn't been tracked down.
+
+neutralVectIsDotProductZero_R : VerifiedRing a => (x : Vect n a) -> x<:>Algebra.neutral = Algebra.neutral {a=a}
+neutralVectIsDotProductZero_R [] = ?neutralVectIsDotProductZero_R_ReflCase
+neutralVectIsDotProductZero_R {a} {n=S predn} (x::xs) = trans (monoidrec (x<.>Algebra.neutral) (xs<:>(Algebra.neutral {a=Vect predn a})))
+	$ trans (cong {f=(<+>(xs<:>(Algebra.neutral {a=Vect predn a})))} $ ringNeutralIsMultZeroR x)
+	$ trans ( cong $ neutralVectIsDotProductZero_R xs )
+	$ monoidNeutralIsNeutralR _
+-}
+
+neutralVectIsDotProductZero_R : (x : Vect nu ZZ) -> x <:> Algebra.neutral = Algebra.neutral
+neutralVectIsDotProductZero_R [] = Refl
+neutralVectIsDotProductZero_R (x::xs) = trans monoidrec1D
+	$ trans (cong {f=(<+>(xs<:>Algebra.neutral))} $ multZPosZRightZero x)
+	$ trans ( cong $ neutralVectIsDotProductZero_R xs )
+	$ monoidNeutralIsNeutralL_ZZ _
+
 neutralVectIsVectTimesZero : (x : Matrix nu mu ZZ) -> Algebra.neutral <\> x = Algebra.neutral
 neutralVectIsVectTimesZero xs {mu=Z} = zeroVecEq
 neutralVectIsVectTimesZero xs {mu=S predmu} = trans timesVectMatAsHeadTail_ByTransposeElimination
