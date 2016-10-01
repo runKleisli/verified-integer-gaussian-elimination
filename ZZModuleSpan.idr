@@ -687,6 +687,17 @@ spanslzTail {x} {xs} = (map ((Pos 0)::) Id
 		$ multIdLeftNeutral xs )
 -}
 
+spanslzHeadRow : (z : _) -> (zs : _) -> (z::zs) `spanslz` [z]
+spanslzHeadRow z zs = ([basis FZ]
+	** trans (sym $ timesMatMatAsMultipleLinearCombos [basis FZ] (z::zs))
+		$ cong {f=(::[])}
+		$ trans (extensionalEqToMapEq
+			{f=\arg => ((basis FZ)<:>arg)}
+			(dotBasisLIsIndex {i=FZ})
+			$ transpose (z::zs))
+		$ trans (sym transposeIndexChariz)
+		$ cong {f=index FZ} $ transposeIsInvolution {xs=z::zs} )
+
 spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
 spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
 spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = ?spannedlzByZeroId'
@@ -1012,11 +1023,12 @@ bispanslzSubtractiveExchangeAt nel = (spanslzSubtractiveExchangeAt nel, spanslzS
 
 bispansSamevecExtension : xs `bispanslz` ys -> (v : Vect _ ZZ) -> (v::xs) `bispanslz` (v::ys)
 bispansSamevecExtension {xs} {ys} (prXY, prYX) v =
-	( mergeSpannedLZs (spanslzHeadV v xs) $ preserveSpanningLZByCons prXY,
-		mergeSpannedLZs (spanslzHeadV v ys) $ preserveSpanningLZByCons prYX )
-	where
-		spanslzHeadV : (z : _) -> (zs : _) -> (z::zs) `spanslz` [z]
+	( mergeSpannedLZs (spanslzHeadRow v xs) $ preserveSpanningLZByCons prXY,
+		mergeSpannedLZs (spanslzHeadRow v ys) $ preserveSpanningLZByCons prYX )
 
+-- Pad both starts with (sym $ timesMatMatAsMultipleLinearCombos).
+-- Then indexwise, using double (vecIndexwiseEq) and (matMultIndicesChariz).
+-- (getCol FZ xs=Algebra.neutral {a=Vect n ZZ}) -> map ((Pos Z)::) $ map tail xs = xs
 bispansNullcolExtension : (getCol FZ xs=Algebra.neutral)
 	-> ys `bispanslz` map tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
