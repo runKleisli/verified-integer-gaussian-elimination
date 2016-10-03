@@ -900,6 +900,7 @@ extendSpanningLZsByPreconcatTrivially {zs=z::zs} prsp = preserveSpanningLZByCons
 extendSpanningLZsByPostconcatTrivially : spanslz xs ys -> spanslz (xs++zs) ys
 
 concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
+concatSpansRellz spXZ spYW = mergeSpannedLZs (extendSpanningLZsByPostconcatTrivially spXZ) (extendSpanningLZsByPreconcatTrivially spYW)
 
 
 
