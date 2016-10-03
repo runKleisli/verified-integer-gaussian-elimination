@@ -688,7 +688,7 @@ spanslzTail {x} {xs} = (map ((Pos 0)::) Id
 -}
 
 spanslzHeadRow : (z : _) -> (zs : _) -> (z::zs) `spanslz` [z]
-spanslzHeadRow z zs = ([basis FZ]
+spanslzHeadRow z zs = ( [basis FZ]
 	** trans (sym $ timesMatMatAsMultipleLinearCombos [basis FZ] (z::zs))
 		$ cong {f=(::[])}
 		$ trans (extensionalEqToMapEq
@@ -856,7 +856,34 @@ spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
 
 
 
+-- A combination of the proofs of (spanslzHeadRow) & (spanslzNeutral).
+spanslzHeadCatNeutral : x::xs `spanslz` x::Algebra.neutral {a=Matrix n m ZZ}
+spanslzHeadCatNeutral {x} {xs} = ( basis FZ::Algebra.neutral
+	** trans (sym $ timesMatMatAsMultipleLinearCombos (basis FZ::Algebra.neutral) (x::xs))
+		$ vecHeadtailsEq
+		-- head: spanslzHeadRow
+		(trans (extensionalEqToMapEq
+			{f=\arg => ((basis FZ)<:>arg)}
+			(dotBasisLIsIndex {i=FZ})
+			$ transpose (x::xs))
+		$ trans (sym transposeIndexChariz)
+		$ cong {f=index FZ} $ transposeIsInvolution {xs=x::xs})
+		-- tail: spanslzNeutral
+		$ neutralMatIsMultZeroL (x::xs) )
+
+spanslzNullRowExtension : spanslz xs (Algebra.neutral::xs)
+spanslzNullRowExtension = ( Algebra.neutral::Id ** vecHeadtailsEq (trans (sym $ timesVectMatAsLinearCombo _ _) $ neutralVectIsVectTimesZero _) $ zippyScaleIdLeftNeutral _ )
+
+-- Combine (spanslzHeadCatNeutral) and (spanslzNullRowExtension) to recurse on (ys).
 mergeSpannedLZs : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys++zs)
+mergeSpannedLZs spXY spXZ {ys=[]} = spXZ
+mergeSpannedLZs spXY spXZ {ys=y::ys} = spanslztrans
+	( spanAdd
+		(spanslztrans spXY spanslzHeadCatNeutral)
+		$ spanslztrans (mergeSpannedLZs (spanslzTail spXY) spXZ) spanslzNullRowExtension )
+	$ spanslzreflFromEq $ vecHeadtailsEq
+		(monoidNeutralIsNeutralL_Vect _)
+		$ monoidNeutralIsNeutralR _
 
 spanslzRowTimesSelf : spanslz xs [v<\>xs]
 spanslzRowTimesSelf {xs} {v} = ([v] ** cong {f=(::[])} $ sym $ timesVectMatAsLinearCombo v xs)
