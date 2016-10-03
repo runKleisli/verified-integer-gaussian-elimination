@@ -194,6 +194,16 @@ extensionalEqToMapEq exteq (x::xs) = vecHeadtailsEq (exteq x) $ extensionalEqToM
 
 
 
+-- Functorial nature of (map).
+composeUnderMap : (v : Vect n a)
+	-> (g : b -> c)
+	-> (f : a -> b)
+	-> map g $ map f v = map (g . f) v
+composeUnderMap [] g f = Refl
+composeUnderMap (v::vs) g f = vecHeadtailsEq Refl $ composeUnderMap vs g f
+
+
+
 {-
 Theorems about the module (Vect n a) over a ring (a):
 * Compatibility between the operations of the ring (a) and of (Vect n a) as a module under (index).

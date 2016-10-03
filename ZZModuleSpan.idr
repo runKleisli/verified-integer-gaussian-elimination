@@ -1054,12 +1054,88 @@ bispansSamevecExtension {xs} {ys} (prXY, prYX) v =
 	( mergeSpannedLZs (spanslzHeadRow v xs) $ preserveSpanningLZByCons prXY,
 		mergeSpannedLZs (spanslzHeadRow v ys) $ preserveSpanningLZByCons prYX )
 
+spanslzNullcolExtension1 : (getCol FZ xs=Algebra.neutral)
+	-> ys `spanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `spanslz` xs
+spanslzNullcolExtension1 {xs} {ys} prColNeut (matMYTX ** prMYTX) = (matMYTX
+	** flip trans (
+		-- matMYTX<>(map ((Pos 0)::) ys)
+		trans timesPreservesLeadingZeroExtensionR
+		-- = map ((Pos 0)::) $ matMYTX<>ys
+		$ trans (cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMYTX ys)
+			$ prMYTX)
+		-- = map ((Pos 0)::) $ map tail xs
+		$ nullcolExtensionEq prColNeut
+		-- = xs
+		) $ sym $ timesMatMatAsMultipleLinearCombos matMYTX $ map ((Pos 0)::) ys
+	)
+{-
+-- Alternative solution to below error
+spanslzNullcolExtension1 : (getCol FZ xs=Algebra.neutral)
+	-> ys `spanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `spanslz` xs
+spanslzNullcolExtension1 {xs} {ys} prColNeut (matMYTX ** prMYTX) = (matMYTX
+	** trans ?spanslzNullcolExtension_patch
+		-- = matMYTX<>(map ((Pos 0)::) ys)
+		$ trans timesPreservesLeadingZeroExtensionR
+		-- = map ((Pos 0)::) $ matMYTX<>ys
+		$ trans (cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMYTX ys)
+			$ prMYTX)
+		-- = map ((Pos 0)::) $ map tail xs
+		$ nullcolExtensionEq prColNeut
+		-- = xs
+	)
+spanslzNullcolExtension_patch = proof
+  intros
+  exact sym $ timesMatMatAsMultipleLinearCombos matMYTX $ map ((Pos 0)::) ys
+
+-----
+
+-- Error: Type mismatch between (Vect n1 ZZ) & (Vect n k)
+-- where (ys : Matrix n1 k ZZ)
+spanslzNullcolExtension1 : (getCol FZ xs=Algebra.neutral)
+	-> ys `spanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `spanslz` xs
+spanslzNullcolExtension1 {xs} {ys} prColNeut (matMYTX ** prMYTX) = (matMYTX
+	** trans (sym $ timesMatMatAsMultipleLinearCombos matMYTX $ map ((Pos 0)::) ys)
+		-- = matMYTX<>(map ((Pos 0)::) ys)
+		$ trans timesPreservesLeadingZeroExtensionR
+		-- = map ((Pos 0)::) $ matMYTX<>ys
+		$ trans (cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMYTX ys)
+			$ prMYTX)
+		-- = map ((Pos 0)::) $ map tail xs
+		$ nullcolExtensionEq prColNeut
+		-- = xs
+	)
+-}
+
+spanslzNullcolExtension2 : (getCol FZ xs=Algebra.neutral)
+	-> map Vect.tail xs `spanslz` ys
+	-> xs `spanslz` map ((Pos Z)::) ys
+spanslzNullcolExtension2 {xs} {ys} prColNeut (matMTXY ** prMTXY) = (matMTXY
+	** trans (cong {f=zippyScale matMTXY} $ sym $ nullcolExtensionEq prColNeut)
+		-- = matMTXY `zippyScale` map ((Pos 0)::) $ map tail xs
+		$ flip trans (
+			-- matMTXY <> map ((Pos 0)::) $ map tail xs
+			trans timesPreservesLeadingZeroExtensionR
+			-- = map ((Pos 0)::) $ matMTXY <> map tail xs
+			$ cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMTXY $ map tail xs)
+			prMTXY
+			-- = map ((Pos 0)::) ys
+		) $ sym $ timesMatMatAsMultipleLinearCombos matMTXY $ map ((Pos 0)::) $ map tail xs
+	)
+
 -- Pad both starts with (sym $ timesMatMatAsMultipleLinearCombos).
 -- Then indexwise, using double (vecIndexwiseEq) and (matMultIndicesChariz).
 -- (getCol FZ xs=Algebra.neutral {a=Vect n ZZ}) -> map ((Pos Z)::) $ map tail xs = xs
 bispansNullcolExtension : (getCol FZ xs=Algebra.neutral)
-	-> ys `bispanslz` map tail xs
+	-> ys `bispanslz` map Vect.tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
+bispansNullcolExtension prColNeut bisYX' = (spanslzNullcolExtension1 prColNeut $ fst bisYX', spanslzNullcolExtension2 prColNeut $ snd bisYX')
 
 
 
