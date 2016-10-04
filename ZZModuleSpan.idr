@@ -1140,3 +1140,18 @@ bispansNullcolExtension prColNeut bisYX' = (spanslzNullcolExtension1 prColNeut $
 
 
 spansImpliesSameFirstColNeutrality : xs `spanslz` ys -> getCol FZ xs = Algebra.neutral -> getCol FZ ys = Algebra.neutral
+spansImpliesSameFirstColNeutrality {xs} {ys} (matXY ** prXY) prXColNeut = vecIndexwiseEq $ \i =>
+	trans indexMapChariz
+	-- = indices i FZ ys
+	$ trans ( cong {f=indices i FZ}
+		$ trans (sym prXY)
+		$ sym $ timesMatMatAsMultipleLinearCombos matXY xs )
+	-- = indices i FZ $ matXY<>xs
+	$ trans matMultIndicesChariz
+	-- = (index i matXY)<:>(getCol FZ xs)
+	$ trans (cong {f=((index i matXY)<:>)} prXColNeut)
+	-- = (index i matXY)<:>Algebra.neutral
+	$ trans (neutralVectIsDotProductZero_R $ index i matXY)
+	-- = Algebra.neutral
+	$ sym indexReplicateChariz
+	-- = index i Algebra.neutral
