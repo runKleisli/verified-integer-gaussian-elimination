@@ -11,6 +11,9 @@ import Data.Matrix.Structural
 
 import Data.ZZ
 
+import Control.Algebra.ZZVerifiedInstances
+import Data.Matrix.AlgebraicVerified
+
 
 
 monoidsum : (Foldable t, Monoid a) => t a -> a
@@ -27,6 +30,7 @@ monoidsum = sum'
 {-
 Basic theorems regarding
 * Functions
+* Abelian groups
 * Vect _ _
 * Matrix _ _ _
 * Vect _ ZZ
@@ -61,6 +65,15 @@ etaBinary f = trans (eta f) $ trans baz1 $ trans bar baz2
 		baz1 = sym flipIsInvolutionExtensional
 		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
 		baz2 = flipIsInvolutionExtensional
+
+
+
+doubleSumInnerSwap : VerifiedAbelianGroup t => (a, b, c, d : t) -> (a<+>b)<+>(c<+>d) = (a<+>c)<+>(b<+>d)
+doubleSumInnerSwap a b c d = trans (sym $ semigroupOpIsAssociative a b (c<+>d))
+	$ trans ( cong {f=(a<+>)} $ trans (semigroupOpIsAssociative b c d)
+		$ trans (cong {f=(<+>d)} $ abelianGroupOpIsCommutative b c)
+		$ sym $ semigroupOpIsAssociative c b d)
+	$ semigroupOpIsAssociative a c (b<+>d)
 
 
 
@@ -514,3 +527,212 @@ timesMatMatAsMultipleLinearCombos' = proof
 	rewrite sym $ headtails ((v::vs)<>xs)
 	rewrite sym $ timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs
 	exact cong {f=(( monoidsum $ zipWith (<#>) v xs )::)} $ timesMatMatAsMultipleLinearCombos vs xs
+
+
+
+{-
+* Prove the dot product is a bilinear map from (ZZ)-(Vect)s to (ZZ).
+* Prove ZZ matrices form a ring (should work for any ring).
+* Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
+* Prove transposition is an antiendomorphism of multiplication and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
+* Some Algebra.neutral is a zero element proofs.
+-}
+
+
+
+-- This & the mirrored statement form the theorem that the dot product is a bilinear map from vects to the scalar ring.
+-- This would be better with binary cong / leibniz equality on the (<+>)s.
+dotProductRightDistributesOverVectorPlus : (l, c, r : Vect n ZZ) -> (l<+>c)<:>r = (l<:>r)<+>(c<:>r)
+dotProductRightDistributesOverVectorPlus [] [] [] = Refl
+dotProductRightDistributesOverVectorPlus (l::ls) (c::cs) (r::rs) = trans monoidrec1D $
+	trans (cong {f=(((l<+>c)<.>r) <+>)} $ dotProductRightDistributesOverVectorPlus ls cs rs)
+	$ trans (cong {f=(<+>((ls<:>rs)<+>(cs<:>rs)))} $ ringOpIsDistributiveR_ZZ l c r)
+	$ trans (doubleSumInnerSwap (l<.>r) (c<.>r) (ls<:>rs) (cs<:>rs))
+	$ rewrite monoidrec1D {v=l<.>r} {vs=zipWith (<.>) ls rs} in rewrite monoidrec1D {v=c<.>r} {vs=zipWith (<.>) cs rs} in Refl
+
+dotProductLeftDistributesOverVectorPlus : (l, c, r : Vect n ZZ) -> l<:>(c<+>r) = (l<:>c)<+>(l<:>r)
+dotProductLeftDistributesOverVectorPlus [] [] [] = Refl
+dotProductLeftDistributesOverVectorPlus (l::ls) (c::cs) (r::rs) = trans monoidrec1D $
+	trans (cong {f=((l<.>(c<+>r)) <+>)} $ dotProductLeftDistributesOverVectorPlus ls cs rs)
+	$ trans (cong {f=(<+>((ls<:>cs)<+>(ls<:>rs)))} $ ringOpIsDistributiveL_ZZ l c r)
+	$ trans (doubleSumInnerSwap (l<.>c) (l<.>r) (ls<:>cs) (ls<:>rs))
+	$ rewrite monoidrec1D {v=l<.>r} {vs=zipWith (<.>) ls rs} in rewrite monoidrec1D {v=l<.>c} {vs=zipWith (<.>) ls cs} in Refl
+
+matrixMultLeftDistributesOverVectorPlus : (l : Matrix n m ZZ) -> (c, r : Vect m ZZ) -> l</>(c<+>r) = (l</>c)<+>(l</>r)
+matrixMultLeftDistributesOverVectorPlus [] c r = Refl
+matrixMultLeftDistributesOverVectorPlus (x::xs) c r = vecHeadtailsEq (dotProductRightDistributesOverVectorPlus c r x) $ matrixMultLeftDistributesOverVectorPlus xs c r
+
+matrixMultRightDistributesOverVectorPlus : (l, c : Vect n ZZ) -> (r : Matrix n m ZZ) -> (l<+>c)<\>r = (l<\>r)<+>(c<\>r)
+matrixMultRightDistributesOverVectorPlus l c r = matrixMultLeftDistributesOverVectorPlus (transpose r) l c
+
+matrixAddEntrywise : (x, y : Matrix n m ZZ)
+	-> (i : Fin n) -> (j : Fin m)
+	-> indices i j (x<+>y) = (indices i j x)<+>(indices i j y)
+matrixAddEntrywise [] [] i j = FinZElim i
+matrixAddEntrywise (x::xs) (y::ys) FZ j = lemma_VectAddEntrywise j x y
+matrixAddEntrywise (x::xs) (y::ys) (FS preli) j = matrixAddEntrywise xs ys preli j
+
+total
+matrixAddHead : (x, y : Matrix (S predn) m ZZ) -> Vect.head (x<+>y) = (Vect.head x)<+>(Vect.head y)
+matrixAddHead (x::xs) (y::ys) = Refl
+
+total
+lemma_VectAddTail : (x, y : Vect (S predn) ZZ) -> Vect.tail (x<+>y) = (Vect.tail x)<+>(Vect.tail y)
+lemma_VectAddTail (x::xs) (y::ys) = Refl
+
+total
+matrixAddTail : (x, y : Matrix (S predn) m ZZ) -> Vect.tail (x<+>y) = (Vect.tail x)<+>(Vect.tail y)
+matrixAddTail (x::xs) (y::ys) = Refl
+
+matrixAddMapHead : (x, y : Matrix n (S predm) ZZ) -> map Vect.head $ x<+>y = (map Vect.head x)<+>(map Vect.head y)
+matrixAddMapHead [] [] = Refl
+matrixAddMapHead (x::xs) (y::ys) = vecHeadtailsEq (lemma_VectAddHead x y) $ matrixAddMapHead xs ys
+
+matrixAddMapTail : (x, y : Matrix n (S predm) ZZ) -> map Vect.tail $ x<+>y = (map Vect.tail x)<+>(map Vect.tail y)
+matrixAddMapTail [] [] = Refl
+matrixAddMapTail (x::xs) (y::ys) = vecHeadtailsEq (lemma_VectAddTail x y) $ matrixAddMapTail xs ys
+
+matrixTransposeEndoMatrixPlus : (x, y : Matrix n m ZZ) -> transpose (x<+>y) = (transpose x)<+>(transpose y)
+matrixTransposeEndoMatrixPlus x y = vecIndexwiseEq
+	$ \i => vecIndexwiseEq
+		$ \j => trans (transposeIndicesChariz j i)
+			$ trans (matrixAddEntrywise x y j i)
+			$ trans (cong {f=(<+>(indices j i y))}
+				$ sym $ transposeIndicesChariz j i)
+			$ trans (cong {f=((indices i j $ transpose x)<+>)}
+				$ sym $ transposeIndicesChariz j i)
+			$ sym $ matrixAddEntrywise (transpose x) (transpose y) i j
+
+vectorTimesLeftDistributesOverMatrixPlus : (l : Vect n ZZ) -> (c, r : Matrix n m ZZ)
+	-> l<\>(c<+>r) = (l<\>c)<+>(l<\>r)
+vectorTimesLeftDistributesOverMatrixPlus {m=Z} l c r = zeroVecEq
+vectorTimesLeftDistributesOverMatrixPlus {m=S predm} l c r =
+	trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=l} {vects=c<+>r})
+	$ trans (vecHeadtailsEq (cong {f=(l<:>)} $ matrixAddMapHead c r) $ cong {f=(l<\>)} $ matrixAddMapTail c r)
+	$ trans (vecHeadtailsEq (dotProductLeftDistributesOverVectorPlus l (map head c) (map head r)) $ vectorTimesLeftDistributesOverMatrixPlus l (map tail c) (map tail r))
+	$ trans (cong $ sym $ timesVectMatAsHeadTail_ByTransposeElimination {scals=l} {vects=r})
+	$ cong {f=(<+>(l<\>r))} $ sym $ timesVectMatAsHeadTail_ByTransposeElimination {scals=l} {vects=c}
+
+{-
+-- Equational reasoning vrsn
+	l<\>(c<+>r)    ={ timesVectMatAsHeadTail_ByTransposeElimination {scals=l} {vects=c<+>r} }=
+	(l <:> map head (c<+>r))::(l<\>map tail (c<+>r)) ={ vecHeadtailsEq (cong {f=(l<:>)} $ matrixAddMapHead c r) (cong {f=(l<\>)} $ matrixAddMapTail c r) }=
+	(l <:> ((map head c)<+>(map head r)))::(l<\>((map tail c)<+>(map tail r))) ={ vecHeadtailsEq (dotProductLeftDistributesOverVectorPlus l (map head c) ( map head r)) $ vectorTimesLeftDistributesOverMatrixPlus l (map tail c) (map tail r) }=
+	( (l<:>(map head c))::(l<\>(map tail c)) ) <+> ( (l<:>(map head r)) :: (l<\>(map tail r)) )    ={ cong $ sym $ timesVectMatAsHeadTail_ByTransposeElimination {scals=l} {vects=r} }=
+	( (l<:>(map head c))::(l<\>(map tail c)) ) <+> ( l<\>r )    ={ cong {f=(<+>(l<\>r))} $ sym $ timesVectMatAsHeadTail_ByTransposeElimination {scals=l} {vects=c} }=
+	(l<\>c)<+>(l<\>r)
+	qed
+-}
+
+matrixMultRightDistributesOverMatrixPlus : (l, c : Matrix n k ZZ) -> (r : Matrix k m ZZ) -> (l<+>c)<>r = (l<>r)<+>(c<>r)
+matrixMultRightDistributesOverMatrixPlus [] [] r = zeroVecEq
+matrixMultRightDistributesOverMatrixPlus (l::ls) (c::cs) r = vecHeadtailsEq
+	(matrixMultRightDistributesOverVectorPlus l c r)
+	$ matrixMultRightDistributesOverMatrixPlus ls cs r
+
+{-
+Could use (matrixTransposeAntiendoMatrixMult) to avoid repeating the proof, but
+that assumes the ring is commutative, so that prevents future full generality.
+-}
+matrixMultLeftDistributesOverMatrixPlus : (l : Matrix n k ZZ) -> (c, r : Matrix k m ZZ) -> l<>(c<+>r) = (l<>c)<+>(l<>r)
+matrixMultLeftDistributesOverMatrixPlus [] c r = Refl
+matrixMultLeftDistributesOverMatrixPlus (l::ls) c r = vecHeadtailsEq (vectorTimesLeftDistributesOverMatrixPlus l c r) $ matrixMultLeftDistributesOverMatrixPlus ls c r
+
+
+
+-- Further interactions with the transpose
+-- The below are true if and only if the ring is commutative.
+
+dotProductCommutative : (x, y : Vect n ZZ) -> x<:>y = y<:>x
+dotProductCommutative [] [] = Refl
+dotProductCommutative (x::xs) (y::ys) = trans monoidrec1D
+	$ trans (cong {f=(<+>(xs<:>ys))} $ ringOpIsCommutative_ZZ x y)
+	$ trans (cong {f=((y<.>x)<+>)} $ dotProductCommutative xs ys)
+	$ sym $ monoidrec1D
+
+matrixTransposeAntiendoMatrixMult : (x : Matrix n k ZZ) -> (y : Matrix k m ZZ) -> transpose (x<>y) = (transpose y)<>(transpose x)
+matrixTransposeAntiendoMatrixMult x y = vecIndexwiseEq
+	$ \i => vecIndexwiseEq
+		$ \j => trans (transposeIndicesChariz j i)
+			$ trans (cong {f=index i} $ indexMapChariz {k=j} {xs=x} {f=((transpose y)</>)})
+			$ trans indexMapChariz
+			$ trans (dotProductCommutative _ _)
+			$ trans (sym $ indexMapChariz {k=j} {f=((index i (transpose y))<:>)} {xs=x})
+			$ trans (cong {f=index j} $ matVecMultIsVecTransposeMult (index i $ transpose y) x)
+			$ cong {f=index j} $ sym $ indexMapChariz {k=i} {f=(<\>(transpose x))} {xs=transpose y}
+
+{-
+-- Equational reasoning vrsn (not formatted in the syntax for that, though)
+matrixTransposeAntiendoMatrixMult x y = vecIndexwiseEq
+	$ \i => vecIndexwiseEq
+		$ \j => trans (transposeIndicesChariz j i)
+			$ trans (cong {f=index i} indexMapChariz) -- ((x!j)<\>y)!i
+				-- === ((transpose y)</>(x!j))!i
+			$ trans indexMapChariz
+				-- (index j x)<:>(index i $ transpose y)
+			$ trans (dotProductCommutative _ _)
+				-- (index i $ transpose y)<:>(index j x)
+			$ trans (sym $ indexMapChariz {k=j} {f=((index i $ transpose y)<:>)} {xs=x})
+				-- index j $ map ((index i $ transpose y)<:>) x
+				-- === index j $ x</>(index i $ transpose y)
+			$ trans (cong {f=index j} $ matVecMultIsVecTransposeMult (index i $ transpose y) x)
+				-- index j $ (index i $ transpose y)<\>(transpose x)
+			$ trans (cong {f=index j} $ sym $ indexMapChariz {k=i} {f=(<\>(transpose x))} {xs=transpose y})
+				-- index j $ index i $ map (<\> (transpose x)) (transpose y)
+-}
+
+
+
+{-
+dotCancelsHeadWithLeadingZeroL : VerifiedRing a => (x, y : Vect n a) -> (Algebra.neutral::x)<:>(r::y) = x<:>y
+dotCancelsHeadWithLeadingZeroL x y {r} = trans (monoidrec (Algebra.neutral<.>r) $ zipWith (<.>) x y)
+	$ trans (cong {f=((Algebra.neutral<.>r)<+>)} ?dotcancelsLpatch) -- something like dotproductRewrite, up to sym
+	$ trans (cong {f=(<+> (x<:>y))} $ ringNeutralIsMultZeroL r)
+	$ monoidNeutralIsNeutralR $ x<:>y
+
+dotCancelsHeadWithLeadingZeroR : VerifiedRing a => (x, y : Vect n a) -> (r::x)<:>(Algebra.neutral::y) = x<:>y
+-}
+
+dotCancelsHeadWithLeadingZeroL : (x, y : Vect n ZZ) -> (Algebra.neutral::x)<:>(r::y) = x<:>y
+dotCancelsHeadWithLeadingZeroL x y {r} = trans monoidrec1D
+	$ trans (cong {f=(<+> (x<:>y))} $ ringNeutralIsMultZeroL r)
+	$ monoidNeutralIsNeutralR $ x<:>y
+
+dotCancelsHeadWithLeadingZeroR : (x, y : Vect n ZZ) -> (r::x)<:>(Algebra.neutral::y) = x<:>y
+dotCancelsHeadWithLeadingZeroR x y {r} = trans monoidrec1D
+	$ trans (cong {f=(<+> (x<:>y))} $ ringNeutralIsMultZeroR r)
+	$ monoidNeutralIsNeutralR $ x<:>y
+
+neutralVectIsDotProductZero_L : (x : Vect nu ZZ) -> Algebra.neutral <:> x = Algebra.neutral
+neutralVectIsDotProductZero_L [] = Refl
+neutralVectIsDotProductZero_L (x::xs) = trans (dotCancelsHeadWithLeadingZeroL Algebra.neutral xs) $ neutralVectIsDotProductZero_L xs
+
+{-
+-- Mixture of instance problems and problem generalizing (dotCancelsHeadWithLeadingZeroR).
+
+neutralVectIsDotProductZero_R : VerifiedRing a => (x : Vect n a) -> x<:>Algebra.neutral = Algebra.neutral {a=a}
+neutralVectIsDotProductZero_R [] = ?neutralVectIsDotProductZero_R_ReflCase
+neutralVectIsDotProductZero_R (x::xs) = trans (dotCancelsHeadWithLeadingZeroR xs Algebra.neutral) $ neutralVectIsDotProductZero_R xs
+-}
+
+neutralVectIsDotProductZero_R : (x : Vect nu ZZ) -> x <:> Algebra.neutral = Algebra.neutral
+neutralVectIsDotProductZero_R [] = Refl
+neutralVectIsDotProductZero_R (x::xs) = trans (dotCancelsHeadWithLeadingZeroR xs Algebra.neutral) $ neutralVectIsDotProductZero_R xs
+
+neutralVectIsVectTimesZero : (x : Matrix nu mu ZZ) -> Algebra.neutral <\> x = Algebra.neutral
+neutralVectIsVectTimesZero xs {mu=Z} = zeroVecEq
+neutralVectIsVectTimesZero xs {mu=S predmu} = trans timesVectMatAsHeadTail_ByTransposeElimination
+	$ vecHeadtailsEq
+		(neutralVectIsDotProductZero_L $ map head xs)
+		$ neutralVectIsVectTimesZero $ map tail xs
+
+neutralMatIsMultZeroL : (x : Matrix nu mu ZZ) -> Algebra.neutral <> x = Algebra.neutral
+neutralMatIsMultZeroL x = vecIndexwiseEq $ \i => trans indexMapChariz $ trans (cong {f=(<\>x)} indexReplicateChariz) $ trans (neutralVectIsVectTimesZero x) $ sym $ indexReplicateChariz
+
+matMultCancelsHeadWithZeroColExtensionL : (map ((Pos 0)::) xs)<>(z::ys) = xs<>ys
+matMultCancelsHeadWithZeroColExtensionL {xs} {ys} {z} = vecIndexwiseEq
+	$ \i => vecIndexwiseEq
+		$ \j => trans (matMultIndicesChariz {l=map ((Pos 0)::) xs} {r=z::ys})
+			$ trans (cong {f=(<:>(getCol j $ z::ys))} indexMapChariz)
+			$ trans (dotCancelsHeadWithLeadingZeroL {r=index j z} (index i xs) (getCol j ys))
+			$ sym $ matMultIndicesChariz {l=xs} {r=ys}

@@ -44,3 +44,8 @@ headVecMatMultChariz : Ring a => {xs : Matrix _ (S _) a} -> head $ v<\>xs = v <:
 headVecMatMultChariz {v} {xs} = trans (sym $ indexFZIsheadValued {xs=v<\>xs})
 	$ trans (indexMapChariz {k=FZ} {f=(v<:>)} {xs=transpose xs})
 	$ cong {f=(v<:>)} $ transposeIndexChariz {k=FZ} {xs=xs}
+
+
+
+matMultIndicesChariz : Ring a => {l : Matrix _ _ a} -> {r : Matrix _ _ a} -> indices i j (l<>r) = (index i l)<:>(getCol j r)
+matMultIndicesChariz {l} {r} {i} {j} = trans (cong {f=index j} $ indexMapChariz {f=(<\>r)}) $ trans (indexMapChariz {f=((index i l)<:>)}) $ cong {f=((Vect.index i l)<:>)} transposeIndexChariz

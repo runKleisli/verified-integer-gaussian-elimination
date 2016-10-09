@@ -190,6 +190,10 @@ groupOpIsCancellativeL left right1 right2 pr = trans (sym $ trans (cong {f=(<+>r
 groupOpIsCancellativeR : VerifiedGroup a => (left1, left2, right : a) -> left1<+>right = left2<+>right -> left1=left2
 groupOpIsCancellativeR left1 left2 right pr = trans (sym $ trans (cong {f=(left1<+>)} $ groupInverseIsInverseL right) $ monoidNeutralIsNeutralL left1) $ trans (trans (semigroupOpIsAssociative left1 right (inverse right)) $ trans (cong {f=(<+>(inverse right))} pr) $ sym $ semigroupOpIsAssociative left2 right (inverse right)) $ trans (cong {f=(left2<+>)} $ groupInverseIsInverseL right) $ monoidNeutralIsNeutralL left2
 
+-- Not used for the below, but for elsewhere.
+neutralSelfInverse : VerifiedGroup a => inverse $ the a $ Algebra.neutral = the a $ Algebra.neutral
+neutralSelfInverse = groupOpIsCancellativeL _ _ _ $ trans (groupInverseIsInverseL _) $ sym $ monoidNeutralIsNeutralL _
+
 groupElemOwnDoubleImpliesNeut : VerifiedGroup a => (x : a) -> x<+>x=x -> x = Algebra.neutral
 groupElemOwnDoubleImpliesNeut x pr = groupOpIsCancellativeL x x Algebra.neutral $ trans pr $ sym $ monoidNeutralIsNeutralL x
 

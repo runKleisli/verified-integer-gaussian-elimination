@@ -13,7 +13,7 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 
 import Data.Vect.Structural
--- import Data.Matrix.Structural
+import Data.Matrix.Structural
 
 import Control.Isomorphism
 
@@ -115,9 +115,240 @@ deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::[]} {y} 
 		fin1elIsFZ (FS el) = FinZElim el
 deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::xxs} {y} {ys=yy::yys} = ?deleteAtAsPermTail_rhs_2
 
+replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
+replaceAtIndexForm1 {j} pr {v=[]} = FinZElim j
+replaceAtIndexForm1 {j=FZ} pr {v=v::vs} = rewrite pr in Refl
+replaceAtIndexForm1 {j=FS predj} {i=FZ} pr = void $ FZNotFS pr
+replaceAtIndexForm1 {j=FS predj} {i=FS predi} pr {v=v::vs} = replaceAtIndexForm1 {i=predi} {j=predj} $ FSinjective pr
+
+replaceAtIndexForm2 : ((i=j)->Void) -> index i $ replaceAt j a v = index i v
+replaceAtIndexForm2 {i} {v=[]} pr = FinZElim i
+replaceAtIndexForm2 {i=FZ} {j=FZ} pr = void $ pr Refl
+replaceAtIndexForm2 {i=FZ} {j=FS predj} {v=v::vs} pr = Refl
+replaceAtIndexForm2 {i=FS predi} {j=FZ} {v=v::vs} pr = Refl
+replaceAtIndexForm2 {i=FS predi} {j=FS predj} {v=v::vs} pr = replaceAtIndexForm2 {i=predi} {j=predj} $ pr . cong
+
+{-
+-- This style of definition for kroneckerDelta will not work.
+-- Though when matching on (decEq i j), one can see an equality with (kroneckerDelta i j)
+-- reduces to one with (Algebra.unity) for (Yes _) and with (Algebra.neutral) for (No _),
+-- matching on (decEq i j, decEq j i) will reduce neither side of the goal
+-- (kroneckerDelta i j = kroneckerDelta j i).
+-- Pattern matching on (i) and (j) allows implementation of (kroneckerDeltaSym)
+-- with exact values, but not a recursively defined case.
+-- This foreshadows the problems with working with (rowEchelon), and in both cases
+-- the values of the function can't be compared, so effectively can't be read.
+-- However, that recursion step could be implemented if one of these existed:
+-- 	kroneckerDelta i j = kroneckerDelta j i
+-- 		-> kroneckerDelta (FS i) (FS j) = kroneckerDelta (FS j) (FS i)
+
+> kroneckerDelta : RingWithUnity a => Fin n -> Fin n -> a
+> kroneckerDelta i j with (decEq i j)
+> 	| Yes _ = Algebra.unity
+> 	| No _ = Algebra.neutral
+
+> kroneckerDeltaSym : RingWithUnity a => kroneckerDelta {a=a} i j = kroneckerDelta {a=a} j i
+> kroneckerDeltaSym {i} {j} with ((decEq i j, decEq j i))
+> 	| (Yes prij, No prji) = void $ prji $ sym prij
+> 	| (Yes prij, Yes prji) = ?kroneckerDeltaSym_yespr
+> 	| (No prij, No prji) = ?kroneckerDeltaSym_nopr
+> 	| (No prij, Yes prji) = void $ prij $ sym prji
+
+> kroneckerDeltaSym : RingWithUnity a => kroneckerDelta {a=a} i j = kroneckerDelta {a=a} j i
+> kroneckerDeltaSym {i=FZ} {j=FZ} = Refl
+> kroneckerDeltaSym {i=FS predi} {j=FZ} = Refl
+> kroneckerDeltaSym {i=FZ} {j=FS predj} = Refl
+> -- kroneckerDeltaSym {a} {i=FS predi} {j=FS predj} = kroneckerDeltaSym {a=a} {i=predi} {j=predj}
+> kroneckerDeltaSym {a} {i=FS predi} {j=FS predj} with (kroneckerDeltaSym {a=a} {i=predi} {j=predj})
+> 	| pr = ?kroneckerDeltaSym_pr
+
+---
+-- Corollaries:
+
+idMatIndicesChariz : RingWithUnity a => indices i j $ Id {a=a} {d=d} = kroneckerDelta {a=a} i j
+idMatIndicesChariz {d} {i} {j} = ?idMatIndicesChariz'
+
+idMatSelfTranspose : RingWithUnity a => Id {a=a} {d=d} = transpose $ Id {a=a}
+idMatSelfTranspose {a} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+	trans (idMatIndicesChariz {a=a} {i=i} {j=j})
+	$ trans kroneckerDeltaSym
+	$ trans (sym $ idMatIndicesChariz {a=a} {i=j} {j=i})
+	$ sym $ transposeIndicesChariz j i
+
+---
+-- Extra thoughts:
+
+decEither : Iso (Dec a) $ Either a (Not a)
+decEither {a} = MkIso to from toFrom fromTo
+	where
+		to : Dec a -> Either a (Not a)
+		to (Yes pr) = Left pr
+		to (No pr) = Right pr
+		from : Either a (Not a) -> Dec a
+		from (Left pr) = Yes pr
+		from (Right pr) = No pr
+		toFrom : (y : _) -> to (from y) = y
+		toFrom (Left pr) = Refl
+		toFrom (Right pr) = Refl
+		fromTo : (y : _) -> from (to y) = y
+		fromTo (Yes pr) = Refl
+		fromTo (No pr) = Refl
+-}
+
+-- By not passing through (decEq i j) itself, this function can be proved symmetric.
+kroneckerDelta : RingWithUnity a => Fin n -> Fin n -> a
+kroneckerDelta {a} i j = ifThenElse (i==j) Algebra.unity Algebra.neutral
+
+kroneckerDeltaSym : RingWithUnity a => kroneckerDelta {a=a} i j = kroneckerDelta {a=a} j i
+kroneckerDeltaSym {i=FZ} {j=FZ} = Refl
+kroneckerDeltaSym {i=FS predi} {j=FZ} = Refl
+kroneckerDeltaSym {i=FZ} {j=FS predj} = Refl
+kroneckerDeltaSym {i=FS predi} {j=FS predj} = kroneckerDeltaSym {i=predi} {j=predj}
+
+FSPreservesBoolEq : (i, j : Fin n) -> (FS i == FS j) = (i == j)
+FSPreservesBoolEq FZ FZ = Refl
+FSPreservesBoolEq (FS predi) FZ = Refl
+FSPreservesBoolEq FZ (FS predj) = Refl
+FSPreservesBoolEq (FS predi) (FS predj) with (predi==predj)
+	| True = Refl
+	| False = Refl
+
+eqTrue_Fin : (i, j : Fin n) -> (i=j) -> (i==j)=True
+eqTrue_Fin FZ FZ pr = Refl
+eqTrue_Fin (FS predi) FZ pr = void $ FZNotFS $ sym pr
+eqTrue_Fin FZ (FS predj) pr = void $ FZNotFS $ pr
+eqTrue_Fin (FS predi) (FS predj) pr = trans (FSPreservesBoolEq predi predj) $ eqTrue_Fin predi predj $ FSinjective pr
+
+notEqFalse_Fin : (i, j : Fin n) -> Not (i=j) -> (i==j)=False
+notEqFalse_Fin FZ FZ pr = void $ pr Refl
+notEqFalse_Fin (FS predi) FZ pr = Refl
+notEqFalse_Fin FZ (FS predj) pr = Refl
+notEqFalse_Fin (FS predi) (FS predj) pr = trans (FSPreservesBoolEq predi predj) $ notEqFalse_Fin predi predj $ pr . cong
+
+indexFinsIsIndex : index i $ fins n = i
+indexFinsIsIndex {i} {n=Z} = FinZElim i
+indexFinsIsIndex {i=FZ} {n=S predn} = Refl
+indexFinsIsIndex {i=FS preli} {n=S predn} = trans indexMapChariz $ cong indexFinsIsIndex
+
+idMatIndexChariz : RingWithUnity a => index i $ Id {a=a} = basis i
+idMatIndexChariz = trans (indexMapChariz {f=\n => basis n}) $ cong {f=basis} $ indexFinsIsIndex
+
+idMatIndicesChariz : RingWithUnity a => indices i j $ Id {a=a} = kroneckerDelta {a=a} i j
+idMatIndicesChariz {i} {j} with (decEq i j)
+	| Yes pr = trans (cong {f=index j} idMatIndexChariz)
+		-- = index j $ basis i
+		$ trans (replaceAtIndexForm1 {i=j} {j=i} $ sym pr)
+		-- = Algebra.unity {a=a}
+		$ rewrite (eqTrue_Fin i j pr) in Refl
+	| No pr = trans (cong {f=index j} idMatIndexChariz)
+		-- = index j $ basis i
+		$ trans (replaceAtIndexForm2 {i=j} {j=i} $ negEqSym pr)
+		$ trans indexReplicateChariz
+		$ rewrite (notEqFalse_Fin i j pr) in Refl
+
+-- The {d} is so (Id) can be specialized in applications.
+idMatSelfTranspose : RingWithUnity a => Id {a=a} {d=d} = transpose $ Id {a=a}
+idMatSelfTranspose {a} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+	trans (idMatIndicesChariz {a=a} {i=i} {j=j})
+	$ trans kroneckerDeltaSym
+	$ trans (sym $ idMatIndicesChariz {a=a} {i=j} {j=i})
+	$ sym $ transposeIndicesChariz j i
+
+{-
+These are not real, because
+
+	neutralVectIsDotProductZero_R : (x : Vect nu ZZ) -> x <:> neutral = neutral
+
+can't be generalized to
+
+	neutralVectIsDotProductZero_R : VerifiedRing a => (x : Vect n a) -> x<:>Algebra.neutral = Algebra.neutral {a=a}
+
+due to (issue#24), & thus (dotBasisRIsIndex), (dotBasisLIsIndex) can't be proved in general.
+
+-----
+
+dotBasisRIsIndex : VerifiedRingWithUnity a => (v : Vect d a) -> v<:>(basis i) = index i v
+dotBasisRIsIndex [] {i} = FinZElim i
+-- dotBasisRIsIndex (v::vs) {i=FZ} = -- neutralVectIsDotProductZero_R
+
+dotBasisLIsIndex : VerifiedRingWithUnity a => (v : Vect d a) -> (basis i)<:>v = index i v
+
 multIdLeftNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> Id <> a = a
+multIdLeftNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i Id <:> getCol j a
+		$ trans (cong {f=(<:>(getCol j a))} idMatIndexChariz)
+		-- = basis i <:> getCol j a
+		$ trans (dotBasisLIsIndex $ getCol j a)
+		$ trans (cong $ sym $ transposeIndexChariz {k=j})
+		$ transposeIndicesChariz i j
 
 multIdRightNeutral : VerifiedRingWithUnity r => (a : Matrix _ _ r) -> a <> Id = a
+multIdRightNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i a <:> getCol j Id
+		$ trans (cong {f=((index i a)<:>)}
+			$ trans (sym transposeIndexChariz)
+			$ trans (cong {f=index j} $ sym $ idMatSelfTranspose)
+			-- = index i a <:> index j Id
+			$ idMatIndexChariz)
+			-- = index i a <:> basis j
+		$ dotBasisRIsIndex $ index i a
+-}
+
+dotBasisRIsIndex : (v : Vect d ZZ) -> v <:> basis i = index i v
+dotBasisRIsIndex [] {i} = FinZElim i
+dotBasisRIsIndex (v::vs) {i=FZ} = trans monoidrec1D
+	$ trans (cong $ neutralVectIsDotProductZero_R vs)
+	$ trans (monoidNeutralIsNeutralL $ v<.>Algebra.unity)
+	$ ringWithUnityIsUnityL v
+dotBasisRIsIndex (v::vs) {i=FS preli} = trans monoidrec1D
+	-- #bicong #binarycong #bileibniz #binaryleibniz
+	$ trans (cong {f=(<+>(vs<:>basis preli))} $ ringNeutralIsMultZeroR v)
+	$ trans (monoidNeutralIsNeutralR $ vs<:>basis preli)
+	$ dotBasisRIsIndex vs {i=preli}
+-- This goal appears to match the type of (dotBasisRIsIndex vs {i=preli}).
+-- dotBasisRIsIndex (v::vs) {i=FS preli} = ?dotBasisRIsIndex_pr
+-- This never finished typechecking, so I don't know what lemma(s) it creates.
+-- dotBasisRIsIndex (v::vs) {i=FS preli} ?= dotBasisRIsIndex vs {i=preli}
+
+dotBasisLIsIndex : (v : Vect d ZZ) -> basis i <:> v = index i v
+dotBasisLIsIndex [] {i} = FinZElim i
+dotBasisLIsIndex (v::vs) {i=FZ} = trans monoidrec1D
+	$ trans (cong $ neutralVectIsDotProductZero_L vs)
+	$ trans (monoidNeutralIsNeutralL $ Algebra.unity<.>v)
+	$ ringWithUnityIsUnityR v
+dotBasisLIsIndex (v::vs) {i=FS preli} = trans monoidrec1D
+	-- #bicong #binarycong #bileibniz #binaryleibniz
+	$ trans (cong {f=(<+>(basis preli<:>vs))} $ ringNeutralIsMultZeroL v)
+	$ trans (monoidNeutralIsNeutralR $ basis preli<:>vs)
+	$ dotBasisLIsIndex vs {i=preli}
+
+multIdLeftNeutral : (a : Matrix _ _ ZZ) -> Id <> a = a
+multIdLeftNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i Id <:> getCol j a
+		$ trans (cong {f=(<:>(getCol j a))} idMatIndexChariz)
+		-- = basis i <:> getCol j a
+		$ trans (dotBasisLIsIndex $ getCol j a)
+		$ trans (cong $ sym $ transposeIndexChariz {k=j})
+		$ transposeIndicesChariz i j
+
+multIdRightNeutral : (a : Matrix _ _ ZZ) -> a <> Id = a
+multIdRightNeutral a = vecIndexwiseEq $ \i =>
+	vecIndexwiseEq $ \j =>
+		trans matMultIndicesChariz
+		-- = index i a <:> getCol j Id
+		$ trans (cong {f=((index i a)<:>)}
+			$ trans (sym transposeIndexChariz)
+			$ trans (cong {f=index j} $ sym $ idMatSelfTranspose)
+			-- = index i a <:> index j Id
+			$ idMatIndexChariz)
+			-- = index i a <:> basis j
+		$ dotBasisRIsIndex $ index i a
 
 {-
 When checking type of ZZModuleSpan.rewriteMultInv:
@@ -212,7 +443,18 @@ matTimesVerMonoid {r} {n} = matTimesVerMonoid'
 Associative property for matrix multiplication
 -}
 
-timesMatMatIsAssociative : Ring a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
+-- but probably (VerifiedCommutativeRing a)
+timesMatMatIsAssociative : VerifiedRing a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
+timesMatMatIsAssociative = vecIndexwiseEq
+	$ \i => vecIndexwiseEq
+		$ \j => trans matMultIndicesChariz $ trans indicesAssoc $ sym $ matMultIndicesChariz
+	where
+		indicesAssoc : VerifiedRing a => {l : Matrix _ _ a}
+			-> {c : Matrix _ _ a}
+			-> {r : Matrix _ _ a}
+			-> (index i l) <:> (getCol j $ c<>r)
+				= (index i $ l<>c) <:> (getCol j r)
+		indicesAssoc = ?indicesAssoc_pr
 
 
 
@@ -291,9 +533,11 @@ zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale`
 -- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
 zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
 
+-- Note this typechecks when (multIdLeftNeutral) has the class-generic type signature.
 zippyScaleIdLeftNeutral : (a : Matrix n m ZZ) -> Id `zippyScale` a = a
 zippyScaleIdLeftNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdLeftNeutral _
 
+-- Note this typechecks when (multIdLeftNeutral) has the class-generic type signature.
 zippyScaleIdRightNeutral : (a : Matrix _ _ ZZ) -> a `zippyScale` Id = a
 zippyScaleIdRightNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdRightNeutral _
 
@@ -434,6 +678,26 @@ tailnote' = proof
   rewrite sym $ headtails vs
   exact Refl
 
+{-
+-- Alternate theorem & proof
+spanslzTail : spanslz (x::xs) xs
+spanslzTail {x} {xs} = (map ((Pos 0)::) Id
+	** trans (sym $ timesMatMatAsMultipleLinearCombos (map ((Pos 0)::) Id) (x::xs))
+		$ trans (matMultCancelsHeadWithZeroColExtensionL {xs=Id} {ys=xs} {z=x})
+		$ multIdLeftNeutral xs )
+-}
+
+spanslzHeadRow : (z : _) -> (zs : _) -> (z::zs) `spanslz` [z]
+spanslzHeadRow z zs = ( [basis FZ]
+	** trans (sym $ timesMatMatAsMultipleLinearCombos [basis FZ] (z::zs))
+		$ cong {f=(::[])}
+		$ trans (extensionalEqToMapEq
+			{f=\arg => ((basis FZ)<:>arg)}
+			(dotBasisLIsIndex {i=FZ})
+			$ transpose (z::zs))
+		$ trans (sym transposeIndexChariz)
+		$ cong {f=index FZ} $ transposeIsInvolution {xs=z::zs} )
+
 spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
 spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
 spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = ?spannedlzByZeroId'
@@ -492,8 +756,12 @@ spanslzreflFromEq : (xs=ys) -> xs `spanslz` ys
 spanslzreflFromEq pr = ( Id ** trans (zippyScaleIdLeftNeutral _) pr )
 
 bispanslzreflFromEq : (xs=ys) -> xs `bispanslz` ys
+bispanslzreflFromEq pr = (spanslzreflFromEq pr, spanslzreflFromEq $ sym pr)
 
 
+
+spanslzNeutral : {xs : Matrix n w ZZ} -> spanslz xs $ the (Matrix m w ZZ) Algebra.neutral
+spanslzNeutral = (Algebra.neutral ** trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ neutralMatIsMultZeroL _)
 
 updateAtEquality : {ls : Matrix n k ZZ} -> {rs : Matrix k m ZZ} -> (updi : Fin n) -> (f : (i : Nat) -> Vect i ZZ -> Vect i ZZ) -> ( (la : Vect k ZZ) -> (f k la) <\> rs = f m $ la <\> rs ) -> (updateAt updi (f k) ls) `zippyScale` rs = updateAt updi (f m) (ls `zippyScale` rs)
 updateAtEquality {ls=[]} updi f fnpreq = FinZElim updi
@@ -537,6 +805,12 @@ spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scal
 spanScalelz : (z : ZZ) -> spanslz xs ys -> spanslz xs (z<#>ys)
 
 spanAdd : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <+> zs)
+spanAdd {xs} {ys} {zs} spXY spXZ = ((getWitness spXY)<+>(getWitness spXZ) **
+	trans (sym $ timesMatMatAsMultipleLinearCombos ((getWitness spXY)<+>(getWitness spXZ)) xs)
+	$ trans (matrixMultRightDistributesOverMatrixPlus (getWitness spXY) (getWitness spXZ) xs)
+	$ trans (cong {f=(((getWitness spXY)<>xs)<+>)} $ trans (timesMatMatAsMultipleLinearCombos (getWitness spXZ) xs) $ getProof spXZ)
+	$ cong {f=(<+>zs)} $ trans (timesMatMatAsMultipleLinearCombos (getWitness spXY) xs) $ getProof spXY
+	)
 
 spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
 spanSub {xs} {ys} {zs} prxy prxz = ?spanSub'
@@ -560,6 +834,7 @@ spanSub' = proof
 
 {-
 -- I feel like typechecking this shouldn't be a problem for Idris.
+-- Perhaps (unity) needed to be (Algebra.unity).
 
 
 spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
@@ -581,24 +856,98 @@ spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
 
 
 
+-- A combination of the proofs of (spanslzHeadRow) & (spanslzNeutral).
+spanslzHeadCatNeutral : x::xs `spanslz` x::Algebra.neutral {a=Matrix n m ZZ}
+spanslzHeadCatNeutral {x} {xs} = ( basis FZ::Algebra.neutral
+	** trans (sym $ timesMatMatAsMultipleLinearCombos (basis FZ::Algebra.neutral) (x::xs))
+		$ vecHeadtailsEq
+		-- head: spanslzHeadRow
+		(trans (extensionalEqToMapEq
+			{f=\arg => ((basis FZ)<:>arg)}
+			(dotBasisLIsIndex {i=FZ})
+			$ transpose (x::xs))
+		$ trans (sym transposeIndexChariz)
+		$ cong {f=index FZ} $ transposeIsInvolution {xs=x::xs})
+		-- tail: spanslzNeutral
+		$ neutralMatIsMultZeroL (x::xs) )
+
+spanslzNullRowExtension : spanslz xs (Algebra.neutral::xs)
+spanslzNullRowExtension = ( Algebra.neutral::Id ** vecHeadtailsEq (trans (sym $ timesVectMatAsLinearCombo _ _) $ neutralVectIsVectTimesZero _) $ zippyScaleIdLeftNeutral _ )
+
+-- Combine (spanslzHeadCatNeutral) and (spanslzNullRowExtension) to recurse on (ys).
 mergeSpannedLZs : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys++zs)
+mergeSpannedLZs spXY spXZ {ys=[]} = spXZ
+mergeSpannedLZs spXY spXZ {ys=y::ys} = spanslztrans
+	( spanAdd
+		(spanslztrans spXY spanslzHeadCatNeutral)
+		$ spanslztrans (mergeSpannedLZs (spanslzTail spXY) spXZ) spanslzNullRowExtension )
+	$ spanslzreflFromEq $ vecHeadtailsEq
+		(monoidNeutralIsNeutralL_Vect _)
+		$ monoidNeutralIsNeutralR _
 
 spanslzRowTimesSelf : spanslz xs [v<\>xs]
+spanslzRowTimesSelf {xs} {v} = ([v] ** cong {f=(::[])} $ sym $ timesVectMatAsLinearCombo v xs)
+
+preserveSpanningLZByCons : spanslz xs ys -> spanslz (z::xs) ys
+preserveSpanningLZByCons {z} {xs} spXY = spanslztrans (spanslzTail {xs=z::xs} spanslzrefl) spXY
 
 extendSpanningLZsByPreconcatTrivially : spanslz xs ys -> spanslz (zs++xs) ys
+extendSpanningLZsByPreconcatTrivially {zs=[]} prsp = prsp
+extendSpanningLZsByPreconcatTrivially {zs=z::zs} prsp = preserveSpanningLZByCons {z=z} $ extendSpanningLZsByPreconcatTrivially {zs=zs} prsp
 
+-- Could be done by (spanslztrans) of above with a reversal permutation `spanslz`.
+-- Equality of the (Fin) types and induced eq of the (Iso) types w/ (Auto)s suffices.
 extendSpanningLZsByPostconcatTrivially : spanslz xs ys -> spanslz (xs++zs) ys
 
 concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
+concatSpansRellz spXZ spYW = mergeSpannedLZs (extendSpanningLZsByPostconcatTrivially spXZ) (extendSpanningLZsByPreconcatTrivially spYW)
 
 
 
 spanslzAdditiveExchange : spanslz ((y<+>(z<\>xs))::xs) (y::xs)
+spanslzAdditiveExchange {xs} {y} {z} =
+	-- Subtract two matrices
+	(spanSub
+		(spanslzrefl {xs=(y<+>(z<\>xs))::xs})
+		-- Treat head subtraction as matrix subtraction by appending neutral mat:
+		-- (y<+>(z<\>xs))::xs `spanslz` (z<\>xs)::Algebra.neutral
+		$ mergeSpannedLZs
+			-- (y<+>(z<\>xs))::xs `spanslz` [z<\>xs]
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				spanslzRowTimesSelf)
+			spanslzNeutral)
+	-- Then simplify the subtraction
+	`spanslztrans` (spanslzreflFromEq
+		$ vecHeadtailsEq
+			-- Regroup element next to its inverse, then cancel
+			(trans
+				(sym $ semigroupOpIsAssociative_Vect y (z<\>xs) $ inverse $ z<\>xs)
+				$ trans (cong $ groupInverseIsInverseL_Vect $ z<\>xs)
+				$ monoidNeutralIsNeutralL_Vect y)
+			-- (<->Algebra.neutral) is a no-op.
+			$ trans
+				(cong {f=(xs<+>)} $ neutralSelfInverse)
+				$ monoidNeutralIsNeutralL xs)
 
 spanslzSubtractiveExchange : spanslz ((y<->(z<\>xs))::xs) (y::xs)
+spanslzSubtractiveExchange {y} {z} {xs} = spanslztrans
+	(spanAdd
+		spanslzrefl
+		$ mergeSpannedLZs
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				spanslzRowTimesSelf)
+			spanslzNeutral)
+	$ spanslzreflFromEq
+	$ vecHeadtailsEq (
+		trans (sym $ semigroupOpIsAssociative_Vect y (inverse $ z<\> xs) (z<\>xs))
+		$ trans (cong {f=(y<+>)} $ groupInverseIsInverseR_Vect $ z<\>xs)
+		$ monoidNeutralIsNeutralL_Vect y)
+	$ monoidNeutralIsNeutralL xs
 
 {-
-Should actually be as follows, as it will make the proof easier:
+Equivalent alternatives:
 
 spanslzAdditiveExchange : spanslz ((y<+>(monoidsum $ zipWith (<#>) z xs))::xs) (y::xs)
 
@@ -620,8 +969,29 @@ spanslzSubtractiveExchange2 : spanslz xs ys -> spanslz ((zs<->ys)++xs) (zs++xs)
 -}
 
 spanslzAdditivePreservation : spanslz (y::xs) ((y<+>(z<\>xs))::xs)
+spanslzAdditivePreservation {xs} = spanslztrans
+	(spanAdd
+		spanslzrefl
+		$ mergeSpannedLZs
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				$ spanslzRowTimesSelf)
+			spanslzNeutral)
+	$ spanslzreflFromEq $ cong $ monoidNeutralIsNeutralL xs
 
 spanslzSubtractivePreservation : spanslz (y::xs) ((y<->(z<\>xs))::xs)
+spanslzSubtractivePreservation {xs} = spanslztrans
+	(spanSub
+		spanslzrefl
+		$ mergeSpannedLZs
+			(spanslztrans
+				(preserveSpanningLZByCons spanslzrefl)
+				spanslzRowTimesSelf)
+			spanslzNeutral)
+	$ spanslzreflFromEq $ cong
+	-- (<->Algebra.neutral) is a no-op.
+	$ trans (cong {f=(xs<+>)} $ neutralSelfInverse)
+	$ monoidNeutralIsNeutralL xs
 
 {-
 Implication of bispannability: Transformations of this form preserve the span of the vectors, the span of both sides of the transformation is the same ZZ-submodule of ZZ^n.
@@ -661,7 +1031,13 @@ headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs
 spanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
 spanslzAdditiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes {f=\argxx => \argxxs => argxx<+>(z<\>argxxs) } (\argxx => \argxxs => spanslzAdditiveExchange {y=argxx} {xs=argxxs} {z=z}) nel xs
 
+-- Code mirrors (spanslzAdditiveExchangeAt), but is more compactly written.
 spanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<->(z<\>(deleteRow nel xs))) xs) xs
+spanslzSubtractiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes
+	{f=(.(z<\>)).(<->)}
+	(\argxx => \argxxs => spanslzSubtractiveExchange)
+	nel
+	xs
 
 spanslzAdditivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs)
 
@@ -674,7 +1050,13 @@ bispanslzSubtractiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt ne
 bispanslzSubtractiveExchangeAt nel = (spanslzSubtractiveExchangeAt nel, spanslzSubtractivePreservationAt nel)
 
 bispansSamevecExtension : xs `bispanslz` ys -> (v : Vect _ ZZ) -> (v::xs) `bispanslz` (v::ys)
+bispansSamevecExtension {xs} {ys} (prXY, prYX) v =
+	( mergeSpannedLZs (spanslzHeadRow v xs) $ preserveSpanningLZByCons prXY,
+		mergeSpannedLZs (spanslzHeadRow v ys) $ preserveSpanningLZByCons prYX )
 
+-- Pad both starts with (sym $ timesMatMatAsMultipleLinearCombos).
+-- Then indexwise, using double (vecIndexwiseEq) and (matMultIndicesChariz).
+-- (getCol FZ xs=Algebra.neutral {a=Vect n ZZ}) -> map ((Pos Z)::) $ map tail xs = xs
 bispansNullcolExtension : (getCol FZ xs=Algebra.neutral)
 	-> ys `bispanslz` map tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
