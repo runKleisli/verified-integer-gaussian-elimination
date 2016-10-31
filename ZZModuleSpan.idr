@@ -39,43 +39,105 @@ permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -
 permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
 permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
 
+splitFinFS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = FS k ) ( i = Fin.FZ {k=predn} )
+
+-- Use with (splitFinFS) above!
+finReduceIsLeft : (z = FS k) -> finReduce z = Left k
+finReduceIsLeft pr = rewrite pr in Refl
+
+{-
+The type of (pr) does not immediately matter. What matters is that its (Right $) value
+satisfies the equation, so that a rewrite exists. Later, (~=~) and pattern matching
+can be used to patch up problems with typing (pr), but the transformation to the
+final value of the rewrite must be done all at once.
+
+Idris will not perform rewrites of a subexpression when it changes the type of
+a strictly larger expression. So, we can't turn a (... $ finReduce z) expression
+into a (... $ finReduce FZ) expression by rewriting using a (z = FZ).
+
+Likewise, we can't rewrite (... $ finReduce z) into (... $ Right pr) where (pr : FZ = FZ).
+
+Even an acceptable formulation of (finReduce z = Right Refl) is a challenge to write.
+
+Also, to state (finReduce z = finReduce FZ), we must write
+(finReduce (the (Fin $ S predn) z) ~=~ finReduce $ FZ {k=predn}).
+
+If a rewrite using a (~=~) is done, (sym) can't be applied, so the lemma
+would change depending on whether it's deployed via (rewrite) or preorder reasoning.
+
+Trying to make (pr) be the proof passed in makes the proof a tedious overkill
+hack exploiting the isomorphism between (x = x) and ().
+-}
+total
+finReduceIsRight_sym : (z : Fin (S predn))
+	-> (prFZ : z = FZ)
+	-> (pr : FZ {k=predn} = z ** Right pr = finReduce z)
+finReduceIsRight_sym FZ _ = (Refl ** Refl)
+finReduceIsRight_sym (FS k) pr = void $ FZNotFS $ sym pr
+
 weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
 weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
 	where
 		to' : Fin n -> Fin n
 		to' nel = runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (FZNotFS . sym)) . sym) (finReduce $ to $ FS nel)) <*> (map sym $ finReduce $ to FZ)
 		from' : Fin n -> Fin n
-		from' = ?weakenIsoByValFZ_from_pr
+		from' nel = runIso eitherBotRight
+			$ (map ((permDoesntFix_corrolary
+					(MkIso from to fromTo toFrom)
+					(FS nel)
+					(FZNotFS . sym))
+				. sym)
+				$ finReduce $ from $ FS nel)
+			<*> (map sym $ finReduce $ from FZ)
 		toFrom' : (y : Fin n) -> to' (from' y) = y
 		-- Suggestion: with (to $ FS nel) or perhaps by injectivity of FS.
-		toFrom' = ?weakenIsoByValFZ_toFrom_pr
+		-- Can't use dependent pattern matching on the (splitFinFS) here.
+		-- Maybe we can use dependent pattern matching on (from $ FS y)!
+		-- But that doesn't quite cut it, since we still need the equality proof.
+		-- We can still get that from this (either), and maybe we can use both.
+		toFrom' y = either
+			(\prelAndPr => ?toFrom_prLeft)
+			(\fromfsyfz => ?toFrom_prRight)
+			$ splitFinFS $ from $ FS y
 		fromTo' : (x : Fin n) -> from' (to' x) = x
-		fromTo' = ?weakenIsoByValFZ_fromTo_pr
-
--- fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
--- goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
--- suffices: (FZ = to $ FS nel) -> Fin n
--- permDoesntFix_corrolary (MkIso to ...) (FS nel) : Not (FS nel = FZ) -> (to $ FS nel = FZ) -> Not (to FZ = FZ)
--- permDoesntFix_corrolary (MkIso to ...) (FS nel) (sym FZNotFS) : (to $ FS nel = FZ) -> Not (to FZ = FZ)
--- map (?above . sym) (finReduce $ to $ FS nel) : Either (Fin n) $ Not (to FZ = FZ)
--- finReduce $ to FZ: Either (Fin n) (FZ = to FZ)
--- ?aboveAbove <*> ?above : Either (Fin n) Void
--- -- aboveAbove with a left value will overwrite any value of above. aboveAbove with a Left value is the predecessor of (to $ FS nel) when (to $ FS nel) is nonzero, so this is appropriate.
--- runIso eitherBotRight ?above : Fin n
--- Hence, without using fromEither at all, we arrive at:
--- runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (sym FZNotFS)) . sym) (finReduce $ to $ FS nel)) <*> (finReduce $ to FZ) : Fin n
+		fromTo' y = either
+			(\prelAndPr => ?fromTo_prLeft)
+			(\tofsyfz => ?fromTo_prRight)
+			$ splitFinFS $ to $ FS y
 
 {-
+Thought process for writing (from', to'):
+
+Inspirational plumbing :
+-- fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
+Goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
+Suffices : (FZ = to $ FS nel) -> Fin n
+
+0) permDoesntFix_corrolary (MkIso to ...) (FS nel) : Not (FS nel = FZ) -> (to $ FS nel = FZ) -> Not (to FZ = FZ)
+1) permDoesntFix_corrolary (MkIso to ...) (FS nel) (sym FZNotFS) : (to $ FS nel = FZ) -> Not (to FZ = FZ)
+2) map (?above . sym) (finReduce $ to $ FS nel) : Either (Fin n) $ Not (to FZ = FZ)
+3) finReduce $ to FZ: Either (Fin n) (FZ = to FZ)
+4) ?aboveAbove <*> ?above : Either (Fin n) Void
+5) -- aboveAbove with a left value will overwrite any value of above. aboveAbove with a Left value is the predecessor of (to $ FS nel) when (to $ FS nel) is nonzero, so this is appropriate.
+6) runIso eitherBotRight ?above : Fin n
+
+Hence, without using (fromEither) at all, we arrive at:
+
+runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (sym FZNotFS)) . sym) (finReduce $ to $ FS nel)) <*> (finReduce $ to FZ) : Fin n
+
+-----
+
+-- First attempted style:
+
 -- Something like this, maybe...
 
 		to' : Fin n -> Fin n
 		to' nel with (finReduce $ to $ FS nel)
 			| Right Refl = (runIso eitherBotRight) $ map (the (FZ = to $ to $ FS nel -> Void) ?weakval_absurdity) $ finReduce $ to $ to $ FS nel
 			| Left (FS nel') = nel'
--}
 
+---
 
-{-
 -- Can't use this because it won't accept the proof in to', analogous to from_fzfixedAndNotFixed, that FZ can't be fixed by the permutation if it is the value of a (Fin (S n)) other than FZ.
 
 weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
@@ -98,6 +160,83 @@ weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fro
 		toFrom' : (y : Fin n) -> to' (from' y) = y
 		fromTo' : (x : Fin n) -> from' (to' x) = x
 -}
+
+-- To reduce all the maps, just show the (finReduce) is a (Left k) in this case.
+-- Then rewrite the (to $ FS k) computed to (to $ from $ FS y) to get (FS y),
+-- whose (finReduce) is then (Left y). The maps finally reduce that to (y), w.w.t.b.d.
+toFrom_prLeft = proof
+  intros
+  rewrite sym $ finReduceIsLeft $ getProof prelAndPr
+  compute
+  rewrite sym $ finReduceIsLeft $ trans (cong {f=to} $ sym $ getProof prelAndPr) $ toFrom $ FS y
+  compute
+  exact Refl
+
+-- See above.
+fromTo_prLeft = proof
+  intros
+  rewrite sym $ finReduceIsLeft $ getProof prelAndPr
+  compute
+  rewrite sym $ finReduceIsLeft $ trans (cong {f=from} $ sym $ getProof prelAndPr) $ fromTo $ FS y
+  compute
+  exact Refl
+
+toFrom_prRight = proof
+  {-
+    The processes use the (runIso eitherBotRight) occurrences to apply to (Left x)s,
+  which turns those expressions into (x)s.
+    Hence, to make their composite's value explicit, we must turn
+  the (_<*>_)s into (Left x)s.
+    We turn them into (Right _ <*> Left x)s.
+  -}
+  intros
+  claim lem1 ( k : _ ** from FZ = FS k )
+  unfocus
+  -- Rewrite (from FZ) to (FS k), & hence (finReduce $ from FZ) to (Left k).
+  rewrite sym $ finReduceIsLeft $ getProof lem1
+  -- Rewrite (from $ FS y) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (from $ FS y) fromfsyfz
+  -- Rewrite (to FZ) to (FS y), & hence (finReduce $ to FZ) to (Left y).
+  rewrite sym $ finReduceIsLeft $ sym $ trans (sym $ toFrom $ FS y) $ cong {f=to} fromfsyfz
+  compute
+  -- Rewrite (to $ FS k) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (to $ FS $ getWitness lem1) $ trans (cong {f=to} $ sym $ getProof lem1) $ toFrom FZ
+  exact Refl
+  -- Goal: lem1.
+  exact runIso eitherBotRight $ map _ $ splitFinFS $ from FZ
+  -- Goal: (from FZ = FZ) -> Void.
+  exact \inPr => FZNotFS $ sym $ trans (sym $ toFrom $ FS y) $ trans (cong {f=to} $ trans fromfsyfz $ sym inPr) $ toFrom FZ
+
+-- (from<->to)-Symmetric copy of above.
+fromTo_prRight = proof
+  {-
+    The processes use the (runIso eitherBotRight) occurrences to apply to (Left x)s,
+  which turns those expressions into (x)s.
+    Hence, to make their composite's value explicit, we must turn
+  the (_<*>_)s into (Left x)s.
+    We turn them into (Right _ <*> Left x)s.
+  -}
+  intros
+  claim lem1 ( k : _ ** to FZ = FS k )
+  unfocus
+  -- Rewrite (to FZ) to (FS k), & hence (finReduce $ to FZ) to (Left k).
+  rewrite sym $ finReduceIsLeft $ getProof lem1
+  -- Rewrite (to $ FS y) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (to $ FS y) tofsyfz
+  -- Rewrite (from FZ) to (FS y), & hence (finReduce $ from FZ) to (Left y).
+  rewrite sym $ finReduceIsLeft $ sym $ trans (sym $ fromTo $ FS y) $ cong {f=from} tofsyfz
+  compute
+  -- Rewrite (from $ FS k) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (from $ FS $ getWitness lem1) $ trans (cong {f=from} $ sym $ getProof lem1) $ fromTo FZ
+  exact Refl
+  -- Goal: lem1.
+  exact runIso eitherBotRight $ map _ $ splitFinFS $ to FZ
+  -- Goal: (to FZ = FZ) -> Void.
+  exact \inPr => FZNotFS $ sym $ trans (sym $ fromTo $ FS y) $ trans (cong {f=from} $ trans tofsyfz $ sym inPr) $ fromTo FZ
 
 vectPermTo : Iso (Fin n) (Fin n) -> Vect n a -> Vect n a
 vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . to) range
