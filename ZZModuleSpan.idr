@@ -96,20 +96,19 @@ weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fro
 		-- But that doesn't quite cut it, since we still need the equality proof.
 		-- We can still get that from this (either), and maybe we can use both.
 		toFrom' y = either
-			(\prelAndPr => ?toFrom_prLeft)
-			(\fromfsyfz => ?toFrom_prRight)
+			(\prelAndPr => ?wibFZ_toFrom_prLeft)
+			(\fromfsyfz => ?wibFZ_toFrom_prRight)
 			$ splitFinFS $ from $ FS y
 		fromTo' : (x : Fin n) -> from' (to' x) = x
 		fromTo' y = either
-			(\prelAndPr => ?fromTo_prLeft)
-			(\tofsyfz => ?fromTo_prRight)
+			(\prelAndPr => ?wibFZ_fromTo_prLeft)
+			(\tofsyfz => ?wibFZ_fromTo_prRight)
 			$ splitFinFS $ to $ FS y
 
 {-
 Thought process for writing (from', to'):
 
-Inspirational plumbing :
--- fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
+Inspirational plumbing : fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
 Goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
 Suffices : (FZ = to $ FS nel) -> Fin n
 
@@ -164,7 +163,7 @@ weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fro
 -- To reduce all the maps, just show the (finReduce) is a (Left k) in this case.
 -- Then rewrite the (to $ FS k) computed to (to $ from $ FS y) to get (FS y),
 -- whose (finReduce) is then (Left y). The maps finally reduce that to (y), w.w.t.b.d.
-toFrom_prLeft = proof
+wibFZ_toFrom_prLeft = proof
   intros
   rewrite sym $ finReduceIsLeft $ getProof prelAndPr
   compute
@@ -173,7 +172,7 @@ toFrom_prLeft = proof
   exact Refl
 
 -- See above.
-fromTo_prLeft = proof
+wibFZ_fromTo_prLeft = proof
   intros
   rewrite sym $ finReduceIsLeft $ getProof prelAndPr
   compute
@@ -181,7 +180,7 @@ fromTo_prLeft = proof
   compute
   exact Refl
 
-toFrom_prRight = proof
+wibFZ_toFrom_prRight = proof
   {-
     The processes use the (runIso eitherBotRight) occurrences to apply to (Left x)s,
   which turns those expressions into (x)s.
@@ -210,7 +209,7 @@ toFrom_prRight = proof
   exact \inPr => FZNotFS $ sym $ trans (sym $ toFrom $ FS y) $ trans (cong {f=to} $ trans fromfsyfz $ sym inPr) $ toFrom FZ
 
 -- (from<->to)-Symmetric copy of above.
-fromTo_prRight = proof
+wibFZ_fromTo_prRight = proof
   {-
     The processes use the (runIso eitherBotRight) occurrences to apply to (Left x)s,
   which turns those expressions into (x)s.
