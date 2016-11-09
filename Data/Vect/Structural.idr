@@ -93,6 +93,8 @@ indexUpdateAtChariz {xs=[]} {i} = FinZElim i
 indexUpdateAtChariz {xs=(x::xs)} {f} {i=FZ} = Refl
 indexUpdateAtChariz {xs=x::xs} {f} {i=FS i} = indexUpdateAtChariz {xs=xs} {f=f} {i=i}
 
+indexUpdateAtChariz2 : Not (i = j) -> index i $ updateAt j f xs = index i xs
+
 updateAtIndIsMapAtInd : index i $ updateAt i f xs = index i $ map f xs
 updateAtIndIsMapAtInd = trans indexUpdateAtChariz $ sym indexMapChariz
 

@@ -1141,7 +1141,101 @@ permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigm
 
 permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
 
-swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (Not (mel=FZ),Not (mel=nel)) -> runIso sigma mel = mel) )
+-- {mel : _} leads to inability to apply the function obtained: "No such variable mel".
+swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> runIso sigma mel = mel) )
+
+-- Abbreviation
+swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
+swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
+
+vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
+-- vectPermToIndexChariz = trans indexMapChariz indexRangeIsIndex {-(indexFinsIsIndex)-}
+
+updateAtConjToUpdateHead :
+	{f : a -> Vect predn a -> a}
+	-> (nel : Fin (S predn))
+	-> (xs: Vect (S predn) a)
+	-> updateAt nel (\xx => f xx (deleteAt nel xs)) xs
+		= swapIndexFZ nel $ (f (Vect.head $ swapIndexFZ nel xs) $ Vect.tail $ swapIndexFZ nel xs) :: (Vect.tail $ swapIndexFZ nel xs)
+updateAtConjToUpdateHead {f} nel xs = vecIndexwiseEq updateAtConjToUpdateHead_index
+	where
+		updateAtConjToUpdateHead_index : (i : _) -> Vect.index i $ updateAt nel (\xx => f xx (deleteAt nel xs)) xs = Vect.index i $ swapIndexFZ nel $ (f (Vect.head $ swapIndexFZ nel xs) $ Vect.tail $ swapIndexFZ nel xs) :: (Vect.tail $ swapIndexFZ nel xs)
+		updateAtConjToUpdateHead_index i with ( (decEq i FZ, decEq i nel) )
+			| ( Yes prfz, Yes prnel ) = ?uaconjYesYes
+			| ( No notfz, Yes prnel ) = ?uaconjNoYes
+			| ( Yes prfz, No notnel ) = ?uaconjYesNo
+			| ( No notfz, No notnel ) =
+				let iAsFS = runIso eitherBotRight $ map notfz $ splitFinFS i
+				in trans (indexUpdateAtChariz2 notnel)
+				$ trans (cong {f=\k => index k _} $ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel)
+				$ trans (sym vectPermToIndexChariz)
+				$ trans (cong {f=index i} $ headtails $ swapIndexFZ nel xs)
+				$ trans (cong {f=\k => index k ((head $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs))} $ getProof iAsFS)
+				$ trans (cong {f=index $ FS $ getWitness iAsFS} $ sym $ headtails $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs))
+				$ trans (cong {f=\k => index k $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs)} $ sym $ getProof iAsFS)
+				$ trans (cong {f=\k => index k _} $ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel)
+				$ sym vectPermToIndexChariz
+
+{-
+Implementing
+
+updateAtConjToUpdateHead_index i with ...
+... | ( No notfz, No notnel ) = ?uaconjNoNo
+
+-----
+
+-- REPL-only
+uaconjNoNo = proof
+	intros
+	exact trans (indexUpdateAtChariz2 notnel) $ _
+	exact trans _ $ sym vectPermToIndexChariz
+	exact trans _ $ rewrite (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel in Refl
+	-- :search index j $ tail as = index (FS j) as
+	-- No results
+	let iAsFS = runIso eitherBotRight $ map notfz $ splitFinFS i
+	exact trans _ $ rewrite getProof iAsFS in Refl
+	exact trans _ $ cong {f=index $ FS $ getWitness iAsFS} $ headtails _
+	exact trans _ $ rewrite sym $ getProof iAsFS in Refl
+	-- :t flip $ Vect.index {n=S predn} {a=a}
+	-- Type mismatch error.
+	exact trans _ $ sym vectPermToIndexChariz
+	exact rewrite (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel in Refl
+
+---
+
+Draft for inline definition
+
+uaconjNoNo = proof
+  intros
+  let iAsFS = runIso eitherBotRight $ map notfz $ splitFinFS i
+  exact trans (indexUpdateAtChariz2 notnel) $ _
+  exact flip trans (sym vectPermToIndexChariz) $ _
+  exact flip trans (rewrite (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel in Refl) $ _
+  exact flip trans (rewrite getProof iAsFS in Refl) $ _
+  exact flip trans (cong {f=index $ FS $ getWitness iAsFS} $ headtails _) $ _
+  exact flip trans (rewrite sym $ getProof iAsFS in Refl) $ _
+  exact flip trans (sym vectPermToIndexChariz) $ _
+  exact rewrite (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel in Refl
+
+---
+
+But the compiler hates (flip trans) and the rewrites, and our proof as a script has some implicit argument that becomes a goal and creeps in when compiled, so we had to laboriously convert to a (trans) form with no rewrites that would be accepted. However, once we got a (trans)-form proof accepted by the REPL, it could be converted directly to an accepted inline value.
+
+uaconjNoNo = proof
+  intros
+  let iAsFS = runIso eitherBotRight $ map notfz $ splitFinFS i
+  exact trans (indexUpdateAtChariz2 notnel) $ _
+  exact trans (cong {f=\k => index k _} $ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel) $ _
+  compute
+  exact trans (sym vectPermToIndexChariz) $ _
+  exact trans (cong {f=index i} $ headtails $ swapIndexFZ nel xs) $ _
+  exact trans (cong {f=\k => index k ((head $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs))} $ getProof iAsFS) $ _
+  exact trans (cong {f=index $ FS $ getWitness iAsFS} $ sym $ headtails $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs)) $ _
+  exact trans (cong {f=\k => index k $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs)} $ sym $ getProof iAsFS) $ _
+  exact trans (cong {f=\k => index k _} $ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel) $ _
+  exact sym vectPermToIndexChariz
+
+-}
 
 {-
 Recall:
