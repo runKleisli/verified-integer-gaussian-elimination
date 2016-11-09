@@ -1163,17 +1163,39 @@ updateAtConjToUpdateHead {f} nel xs = vecIndexwiseEq updateAtConjToUpdateHead_in
 		updateAtConjToUpdateHead_index i with ( (decEq i FZ, decEq i nel) )
 			| ( Yes prfz, Yes prnel ) = ?uaconjYesYes
 			| ( No notfz, Yes prnel ) = ?uaconjNoYes
-			| ( Yes prfz, No notnel ) = ?uaconjYesNo
+			| ( Yes prfz, No notnel ) =
+				let nelAsFS = runIso eitherBotRight $ map (\k => notnel $ trans prfz $ sym k) $ splitFinFS nel
+				in trans (indexUpdateAtChariz2 notnel)
+				$ sym
+				$ trans vectPermToIndexChariz
+				$ trans (cong {f=\k => Vect.index k $ (f (Vect.head $ swapIndexFZ nel xs) $ Vect.tail $ swapIndexFZ nel xs) :: (Vect.tail $ swapIndexFZ nel xs)}
+					$ trans (cong {f=runIso $ getWitness $ swapFZPerm nel} prfz)
+					$ trans (fst $ getProof $ swapFZPerm nel)
+					$ getProof nelAsFS)
+				$ trans (cong {f=index (FS $ getWitness nelAsFS)}
+					$ sym $ headtails _)
+				$ trans (cong {f=\k => index k $ swapIndexFZ nel xs}
+					$ sym $ getProof nelAsFS)
+				$ trans vectPermToIndexChariz
+				$ cong {f=\k => index k xs}
+					$ trans (fst $ snd $ getProof $ swapFZPerm nel)
+					$ sym prfz
 			| ( No notfz, No notnel ) =
 				let iAsFS = runIso eitherBotRight $ map notfz $ splitFinFS i
 				in trans (indexUpdateAtChariz2 notnel)
-				$ trans (cong {f=\k => index k _} $ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel)
+				$ trans (cong {f=\k => index k _}
+					$ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel)
 				$ trans (sym vectPermToIndexChariz)
-				$ trans (cong {f=index i} $ headtails $ swapIndexFZ nel xs)
-				$ trans (cong {f=\k => index k ((head $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs))} $ getProof iAsFS)
-				$ trans (cong {f=index $ FS $ getWitness iAsFS} $ sym $ headtails $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs))
-				$ trans (cong {f=\k => index k $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs)} $ sym $ getProof iAsFS)
-				$ trans (cong {f=\k => index k _} $ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel)
+				$ trans (cong {f=index i}
+					$ headtails $ swapIndexFZ nel xs)
+				$ trans (cong {f=\k => index k ((head $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs))}
+					$ getProof iAsFS)
+				$ trans (cong {f=index $ FS $ getWitness iAsFS}
+					$ sym $ headtails $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs))
+				$ trans (cong {f=\k => index k $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs)}
+					$ sym $ getProof iAsFS)
+				$ trans (cong {f=\k => index k _}
+					$ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel)
 				$ sym vectPermToIndexChariz
 
 {-
