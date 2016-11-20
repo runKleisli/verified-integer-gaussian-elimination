@@ -1151,6 +1151,9 @@ swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
 -- vectPermToIndexChariz = trans indexMapChariz indexRangeIsIndex {-(indexFinsIsIndex)-}
 
+{-
+-- False: Should be a cycle over the first part of the indices instead of a 2-cycle.
+
 updateAtConjToUpdateHead :
 	{f : a -> Vect predn a -> a}
 	-> (nel : Fin (S predn))
@@ -1197,6 +1200,32 @@ updateAtConjToUpdateHead {f} nel xs = vecIndexwiseEq updateAtConjToUpdateHead_in
 				$ trans (cong {f=\k => index k _}
 					$ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel)
 				$ sym vectPermToIndexChariz
+
+uaconjNoYes = proof
+  intros
+  exact trans (cong {f=\k => index k _} prnel) $ _
+  exact trans indexUpdateAtChariz $ _
+  exact sym $ _
+  exact trans (cong {f=\k => index k _} prnel) $ _
+  exact trans vectPermToIndexChariz $ _
+  exact trans (cong {f=\k => index k _} $ fst $ snd $ getProof $ swapFZPerm nel) $ _
+  compute
+  claim headSwapFZRel head $ swapIndexFZ nel xs = index nel xs
+  unfocus
+  claim tailSwapFZRel tail $ swapIndexFZ nel xs = deleteAt nel xs
+  unfocus
+  exact trans (cong {f=\h => f h $ tail $ swapIndexFZ nel xs} headSwapFZRel) $ _
+  unfocus
+  unfocus
+  exact cong tailSwapFZRel
+  let annotation_msg = "End main thm. Goals: headSwapFZRel & tailSwapFZRel."
+  exact trans (sym indexFZIsheadValued) $ _
+  unfocus
+  exact trans vectPermToIndexChariz $ _
+  unfocus
+  exact cong {f=\k => index k xs} $ fst $ getProof $ swapFZPerm nel
+  let annotation_msg' = "End (headSwapFZRel). Goal: tailSwapFZRel."
+  exact believe_me "Missing lemma, tailSwapFZRel : tail $ swapIndexFZ nel xs = deleteAt nel xs."
 
 {-
 Implementing
@@ -1256,6 +1285,8 @@ uaconjNoNo = proof
   exact trans (cong {f=\k => index k $ (f (head $ swapIndexFZ nel xs) $ tail $ swapIndexFZ nel xs)::(tail $ swapIndexFZ nel xs)} $ sym $ getProof iAsFS) $ _
   exact trans (cong {f=\k => index k _} $ sym $ (snd $ snd $ getProof $ swapFZPerm nel) i notfz notnel) $ _
   exact sym vectPermToIndexChariz
+
+-}
 
 -}
 
