@@ -1151,6 +1151,214 @@ swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
 -- vectPermToIndexChariz = trans indexMapChariz indexRangeIsIndex {-(indexFinsIsIndex)-}
 
+rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
+rotateAt {predn} {a} nel = ( sigma
+		** \xs => vecIndexwiseEq
+			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
+				$ (getProof $ rotateTo nel i) $ xs )
+	where
+		deleteTo : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( j : Fin (S v) **
+				(xs : Vect (S v) a) ->
+				(index j xs = index preli $ deleteAt el xs) )
+		deleteTo {v=Z} a b = FinZElim b
+		deleteTo FZ preli = ( FS preli ** prfn )
+			where
+				prfn (x::xs) = Refl
+		deleteTo (FS e) FZ = ( FZ ** prfn )
+			where
+				prfn (x::xs) = Refl
+		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
+			where
+				prfn (x::xs) = (getProof $ deleteTo e k) xs
+		rotateTo : ( el : Fin (S predn) )
+			-> ( i : Fin (S predn) )
+			-> ( j : Fin (S predn) **
+				(xs : Vect (S predn) a) ->
+				(index j xs = index i $ index el xs :: deleteAt el xs) )
+		rotateTo FZ FZ = ( FZ ** \xs => Refl )
+		rotateTo FZ (FS k) = ( FS k ** prfn )
+			where
+				prfn (x::xs) = Refl
+		rotateTo (FS e) FZ = ( FS e ** \xs => Refl )
+		rotateTo (FS e) (FS k) = deleteTo (FS e) k
+		deleteFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (Fin v) (el=i)
+		deleteFrom FZ FZ = Right Refl
+		deleteFrom FZ (FS k) = Left k
+		deleteFrom {v=Z} (FS e) _ = FinZElim e
+		deleteFrom {v=S predv} (FS e) FZ = Left FZ
+		deleteFrom {v=S predv} (FS e) (FS k) = either (Left . FS) (Right . (cong {f=FS})) $ deleteFrom e k
+		rotateFrom : Fin (S predn)
+			-> Fin (S predn)
+			-> Fin (S predn)
+		rotateFrom FZ FZ = FZ
+		rotateFrom FZ (FS k) = FS k
+		rotateFrom (FS e) i with (decEq (FS e) i)
+			| Yes pr = FZ
+			| No prneg = FS $ runIso eitherBotRight
+				$ map prneg
+				$ deleteFrom (FS e) i
+		deleteToFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> (prneq : Not (el = i))
+			-> getWitness
+				$ deleteTo el
+				$ runIso Isomorphism.eitherBotRight
+				$ map prneq
+				$ deleteFrom el i = i
+		deleteToFrom FZ FZ prneq = void $ prneq Refl
+		deleteToFrom {v=Z} FZ (FS k) _ = FinZElim k
+		deleteToFrom {v=S predv} FZ (FS k) _ = Refl
+		deleteToFrom {v=Z} (FS e) _ _ = FinZElim e
+		deleteToFrom {v=S predv} (FS e) FZ _ = Refl
+		{-
+		-- Left with goal (FS $ getWitness $ deleteTo e k' = FS k)
+		-- Perhaps we can write an Either over each case of (deleteTo) & (deleteFrom)
+		-- of the equations of the function's value to the formula for that case,
+		-- letting us rewrite not to (k') but to a formula for (deleteFrom e k).
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			with (deleteFrom e k)
+				| Left k' = ?deleteToFrom_rhs_4
+				| Right pr = void $ prneq $ cong {f=FS} pr
+		-}
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			= either (?deleteToFrom_rhs_4)
+				(\pr => void $ prneq $ cong {f=FS} pr)
+				$ deleteFrom e k
+		rotateToFrom : ( el : Fin (S predn) )
+			-> ( i : Fin (S predn) )
+			-> getWitness $ rotateTo el $ rotateFrom el i = i
+		rotateToFrom FZ FZ = Refl
+		rotateToFrom FZ (FS k) = Refl
+		rotateToFrom (FS e) FZ with (predn)
+			| Z = FinZElim e
+			| S prededn = Refl
+		{-
+		-- Type mismatch between (nel : Fin (S (S prededn))) and (Fin (S predn))
+		-- from using (deleteToFrom (FS e) (FS k) prneg) but (e : Fin predn)
+		-- not being rewritten to (e : Fin (S prededn)), &c..
+		rotateToFrom (FS e) (FS k) with (predn)
+			| Z = FinZElim e
+			| S prededn with (decEq (FS e) (FS k))
+				| Yes pr = pr
+				| No prneg = deleteToFrom (FS e) (FS k) prneg
+		-}
+		rotateToFrom (FS e) (FS k) with (decEq (FS e) (FS k))
+			| Yes pr = pr
+			| No prneg = deleteToFrom (FS e) (FS k) prneg
+		-- I mean basically this, right?
+		deleteFromTo : (el : Fin (S v))
+			-> (i : Fin v)
+			-> deleteFrom el $ getWitness $ deleteTo el i = Left i
+		deleteFromTo {v=Z} _ i = FinZElim i
+		deleteFromTo {v=S v'} FZ k = Refl
+		deleteFromTo {v=S v'} (FS e) FZ = Refl
+		deleteFromTo {v=S v'} (FS e) (FS k') = rewrite deleteFromTo e k' in Refl
+		-- This implementation typechecks too
+		-- deleteFromTo {v=S v'} (FS e) (FS k') = cong {f=either (Left . FS) (Right . (cong {f=FS {k=S v'}}))} $ deleteFromTo e k'
+		{-
+		===============
+		Trying to implement it with (predn) in the type directly fails b-c
+		the nested dependent pattern matches required are incompatible.
+		===============
+
+		rotateFromTo : ( el : Fin (S predn) )
+			-> ( i : Fin (S predn) )
+			-> rotateFrom el $ getWitness $ rotateTo el i = i
+		rotateFromTo FZ FZ = Refl
+		rotateFromTo FZ (FS k) = Refl
+		rotateFromTo (FS e) FZ with (predn)
+			| Z = FinZElim e
+			| S prededn with (decEq e e)
+				| No prneg = void $ prneg Refl
+				| Yes pr = Refl
+		{-
+		-- Can't do this (with) match on the outside or else a type mismatch.
+		rotateFromTo (FS e) (FS k) with (predn)
+			| Z = FinZElim e
+			| S prededn = ?rotateFromTo_rhs_fsfs
+		-}
+		rotateFromTo (FS e) (FS k) with (decEq (FS e) $ getWitness $ deleteTo (FS e) k)
+			| Yes pr with (predn)
+				| Z = FinZElim e
+				| S prededn = ?rotateFromTo_rhs_fsfs_rhs_1_SN
+			{-
+			-- It doesn't know what Functor it is for (map), I guess.
+			-- "Specifically:
+			-- Type mismatch between
+			--   (\x => FS (runIso eitherBotRight (map prneg x))) (Left k)
+			-- and
+			--   FS k" (with runIso, eitherBotRight, and map in green)
+			-- And the usual reason would be the same one why you can't write in
+			-- the type yourself, which is that the type of (k) isn't given.
+			-- But as seen in other attempts, matching on (predn) is disliked.
+			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
+				$ deleteFromTo (FS e) k
+
+			-- This one I don't understand at all, though.
+			-- "Type mismatch between
+			--   (\x => FS (either (Delay id) (Delay (void . prneg)) x)) (Left k)
+			-- and
+			--   FS k" (with either, id, void, and (.) in green)
+			| No prneg = cong {f=\x => FS $ either id (void . prneg) x}
+				$ deleteFromTo (FS e) k
+			-}
+			| No prneg ?= cong {f=\x => FS $ either id (void . prneg) x}
+				$ deleteFromTo (FS e) k
+			{-
+			-- Same type mismatch error --
+			-- b-n: Fin (S (S prededn)) (Type of nel)
+			-- and: Fin (S predn) (Expected type)
+			-- So nesting doesn't matter, it just doesn't like two (with)s.
+			| No prneg with (predn)
+				| Z = FinZElim e
+				| S prededn = cong {f=\x => FS $ runIso eitherBotRight
+						$ map prneg x}
+					$ deleteFromTo (FS e) k
+			-}
+		-- Split the witness half first, since that red.s it to deleteFromTo.
+		-- Then for the No case we may need to split k.
+		-- ... but for the Yes case we'll have to anyway, right?
+		-- Prove (deleteFromTo) first, in all cases you can.
+		{-
+			| S prededn with (k)
+				| FZ = Refl
+				| FS k' = ?rotateFromTo_rhs_fsfs_rhs_2
+		-}
+		-}
+		rotateFromTo : ( el : Fin (S predn) )
+			-> ( i : Fin (S predn) )
+			-> rotateFrom el $ getWitness $ rotateTo el i = i
+		{-
+		-- Will actually have to change the types of (rotateFrom), (rotateTo) too
+		rotateFromTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> rotateFrom el $ getWitness $ rotateTo el i = i
+		rotateFromTo FZ FZ = Refl
+		rotateFromTo FZ (FS k) = Refl
+		rotateFromTo {v=Z} (FS e) _ = FinZElim e
+		rotateFromTo {v=S v'} (FS e) FZ with (decEq e e)
+			| No prneg = void $ prneg Refl
+			| Yes pr = Refl
+		rotateFromTo {v=S v'} (FS e) (FS k) with (decEq (FS e) $ getWitness $ deleteTo (FS e) k)
+			| Yes pr = ?rotateFromTo_rhs_fsfs_rhs_1_SN
+			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
+				$ deleteFromTo (FS e) k
+			{-
+			| No prneg = cong {f=\x => FS $ either id (void . prneg) x}
+				$ deleteFromTo (FS e) k
+			-}
+		-}
+		sigma : Iso (Fin (S predn)) (Fin (S predn))
+		sigma = MkIso
+			(\i => getWitness $ rotateTo nel i)
+			(\i => rotateFrom nel i)
+			(\i => rotateToFrom nel i)
+			(\i => rotateFromTo nel i)
+
 {-
 -- False: Should be a cycle over the first part of the indices instead of a 2-cycle.
 
