@@ -1157,6 +1157,18 @@ rotateAt {predn} {a} nel = ( sigma
 			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
 				$ (getProof $ rotateTo nel i) $ xs )
 	where
+		{-
+		Can't put (predn) directly into the types of (rotateTo) and (rotateFrom)
+		where (v)s are, because then (rotateFromTo) can't be implemented due
+		to conflicting reasonable dependent pattern matches, and it's harder
+		to implement (rotateToFrom) for the same reason.
+
+		See commit b1e0ad4bca for documentation of the problems.
+
+		Although we also forgot to do the (deleteTo (FS e) k@FZ/(FS k')) match,
+		so maybe (rotateFromTo) could have been implemented and that type error
+		just added noise.
+		-}
 		deleteTo : ( el : Fin (S v) )
 			-> ( preli : Fin v )
 			-> ( j : Fin (S v) **
@@ -1172,10 +1184,18 @@ rotateAt {predn} {a} nel = ( sigma
 		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
 			where
 				prfn (x::xs) = (getProof $ deleteTo e k) xs
-		rotateTo : ( el : Fin (S predn) )
-			-> ( i : Fin (S predn) )
-			-> ( j : Fin (S predn) **
-				(xs : Vect (S predn) a) ->
+		deleteToSkipsFocus : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( el = getWitness $ deleteTo el preli )
+			-> Void
+		deleteToSkipsFocus {v=Z} _ b = FinZElim b
+		deleteToSkipsFocus {v=S v'} FZ preli = FZNotFS
+		deleteToSkipsFocus {v=S v'} (FS e) FZ = FZNotFS . sym
+		deleteToSkipsFocus {v=S v'} (FS e) (FS k) = (deleteToSkipsFocus e k) . FSinjective
+		rotateTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> ( j : Fin (S v) **
+				(xs : Vect (S v) a) ->
 				(index j xs = index i $ index el xs :: deleteAt el xs) )
 		rotateTo FZ FZ = ( FZ ** \xs => Refl )
 		rotateTo FZ (FS k) = ( FS k ** prfn )
@@ -1191,9 +1211,9 @@ rotateAt {predn} {a} nel = ( sigma
 		deleteFrom {v=Z} (FS e) _ = FinZElim e
 		deleteFrom {v=S predv} (FS e) FZ = Left FZ
 		deleteFrom {v=S predv} (FS e) (FS k) = either (Left . FS) (Right . (cong {f=FS})) $ deleteFrom e k
-		rotateFrom : Fin (S predn)
-			-> Fin (S predn)
-			-> Fin (S predn)
+		rotateFrom : Fin (S v)
+			-> Fin (S v)
+			-> Fin (S v)
 		rotateFrom FZ FZ = FZ
 		rotateFrom FZ (FS k) = FS k
 		rotateFrom (FS e) i with (decEq (FS e) i)
@@ -1224,32 +1244,25 @@ rotateAt {predn} {a} nel = ( sigma
 				| Left k' = ?deleteToFrom_rhs_4
 				| Right pr = void $ prneq $ cong {f=FS} pr
 		-}
+		{-
+		-- This doesn't work cause (FS) don't know the solution to (predv = S predn)
 		deleteToFrom {v=S predv} (FS e) (FS k) prneq
-			= either (?deleteToFrom_rhs_4)
-				(\pr => void $ prneq $ cong {f=FS} pr)
-				$ deleteFrom e k
-		rotateToFrom : ( el : Fin (S predn) )
-			-> ( i : Fin (S predn) )
+			with (splitFinFS $ runIso eitherBotRight
+					$ map (prneq . (cong {f=FS})) $ deleteFrom e k)
+				| Left (k' ** prFS) = ?deleteToFrom_rhs_1
+				| Right prfz = ?deleteToFrom_rhs_2
+		-}
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq = ?deleteToFrom_fs_fs
+		rotateToFrom : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
 			-> getWitness $ rotateTo el $ rotateFrom el i = i
 		rotateToFrom FZ FZ = Refl
 		rotateToFrom FZ (FS k) = Refl
-		rotateToFrom (FS e) FZ with (predn)
-			| Z = FinZElim e
-			| S prededn = Refl
-		{-
-		-- Type mismatch between (nel : Fin (S (S prededn))) and (Fin (S predn))
-		-- from using (deleteToFrom (FS e) (FS k) prneg) but (e : Fin predn)
-		-- not being rewritten to (e : Fin (S prededn)), &c..
-		rotateToFrom (FS e) (FS k) with (predn)
-			| Z = FinZElim e
-			| S prededn with (decEq (FS e) (FS k))
-				| Yes pr = pr
-				| No prneg = deleteToFrom (FS e) (FS k) prneg
-		-}
+		rotateToFrom {v=Z} (FS e) _ = FinZElim e
+		rotateToFrom {v=S v'} (FS e) FZ = Refl
 		rotateToFrom (FS e) (FS k) with (decEq (FS e) (FS k))
 			| Yes pr = pr
 			| No prneg = deleteToFrom (FS e) (FS k) prneg
-		-- I mean basically this, right?
 		deleteFromTo : (el : Fin (S v))
 			-> (i : Fin v)
 			-> deleteFrom el $ getWitness $ deleteTo el i = Left i
@@ -1259,81 +1272,6 @@ rotateAt {predn} {a} nel = ( sigma
 		deleteFromTo {v=S v'} (FS e) (FS k') = rewrite deleteFromTo e k' in Refl
 		-- This implementation typechecks too
 		-- deleteFromTo {v=S v'} (FS e) (FS k') = cong {f=either (Left . FS) (Right . (cong {f=FS {k=S v'}}))} $ deleteFromTo e k'
-		{-
-		===============
-		Trying to implement it with (predn) in the type directly fails b-c
-		the nested dependent pattern matches required are incompatible.
-		===============
-
-		rotateFromTo : ( el : Fin (S predn) )
-			-> ( i : Fin (S predn) )
-			-> rotateFrom el $ getWitness $ rotateTo el i = i
-		rotateFromTo FZ FZ = Refl
-		rotateFromTo FZ (FS k) = Refl
-		rotateFromTo (FS e) FZ with (predn)
-			| Z = FinZElim e
-			| S prededn with (decEq e e)
-				| No prneg = void $ prneg Refl
-				| Yes pr = Refl
-		{-
-		-- Can't do this (with) match on the outside or else a type mismatch.
-		rotateFromTo (FS e) (FS k) with (predn)
-			| Z = FinZElim e
-			| S prededn = ?rotateFromTo_rhs_fsfs
-		-}
-		rotateFromTo (FS e) (FS k) with (decEq (FS e) $ getWitness $ deleteTo (FS e) k)
-			| Yes pr with (predn)
-				| Z = FinZElim e
-				| S prededn = ?rotateFromTo_rhs_fsfs_rhs_1_SN
-			{-
-			-- It doesn't know what Functor it is for (map), I guess.
-			-- "Specifically:
-			-- Type mismatch between
-			--   (\x => FS (runIso eitherBotRight (map prneg x))) (Left k)
-			-- and
-			--   FS k" (with runIso, eitherBotRight, and map in green)
-			-- And the usual reason would be the same one why you can't write in
-			-- the type yourself, which is that the type of (k) isn't given.
-			-- But as seen in other attempts, matching on (predn) is disliked.
-			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
-				$ deleteFromTo (FS e) k
-
-			-- This one I don't understand at all, though.
-			-- "Type mismatch between
-			--   (\x => FS (either (Delay id) (Delay (void . prneg)) x)) (Left k)
-			-- and
-			--   FS k" (with either, id, void, and (.) in green)
-			| No prneg = cong {f=\x => FS $ either id (void . prneg) x}
-				$ deleteFromTo (FS e) k
-			-}
-			| No prneg ?= cong {f=\x => FS $ either id (void . prneg) x}
-				$ deleteFromTo (FS e) k
-			{-
-			-- Same type mismatch error --
-			-- b-n: Fin (S (S prededn)) (Type of nel)
-			-- and: Fin (S predn) (Expected type)
-			-- So nesting doesn't matter, it just doesn't like two (with)s.
-			| No prneg with (predn)
-				| Z = FinZElim e
-				| S prededn = cong {f=\x => FS $ runIso eitherBotRight
-						$ map prneg x}
-					$ deleteFromTo (FS e) k
-			-}
-		-- Split the witness half first, since that red.s it to deleteFromTo.
-		-- Then for the No case we may need to split k.
-		-- ... but for the Yes case we'll have to anyway, right?
-		-- Prove (deleteFromTo) first, in all cases you can.
-		{-
-			| S prededn with (k)
-				| FZ = Refl
-				| FS k' = ?rotateFromTo_rhs_fsfs_rhs_2
-		-}
-		-}
-		rotateFromTo : ( el : Fin (S predn) )
-			-> ( i : Fin (S predn) )
-			-> rotateFrom el $ getWitness $ rotateTo el i = i
-		{-
-		-- Will actually have to change the types of (rotateFrom), (rotateTo) too
 		rotateFromTo : ( el : Fin (S v) )
 			-> ( i : Fin (S v) )
 			-> rotateFrom el $ getWitness $ rotateTo el i = i
@@ -1343,15 +1281,11 @@ rotateAt {predn} {a} nel = ( sigma
 		rotateFromTo {v=S v'} (FS e) FZ with (decEq e e)
 			| No prneg = void $ prneg Refl
 			| Yes pr = Refl
-		rotateFromTo {v=S v'} (FS e) (FS k) with (decEq (FS e) $ getWitness $ deleteTo (FS e) k)
-			| Yes pr = ?rotateFromTo_rhs_fsfs_rhs_1_SN
+		rotateFromTo {v=S v'} (FS e) (FS FZ) = Refl
+		rotateFromTo {v=S v'} (FS e) (FS (FS k')) with (decEq (FS e) $ getWitness $ deleteTo (FS e) (FS k'))
+			| Yes pr = void $ deleteToSkipsFocus (FS e) (FS k') pr
 			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
-				$ deleteFromTo (FS e) k
-			{-
-			| No prneg = cong {f=\x => FS $ either id (void . prneg) x}
-				$ deleteFromTo (FS e) k
-			-}
-		-}
+				$ deleteFromTo (FS e) (FS k')
 		sigma : Iso (Fin (S predn)) (Fin (S predn))
 		sigma = MkIso
 			(\i => getWitness $ rotateTo nel i)
