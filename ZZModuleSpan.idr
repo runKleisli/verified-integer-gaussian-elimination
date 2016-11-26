@@ -1306,6 +1306,23 @@ headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs =
 	$ spanslztrans ( spanslzreflFromEq $ sym $ (getProof $ rotateAt nel) $ xs )
 	$ permPreservesSpanslz $ getWitness $ rotateAt nel
 
+headOpPreservesSpannedbylzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ}
+	-> ((xx : Vect m ZZ)
+		-> (xxs: Matrix predn m ZZ)
+		-> spanslz (xx::xxs) (f xx xxs :: xxs))
+	-> (nel : Fin (S predn))
+	-> (xs: Matrix (S predn) m ZZ)
+	-> spanslz xs (updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
+headOpPreservesSpannedbylzImpliesUpdateAtDoes {f} transfpr nel xs =
+	spanslztrans ( permPreservesSpannedbylz $ getWitness $ rotateAt nel )
+	$ spanslztrans ( spanslzreflFromEq $ (getProof $ rotateAt nel) $ xs )
+	$ spanslztrans ( transfpr (index nel xs) (deleteAt nel xs) )
+	$ spanslztrans ( spanslzreflFromEq $ sym
+			$ trans ((getProof $ rotateAt nel)
+				$ updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
+			$ vecHeadtailsEq indexUpdateAtChariz updateDeleteAtChariz )
+	$ permPreservesSpanslz $ getWitness $ rotateAt nel
+
 spanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
 spanslzAdditiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes {f=\argxx => \argxxs => argxx<+>(z<\>argxxs) } (\argxx => \argxxs => spanslzAdditiveExchange {y=argxx} {xs=argxxs} {z=z}) nel xs
 
