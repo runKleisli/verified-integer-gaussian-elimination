@@ -1221,6 +1221,12 @@ rotateAt {predn} {a} nel = ( sigma
 			| No prneg = FS $ runIso eitherBotRight
 				$ map prneg
 				$ deleteFrom (FS e) i
+		deleteFromFormula : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (i' : Fin v ** deleteFrom el i = Left i') (el = i)
+		deleteFromFormula el i with (deleteFrom el i)
+			| Left i' = Left (i' ** Refl)
+			| Right pr = Right pr
 		deleteToFrom : (el : Fin (S v))
 			-> (i : Fin (S v))
 			-> (prneq : Not (el = i))
@@ -1244,15 +1250,16 @@ rotateAt {predn} {a} nel = ( sigma
 				| Left k' = ?deleteToFrom_rhs_4
 				| Right pr = void $ prneq $ cong {f=FS} pr
 		-}
-		{-
-		-- This doesn't work cause (FS) don't know the solution to (predv = S predn)
 		deleteToFrom {v=S predv} (FS e) (FS k) prneq
-			with (splitFinFS $ runIso eitherBotRight
-					$ map (prneq . (cong {f=FS})) $ deleteFrom e k)
-				| Left (k' ** prFS) = ?deleteToFrom_rhs_1
-				| Right prfz = ?deleteToFrom_rhs_2
-		-}
-		deleteToFrom {v=S predv} (FS e) (FS k) prneq = ?deleteToFrom_fs_fs
+			with (deleteFromFormula e k)
+				| Left (k' ** pr) = rewrite pr in cong {f=FS}
+					$ trans (cong {f=\x => getWitness
+							$ deleteTo e
+							$ runIso Isomorphism.eitherBotRight
+							$ map (prneq . (cong {f=FS})) x}
+							$ sym pr)
+					$ deleteToFrom e k (prneq . (cong {f=FS}))
+				| Right pr = void $ prneq $ cong {f=FS} pr
 		rotateToFrom : ( el : Fin (S v) )
 			-> ( i : Fin (S v) )
 			-> getWitness $ rotateTo el $ rotateFrom el i = i
