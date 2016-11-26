@@ -242,17 +242,6 @@ vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . t
 
 moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
 
-vecDeleteatpermEq : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( deleteAt (runIso sigma FZ) $ vectPermTo sigma xs = vectPermTo (weakenIsoByValFZ sigma) $ deleteAt FZ xs )
-vecDeleteatpermEq sigma@(MkIso to from toFrom fromTo) {xs} = ?vecDeleteatpermEq'
-
-deleteAtAsPermTail : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( xs = vectPermTo sigma (y::ys) ) -> ( deleteAt (runIso sigma FZ) xs = vectPermTo (weakenIsoByValFZ sigma) ys )
-deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::[]} {y} {ys=[]} = ?deleteAtAsPermTail_rhs_1
-	where
-		fin1elIsFZ : (el : Fin 1) -> el=FZ
-		fin1elIsFZ FZ = Refl
-		fin1elIsFZ (FS el) = FinZElim el
-deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::xxs} {y} {ys=yy::yys} = ?deleteAtAsPermTail_rhs_2
-
 replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
 replaceAtIndexForm1 {j} pr {v=[]} = FinZElim j
 replaceAtIndexForm1 {j=FZ} pr {v=v::vs} = rewrite pr in Refl
@@ -1299,16 +1288,6 @@ rotateAt {predn} {a} nel = ( sigma
 			(\i => rotateFrom nel i)
 			(\i => rotateToFrom nel i)
 			(\i => rotateFromTo nel i)
-
-{-
-Recall:
-
-moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
-
----
-
-deleteAtAsPermTail : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( xs = vectPermTo sigma (y::ys) ) -> ( deleteAt (runIso sigma FZ) xs = vectPermTo (weakenIsoByValFZ sigma) ys )
--}
 
 headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ} -> ((xx : Vect m ZZ) -> (xxs: Matrix predn m ZZ) -> spanslz (f xx xxs :: xxs) (xx::xxs)) -> (nel : Fin (S predn)) -> (xs: Matrix (S predn) m ZZ) -> spanslz (updateAt nel (\xx => f xx (deleteRow nel xs)) xs) xs
 {-
