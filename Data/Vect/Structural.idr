@@ -95,6 +95,8 @@ indexUpdateAtChariz {xs=x::xs} {f} {i=FS i} = indexUpdateAtChariz {xs=xs} {f=f} 
 
 indexUpdateAtChariz2 : Not (i = j) -> index i $ updateAt j f xs = index i xs
 
+updateDeleteAtChariz : deleteAt i $ updateAt i f xs = deleteAt i xs
+
 updateAtIndIsMapAtInd : index i $ updateAt i f xs = index i $ map f xs
 updateAtIndIsMapAtInd = trans indexUpdateAtChariz $ sym indexMapChariz
 
