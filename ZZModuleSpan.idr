@@ -26,6 +26,18 @@ Trivial lemmas and plumbing
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to
 
+total
+indexRangeIsIndex : index i Vect.range = i
+indexRangeIsIndex {i=FZ} = Refl
+indexRangeIsIndex {i=FS preli} = trans indexMapChariz $ cong indexRangeIsIndex
+
+rangeIsFins : Vect.range = Matrix.fins n
+rangeIsFins {n=Z} = Refl
+rangeIsFins {n=S predn} = cong {f=(FZ::).(map FS)} rangeIsFins
+
+indexFinsIsIndex : index i $ fins n = i
+indexFinsIsIndex = trans (cong $ sym rangeIsFins) indexRangeIsIndex
+
 finReduce : (snel : Fin (S n)) -> Either (Fin n) (FZ = snel)
 finReduce FZ = Right Refl
 finReduce (FS nel) = Left nel
@@ -255,6 +267,9 @@ wibFZ_fromTo_prRight = proof
 vectPermTo : Iso (Fin n) (Fin n) -> Vect n a -> Vect n a
 vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . to) range
 
+vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
+vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
+
 moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
 
 replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
@@ -366,18 +381,6 @@ notEqFalse_Fin FZ FZ pr = void $ pr Refl
 notEqFalse_Fin (FS predi) FZ pr = Refl
 notEqFalse_Fin FZ (FS predj) pr = Refl
 notEqFalse_Fin (FS predi) (FS predj) pr = trans (FSPreservesBoolEq predi predj) $ notEqFalse_Fin predi predj $ pr . cong
-
-total
-indexRangeIsIndex : index i Vect.range = i
-indexRangeIsIndex {i=FZ} = Refl
-indexRangeIsIndex {i=FS preli} = trans indexMapChariz $ cong indexRangeIsIndex
-
-rangeIsFins : Vect.range = Matrix.fins n
-rangeIsFins {n=Z} = Refl
-rangeIsFins {n=S predn} = cong {f=(FZ::).(map FS)} rangeIsFins
-
-indexFinsIsIndex : index i $ fins n = i
-indexFinsIsIndex = trans (cong $ sym rangeIsFins) indexRangeIsIndex
 
 idMatIndexChariz : RingWithUnity a => index i $ Id {a=a} = basis i
 idMatIndexChariz = trans (indexMapChariz {f=\n => basis n}) $ cong {f=basis} $ indexFinsIsIndex
@@ -1213,9 +1216,6 @@ swapFZPerm {predn} nel = (MkIso swapTo swapTo swapToTo swapToTo ** (Refl, Refl, 
 swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
 swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
 -}
-
-vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
-vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
 
 rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
 rotateAt {predn} {a} nel = ( sigma
