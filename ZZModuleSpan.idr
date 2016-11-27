@@ -1152,12 +1152,67 @@ permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigm
 
 permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
 
+{-
+-- Can't implement because of problems in expanding the nested (with)s of (decEq)s while proving the last characteristic property of the permutation.
+
 -- {mel : _} leads to inability to apply the function obtained: "No such variable mel".
 swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> runIso sigma mel = mel) )
+swapFZPerm {predn} nel = (MkIso swapTo swapTo swapToTo swapToTo ** (Refl, Refl, sigpr))
+	where
+		{-
+		"
+		When checking left hand side of with in with block in ZZModuleSpan.swapFZPerm, sigpr:
+		Can't match on with block in ZZModuleSpan.swapFZPerm, sigpr predn
+			nel
+			mel
+			(No notFZ)
+			notFZ
+			notNel
+		"
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ)
+			| Yes isFZ = nel
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = FZ
+				| No norNel = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ)
+			| Yes isFZ = ?swapToTo_rhs_1
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = ?swapToTo_rhs_2
+				| No norNel = ?swapToTo_rhs_3 -- Should be Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ)
+			| Yes isFZ = void $ notFZ isFZ
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = void $ notNel isNel
+				| No norNel = Refl
+		-}
+		{-
+		-- "Can't match on with block ...
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = nel
+			| (No notFZ, Yes isNel) = FZ
+			| (No notFZ, No notNel) = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = ?swapToTo_rhs_1
+			| (No notFZ, Yes isNel) = ?swapToTo_rhs_3
+			| (No notFZ, No notNel) = Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = void $ notFZ isFZ
+			-- "Can't match on with block in ..."
+			-- but "is a valid case"
+			| (No notFZ, Yes isNel) = void $ notNel isNel
+			| (No notFZ, No notNel) = Refl
+		-}
 
 -- Abbreviation
 swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
 swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
+-}
 
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
 vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
