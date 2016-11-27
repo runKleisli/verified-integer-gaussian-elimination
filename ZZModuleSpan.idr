@@ -501,18 +501,18 @@ multIdRightNeutral a = vecIndexwiseEq $ \i =>
 		$ dotBasisRIsIndex $ index i a
 
 {-
-When checking type of ZZModuleSpan.rewriteMultInv:
+When checking type of ZZModuleSpan.negScalarToScaledNeg:
 When checking an application of function Control.Algebra.VectorSpace.<#>:
         Can't resolve type class Group r
 
 ---
 
-rewriteMultInv : (VerifiedRingWithUnity r, VerifiedModule r a) -> (s : r) -> (x : a) -> (inverse s) <#> x = s <#> (inverse x)
+negScalarToScaledNeg : (VerifiedRingWithUnity r, VerifiedModule r a) -> (s : r) -> (x : a) -> (inverse s) <#> x = s <#> (inverse x)
 -}
 
-rewriteMultInvVect : VerifiedRingWithUnity r => (s : r) -> (x : Vect _ r) -> (inverse s) <#> x = s <#> (inverse x)
+negScalarToScaledNegVect : VerifiedRingWithUnity r => (s : r) -> (x : Vect _ r) -> (inverse s) <#> x = s <#> (inverse x)
 
-rewriteMultInvMat : VerifiedRingWithUnity r => (s : r) -> (x : Matrix _ _ r) -> (inverse s) <#> x = s <#> (inverse x)
+negScalarToScaledNegMat : VerifiedRingWithUnity r => (s : r) -> (x : Matrix _ _ r) -> (inverse s) <#> x = s <#> (inverse x)
 
 rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
 rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = trans (sym stepleft) $ trans prf stepright
@@ -970,7 +970,7 @@ spanSub' = proof
   let spanAdd' = spanAdd {xs=xs} {ys=ys} {zs = inverse zs}
   refine spanAdd'
   exact prxy
-  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity {a=ZZ} (inverse zs) )) spanslzrefl
+  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( negScalarToScaledNegMat (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity {a=ZZ} (inverse zs) )) spanslzrefl
 
 {-
 -- Works in REPL only
@@ -979,7 +979,7 @@ spanSub' = proof
   refine spanAdd
   exact prxy
   exact spanslztrans (spanScalelz (inverse unity) prxz) _
-  exact replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( the ((<#>) (unity {a=ZZ}) (inverse zs) = (inverse zs)) ?moduleIdScalZZ )) spanslzrefl
+  exact replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( negScalarToScaledNegMat (unity {a=ZZ}) zs ) ( the ((<#>) (unity {a=ZZ}) (inverse zs) = (inverse zs)) ?moduleIdScalZZ )) spanslzrefl
 -}
 
 {-
@@ -990,7 +990,7 @@ spanSub' = proof
 spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
 spanSub {xs} {ys} {zs} prxy prxz
 	with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse unity)<#>zs} prxy (spanScalelz (inverse unity) prxz) )
-		| (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat unity zs)
+		| (vs ** pr) = (vs ** cong {f=spanslz xs} $ negScalarToScaledNegMat unity zs)
 
 
 -- Replacement test code for analyzing the problem:
@@ -1001,7 +1001,7 @@ spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
 	with (?akdjna)
 	-- with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse (the ZZ unity))<#>zs} prxy (spanScalelz (inverse (the ZZ unity)) prxz) )
 		| (vs ** pr) = ?ajdnjfka
-		-- | (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat (the ZZ unity) pr)
+		-- | (vs ** pr) = (vs ** cong {f=spanslz xs} $ negScalarToScaledNegMat (the ZZ unity) pr)
 -}
 
 
