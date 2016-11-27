@@ -270,6 +270,219 @@ vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . t
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
 vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
 
+{-
+-- Can't implement because of problems in expanding the nested (with)s of (decEq)s while proving the last characteristic property of the permutation.
+
+-- {mel : _} leads to inability to apply the function obtained: "No such variable mel".
+swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> runIso sigma mel = mel) )
+swapFZPerm {predn} nel = (MkIso swapTo swapTo swapToTo swapToTo ** (Refl, Refl, sigpr))
+	where
+		{-
+		"
+		When checking left hand side of with in with block in ZZModuleSpan.swapFZPerm, sigpr:
+		Can't match on with block in ZZModuleSpan.swapFZPerm, sigpr predn
+			nel
+			mel
+			(No notFZ)
+			notFZ
+			notNel
+		"
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ)
+			| Yes isFZ = nel
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = FZ
+				| No norNel = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ)
+			| Yes isFZ = ?swapToTo_rhs_1
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = ?swapToTo_rhs_2
+				| No norNel = ?swapToTo_rhs_3 -- Should be Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ)
+			| Yes isFZ = void $ notFZ isFZ
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = void $ notNel isNel
+				| No norNel = Refl
+		-}
+		{-
+		-- "Can't match on with block ...
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = nel
+			| (No notFZ, Yes isNel) = FZ
+			| (No notFZ, No notNel) = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = ?swapToTo_rhs_1
+			| (No notFZ, Yes isNel) = ?swapToTo_rhs_3
+			| (No notFZ, No notNel) = Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = void $ notFZ isFZ
+			-- "Can't match on with block in ..."
+			-- but "is a valid case"
+			| (No notFZ, Yes isNel) = void $ notNel isNel
+			| (No notFZ, No notNel) = Refl
+		-}
+
+-- Abbreviation
+swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
+swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
+-}
+
+rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
+rotateAt {predn} {a} nel = ( sigma
+		** \xs => vecIndexwiseEq
+			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
+				$ (getProof $ rotateTo nel i) $ xs )
+	where
+		{-
+		Can't put (predn) directly into the types of (rotateTo) and (rotateFrom)
+		where (v)s are, because then (rotateFromTo) can't be implemented due
+		to conflicting reasonable dependent pattern matches, and it's harder
+		to implement (rotateToFrom) for the same reason.
+
+		See commit b1e0ad4bca for documentation of the problems.
+
+		Although we also forgot to do the (deleteTo (FS e) k@FZ/(FS k')) match,
+		so maybe (rotateFromTo) could have been implemented and that type error
+		just added noise.
+		-}
+		deleteTo : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( j : Fin (S v) **
+				(xs : Vect (S v) a) ->
+				(index j xs = index preli $ deleteAt el xs) )
+		deleteTo {v=Z} a b = FinZElim b
+		deleteTo FZ preli = ( FS preli ** prfn )
+			where
+				prfn (x::xs) = Refl
+		deleteTo (FS e) FZ = ( FZ ** prfn )
+			where
+				prfn (x::xs) = Refl
+		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
+			where
+				prfn (x::xs) = (getProof $ deleteTo e k) xs
+		deleteToSkipsFocus : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( el = getWitness $ deleteTo el preli )
+			-> Void
+		deleteToSkipsFocus {v=Z} _ b = FinZElim b
+		deleteToSkipsFocus {v=S v'} FZ preli = FZNotFS
+		deleteToSkipsFocus {v=S v'} (FS e) FZ = FZNotFS . sym
+		deleteToSkipsFocus {v=S v'} (FS e) (FS k) = (deleteToSkipsFocus e k) . FSinjective
+		rotateTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> ( j : Fin (S v) **
+				(xs : Vect (S v) a) ->
+				(index j xs = index i $ index el xs :: deleteAt el xs) )
+		rotateTo FZ FZ = ( FZ ** \xs => Refl )
+		rotateTo FZ (FS k) = ( FS k ** prfn )
+			where
+				prfn (x::xs) = Refl
+		rotateTo (FS e) FZ = ( FS e ** \xs => Refl )
+		rotateTo (FS e) (FS k) = deleteTo (FS e) k
+		deleteFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (Fin v) (el=i)
+		deleteFrom FZ FZ = Right Refl
+		deleteFrom FZ (FS k) = Left k
+		deleteFrom {v=Z} (FS e) _ = FinZElim e
+		deleteFrom {v=S predv} (FS e) FZ = Left FZ
+		deleteFrom {v=S predv} (FS e) (FS k) = either (Left . FS) (Right . (cong {f=FS})) $ deleteFrom e k
+		rotateFrom : Fin (S v)
+			-> Fin (S v)
+			-> Fin (S v)
+		rotateFrom FZ FZ = FZ
+		rotateFrom FZ (FS k) = FS k
+		rotateFrom (FS e) i with (decEq (FS e) i)
+			| Yes pr = FZ
+			| No prneg = FS $ runIso eitherBotRight
+				$ map prneg
+				$ deleteFrom (FS e) i
+		deleteFromFormula : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (i' : Fin v ** deleteFrom el i = Left i') (el = i)
+		deleteFromFormula el i with (deleteFrom el i)
+			| Left i' = Left (i' ** Refl)
+			| Right pr = Right pr
+		deleteToFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> (prneq : Not (el = i))
+			-> getWitness
+				$ deleteTo el
+				$ runIso Isomorphism.eitherBotRight
+				$ map prneq
+				$ deleteFrom el i = i
+		deleteToFrom FZ FZ prneq = void $ prneq Refl
+		deleteToFrom {v=Z} FZ (FS k) _ = FinZElim k
+		deleteToFrom {v=S predv} FZ (FS k) _ = Refl
+		deleteToFrom {v=Z} (FS e) _ _ = FinZElim e
+		deleteToFrom {v=S predv} (FS e) FZ _ = Refl
+		{-
+		-- Left with goal (FS $ getWitness $ deleteTo e k' = FS k)
+		-- Perhaps we can write an Either over each case of (deleteTo) & (deleteFrom)
+		-- of the equations of the function's value to the formula for that case,
+		-- letting us rewrite not to (k') but to a formula for (deleteFrom e k).
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			with (deleteFrom e k)
+				| Left k' = ?deleteToFrom_rhs_4
+				| Right pr = void $ prneq $ cong {f=FS} pr
+		-}
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			with (deleteFromFormula e k)
+				| Left (k' ** pr) = rewrite pr in cong {f=FS}
+					$ trans (cong {f=\x => getWitness
+							$ deleteTo e
+							$ runIso Isomorphism.eitherBotRight
+							$ map (prneq . (cong {f=FS})) x}
+							$ sym pr)
+					$ deleteToFrom e k (prneq . (cong {f=FS}))
+				| Right pr = void $ prneq $ cong {f=FS} pr
+		rotateToFrom : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> getWitness $ rotateTo el $ rotateFrom el i = i
+		rotateToFrom FZ FZ = Refl
+		rotateToFrom FZ (FS k) = Refl
+		rotateToFrom {v=Z} (FS e) _ = FinZElim e
+		rotateToFrom {v=S v'} (FS e) FZ = Refl
+		rotateToFrom (FS e) (FS k) with (decEq (FS e) (FS k))
+			| Yes pr = pr
+			| No prneg = deleteToFrom (FS e) (FS k) prneg
+		deleteFromTo : (el : Fin (S v))
+			-> (i : Fin v)
+			-> deleteFrom el $ getWitness $ deleteTo el i = Left i
+		deleteFromTo {v=Z} _ i = FinZElim i
+		deleteFromTo {v=S v'} FZ k = Refl
+		deleteFromTo {v=S v'} (FS e) FZ = Refl
+		deleteFromTo {v=S v'} (FS e) (FS k') = rewrite deleteFromTo e k' in Refl
+		-- This implementation typechecks too
+		-- deleteFromTo {v=S v'} (FS e) (FS k') = cong {f=either (Left . FS) (Right . (cong {f=FS {k=S v'}}))} $ deleteFromTo e k'
+		rotateFromTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> rotateFrom el $ getWitness $ rotateTo el i = i
+		rotateFromTo FZ FZ = Refl
+		rotateFromTo FZ (FS k) = Refl
+		rotateFromTo {v=Z} (FS e) _ = FinZElim e
+		rotateFromTo {v=S v'} (FS e) FZ with (decEq e e)
+			| No prneg = void $ prneg Refl
+			| Yes pr = Refl
+		rotateFromTo {v=S v'} (FS e) (FS FZ) = Refl
+		rotateFromTo {v=S v'} (FS e) (FS (FS k')) with (decEq (FS e) $ getWitness $ deleteTo (FS e) (FS k'))
+			| Yes pr = void $ deleteToSkipsFocus (FS e) (FS k') pr
+			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
+				$ deleteFromTo (FS e) (FS k')
+		sigma : Iso (Fin (S predn)) (Fin (S predn))
+		sigma = MkIso
+			(\i => getWitness $ rotateTo nel i)
+			(\i => rotateFrom nel i)
+			(\i => rotateToFrom nel i)
+			(\i => rotateFromTo nel i)
+
+
+
 replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
 replaceAtIndexForm1 {j} pr {v=[]} = FinZElim j
 replaceAtIndexForm1 {j=FZ} pr {v=v::vs} = rewrite pr in Refl
@@ -1153,216 +1366,7 @@ permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigm
 
 permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
 
-{-
--- Can't implement because of problems in expanding the nested (with)s of (decEq)s while proving the last characteristic property of the permutation.
 
--- {mel : _} leads to inability to apply the function obtained: "No such variable mel".
-swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> runIso sigma mel = mel) )
-swapFZPerm {predn} nel = (MkIso swapTo swapTo swapToTo swapToTo ** (Refl, Refl, sigpr))
-	where
-		{-
-		"
-		When checking left hand side of with in with block in ZZModuleSpan.swapFZPerm, sigpr:
-		Can't match on with block in ZZModuleSpan.swapFZPerm, sigpr predn
-			nel
-			mel
-			(No notFZ)
-			notFZ
-			notNel
-		"
-		swapTo : Fin (S predn) -> Fin (S predn)
-		swapTo mel with (decEq mel FZ)
-			| Yes isFZ = nel
-			| No notFZ with (decEq mel nel)
-				| Yes isNel = FZ
-				| No norNel = mel
-		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
-		swapToTo mel with (decEq mel FZ)
-			| Yes isFZ = ?swapToTo_rhs_1
-			| No notFZ with (decEq mel nel)
-				| Yes isNel = ?swapToTo_rhs_2
-				| No norNel = ?swapToTo_rhs_3 -- Should be Refl
-		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
-		sigpr mel notFZ notNel with (decEq mel FZ)
-			| Yes isFZ = void $ notFZ isFZ
-			| No notFZ with (decEq mel nel)
-				| Yes isNel = void $ notNel isNel
-				| No norNel = Refl
-		-}
-		{-
-		-- "Can't match on with block ...
-		swapTo : Fin (S predn) -> Fin (S predn)
-		swapTo mel with (decEq mel FZ, decEq mel nel)
-			| (Yes isFZ, _) = nel
-			| (No notFZ, Yes isNel) = FZ
-			| (No notFZ, No notNel) = mel
-		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
-		swapToTo mel with (decEq mel FZ, decEq mel nel)
-			| (Yes isFZ, _) = ?swapToTo_rhs_1
-			| (No notFZ, Yes isNel) = ?swapToTo_rhs_3
-			| (No notFZ, No notNel) = Refl
-		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
-		sigpr mel notFZ notNel with (decEq mel FZ, decEq mel nel)
-			| (Yes isFZ, _) = void $ notFZ isFZ
-			-- "Can't match on with block in ..."
-			-- but "is a valid case"
-			| (No notFZ, Yes isNel) = void $ notNel isNel
-			| (No notFZ, No notNel) = Refl
-		-}
-
--- Abbreviation
-swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
-swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
--}
-
-rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
-rotateAt {predn} {a} nel = ( sigma
-		** \xs => vecIndexwiseEq
-			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
-				$ (getProof $ rotateTo nel i) $ xs )
-	where
-		{-
-		Can't put (predn) directly into the types of (rotateTo) and (rotateFrom)
-		where (v)s are, because then (rotateFromTo) can't be implemented due
-		to conflicting reasonable dependent pattern matches, and it's harder
-		to implement (rotateToFrom) for the same reason.
-
-		See commit b1e0ad4bca for documentation of the problems.
-
-		Although we also forgot to do the (deleteTo (FS e) k@FZ/(FS k')) match,
-		so maybe (rotateFromTo) could have been implemented and that type error
-		just added noise.
-		-}
-		deleteTo : ( el : Fin (S v) )
-			-> ( preli : Fin v )
-			-> ( j : Fin (S v) **
-				(xs : Vect (S v) a) ->
-				(index j xs = index preli $ deleteAt el xs) )
-		deleteTo {v=Z} a b = FinZElim b
-		deleteTo FZ preli = ( FS preli ** prfn )
-			where
-				prfn (x::xs) = Refl
-		deleteTo (FS e) FZ = ( FZ ** prfn )
-			where
-				prfn (x::xs) = Refl
-		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
-			where
-				prfn (x::xs) = (getProof $ deleteTo e k) xs
-		deleteToSkipsFocus : ( el : Fin (S v) )
-			-> ( preli : Fin v )
-			-> ( el = getWitness $ deleteTo el preli )
-			-> Void
-		deleteToSkipsFocus {v=Z} _ b = FinZElim b
-		deleteToSkipsFocus {v=S v'} FZ preli = FZNotFS
-		deleteToSkipsFocus {v=S v'} (FS e) FZ = FZNotFS . sym
-		deleteToSkipsFocus {v=S v'} (FS e) (FS k) = (deleteToSkipsFocus e k) . FSinjective
-		rotateTo : ( el : Fin (S v) )
-			-> ( i : Fin (S v) )
-			-> ( j : Fin (S v) **
-				(xs : Vect (S v) a) ->
-				(index j xs = index i $ index el xs :: deleteAt el xs) )
-		rotateTo FZ FZ = ( FZ ** \xs => Refl )
-		rotateTo FZ (FS k) = ( FS k ** prfn )
-			where
-				prfn (x::xs) = Refl
-		rotateTo (FS e) FZ = ( FS e ** \xs => Refl )
-		rotateTo (FS e) (FS k) = deleteTo (FS e) k
-		deleteFrom : (el : Fin (S v))
-			-> (i : Fin (S v))
-			-> Either (Fin v) (el=i)
-		deleteFrom FZ FZ = Right Refl
-		deleteFrom FZ (FS k) = Left k
-		deleteFrom {v=Z} (FS e) _ = FinZElim e
-		deleteFrom {v=S predv} (FS e) FZ = Left FZ
-		deleteFrom {v=S predv} (FS e) (FS k) = either (Left . FS) (Right . (cong {f=FS})) $ deleteFrom e k
-		rotateFrom : Fin (S v)
-			-> Fin (S v)
-			-> Fin (S v)
-		rotateFrom FZ FZ = FZ
-		rotateFrom FZ (FS k) = FS k
-		rotateFrom (FS e) i with (decEq (FS e) i)
-			| Yes pr = FZ
-			| No prneg = FS $ runIso eitherBotRight
-				$ map prneg
-				$ deleteFrom (FS e) i
-		deleteFromFormula : (el : Fin (S v))
-			-> (i : Fin (S v))
-			-> Either (i' : Fin v ** deleteFrom el i = Left i') (el = i)
-		deleteFromFormula el i with (deleteFrom el i)
-			| Left i' = Left (i' ** Refl)
-			| Right pr = Right pr
-		deleteToFrom : (el : Fin (S v))
-			-> (i : Fin (S v))
-			-> (prneq : Not (el = i))
-			-> getWitness
-				$ deleteTo el
-				$ runIso Isomorphism.eitherBotRight
-				$ map prneq
-				$ deleteFrom el i = i
-		deleteToFrom FZ FZ prneq = void $ prneq Refl
-		deleteToFrom {v=Z} FZ (FS k) _ = FinZElim k
-		deleteToFrom {v=S predv} FZ (FS k) _ = Refl
-		deleteToFrom {v=Z} (FS e) _ _ = FinZElim e
-		deleteToFrom {v=S predv} (FS e) FZ _ = Refl
-		{-
-		-- Left with goal (FS $ getWitness $ deleteTo e k' = FS k)
-		-- Perhaps we can write an Either over each case of (deleteTo) & (deleteFrom)
-		-- of the equations of the function's value to the formula for that case,
-		-- letting us rewrite not to (k') but to a formula for (deleteFrom e k).
-		deleteToFrom {v=S predv} (FS e) (FS k) prneq
-			with (deleteFrom e k)
-				| Left k' = ?deleteToFrom_rhs_4
-				| Right pr = void $ prneq $ cong {f=FS} pr
-		-}
-		deleteToFrom {v=S predv} (FS e) (FS k) prneq
-			with (deleteFromFormula e k)
-				| Left (k' ** pr) = rewrite pr in cong {f=FS}
-					$ trans (cong {f=\x => getWitness
-							$ deleteTo e
-							$ runIso Isomorphism.eitherBotRight
-							$ map (prneq . (cong {f=FS})) x}
-							$ sym pr)
-					$ deleteToFrom e k (prneq . (cong {f=FS}))
-				| Right pr = void $ prneq $ cong {f=FS} pr
-		rotateToFrom : ( el : Fin (S v) )
-			-> ( i : Fin (S v) )
-			-> getWitness $ rotateTo el $ rotateFrom el i = i
-		rotateToFrom FZ FZ = Refl
-		rotateToFrom FZ (FS k) = Refl
-		rotateToFrom {v=Z} (FS e) _ = FinZElim e
-		rotateToFrom {v=S v'} (FS e) FZ = Refl
-		rotateToFrom (FS e) (FS k) with (decEq (FS e) (FS k))
-			| Yes pr = pr
-			| No prneg = deleteToFrom (FS e) (FS k) prneg
-		deleteFromTo : (el : Fin (S v))
-			-> (i : Fin v)
-			-> deleteFrom el $ getWitness $ deleteTo el i = Left i
-		deleteFromTo {v=Z} _ i = FinZElim i
-		deleteFromTo {v=S v'} FZ k = Refl
-		deleteFromTo {v=S v'} (FS e) FZ = Refl
-		deleteFromTo {v=S v'} (FS e) (FS k') = rewrite deleteFromTo e k' in Refl
-		-- This implementation typechecks too
-		-- deleteFromTo {v=S v'} (FS e) (FS k') = cong {f=either (Left . FS) (Right . (cong {f=FS {k=S v'}}))} $ deleteFromTo e k'
-		rotateFromTo : ( el : Fin (S v) )
-			-> ( i : Fin (S v) )
-			-> rotateFrom el $ getWitness $ rotateTo el i = i
-		rotateFromTo FZ FZ = Refl
-		rotateFromTo FZ (FS k) = Refl
-		rotateFromTo {v=Z} (FS e) _ = FinZElim e
-		rotateFromTo {v=S v'} (FS e) FZ with (decEq e e)
-			| No prneg = void $ prneg Refl
-			| Yes pr = Refl
-		rotateFromTo {v=S v'} (FS e) (FS FZ) = Refl
-		rotateFromTo {v=S v'} (FS e) (FS (FS k')) with (decEq (FS e) $ getWitness $ deleteTo (FS e) (FS k'))
-			| Yes pr = void $ deleteToSkipsFocus (FS e) (FS k') pr
-			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
-				$ deleteFromTo (FS e) (FS k')
-		sigma : Iso (Fin (S predn)) (Fin (S predn))
-		sigma = MkIso
-			(\i => getWitness $ rotateTo nel i)
-			(\i => rotateFrom nel i)
-			(\i => rotateToFrom nel i)
-			(\i => rotateFromTo nel i)
 
 headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ}
 	-> ((xx : Vect m ZZ)
