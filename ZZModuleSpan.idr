@@ -35,11 +35,26 @@ permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin
 -- Positive form. Not strong enough for our purposes.
 permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
 -}
+permDoesntFixAValueNotFixed (MkIso to from toFrom fromTo) nel1 nel2 nel1GoesTo2
+	with (decEq nel1 nel2)
+		| Yes pr = Right pr
+		| No prneq = Left $ \nel2GoesTo2 =>
+			prneq $ trans (sym $ fromTo nel1) $ flip trans (fromTo nel2)
+			$ cong {f=from} $ trans nel1GoesTo2 $ sym nel2GoesTo2
+{-
+-- Alternatively, this form can be used with a (DecEq)-as-(Either) to remove the (with).
+		| No prneq = Left $ prneq
+			. ( trans (sym $ fromTo nel1) )
+			. ( flip trans (fromTo nel2) )
+			. ( cong {f=from} ) . ( trans nel1GoesTo2 ) . sym
+-}
 
 permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
 permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
 
 splitFinFS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = FS k ) ( i = Fin.FZ {k=predn} )
+splitFinFS FZ = Right Refl
+splitFinFS (FS k) = Left (k ** Refl)
 
 -- Use with (splitFinFS) above!
 finReduceIsLeft : (z = FS k) -> finReduce z = Left k
@@ -352,10 +367,17 @@ notEqFalse_Fin (FS predi) FZ pr = Refl
 notEqFalse_Fin FZ (FS predj) pr = Refl
 notEqFalse_Fin (FS predi) (FS predj) pr = trans (FSPreservesBoolEq predi predj) $ notEqFalse_Fin predi predj $ pr . cong
 
+total
+indexRangeIsIndex : index i Vect.range = i
+indexRangeIsIndex {i=FZ} = Refl
+indexRangeIsIndex {i=FS preli} = trans indexMapChariz $ cong indexRangeIsIndex
+
+rangeIsFins : Vect.range = Matrix.fins n
+rangeIsFins {n=Z} = Refl
+rangeIsFins {n=S predn} = cong {f=(FZ::).(map FS)} rangeIsFins
+
 indexFinsIsIndex : index i $ fins n = i
-indexFinsIsIndex {i} {n=Z} = FinZElim i
-indexFinsIsIndex {i=FZ} {n=S predn} = Refl
-indexFinsIsIndex {i=FS preli} {n=S predn} = trans indexMapChariz $ cong indexFinsIsIndex
+indexFinsIsIndex = trans (cong $ sym rangeIsFins) indexRangeIsIndex
 
 idMatIndexChariz : RingWithUnity a => index i $ Id {a=a} = basis i
 idMatIndexChariz = trans (indexMapChariz {f=\n => basis n}) $ cong {f=basis} $ indexFinsIsIndex
@@ -1138,7 +1160,7 @@ swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
 swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
 
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
--- vectPermToIndexChariz = trans indexMapChariz indexRangeIsIndex {-(indexFinsIsIndex)-}
+vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
 
 rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
 rotateAt {predn} {a} nel = ( sigma
