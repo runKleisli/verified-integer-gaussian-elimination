@@ -270,8 +270,6 @@ vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . t
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
 vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
 
-moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
-
 replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
 replaceAtIndexForm1 {j} pr {v=[]} = FinZElim j
 replaceAtIndexForm1 {j=FZ} pr {v=v::vs} = rewrite pr in Refl
