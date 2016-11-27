@@ -26,6 +26,18 @@ Trivial lemmas and plumbing
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to
 
+total
+indexRangeIsIndex : index i Vect.range = i
+indexRangeIsIndex {i=FZ} = Refl
+indexRangeIsIndex {i=FS preli} = trans indexMapChariz $ cong indexRangeIsIndex
+
+rangeIsFins : Vect.range = Matrix.fins n
+rangeIsFins {n=Z} = Refl
+rangeIsFins {n=S predn} = cong {f=(FZ::).(map FS)} rangeIsFins
+
+indexFinsIsIndex : index i $ fins n = i
+indexFinsIsIndex = trans (cong $ sym rangeIsFins) indexRangeIsIndex
+
 finReduce : (snel : Fin (S n)) -> Either (Fin n) (FZ = snel)
 finReduce FZ = Right Refl
 finReduce (FS nel) = Left nel
@@ -35,9 +47,60 @@ permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin
 -- Positive form. Not strong enough for our purposes.
 permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
 -}
+permDoesntFixAValueNotFixed (MkIso to from toFrom fromTo) nel1 nel2 nel1GoesTo2
+	with (decEq nel1 nel2)
+		| Yes pr = Right pr
+		| No prneq = Left $ \nel2GoesTo2 =>
+			prneq $ trans (sym $ fromTo nel1) $ flip trans (fromTo nel2)
+			$ cong {f=from} $ trans nel1GoesTo2 $ sym nel2GoesTo2
+{-
+-- Alternatively, this form can be used with a (DecEq)-as-(Either) to remove the (with).
+		| No prneq = Left $ prneq
+			. ( trans (sym $ fromTo nel1) )
+			. ( flip trans (fromTo nel2) )
+			. ( cong {f=from} ) . ( trans nel1GoesTo2 ) . sym
+-}
 
 permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
 permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
+
+splitFinFS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = FS k ) ( i = Fin.FZ {k=predn} )
+splitFinFS FZ = Right Refl
+splitFinFS (FS k) = Left (k ** Refl)
+
+-- Use with (splitFinFS) above!
+finReduceIsLeft : (z = FS k) -> finReduce z = Left k
+finReduceIsLeft pr = rewrite pr in Refl
+
+{-
+The type of (pr) does not immediately matter. What matters is that its (Right $) value
+satisfies the equation, so that a rewrite exists. Later, (~=~) and pattern matching
+can be used to patch up problems with typing (pr), but the transformation to the
+final value of the rewrite must be done all at once.
+
+Idris will not perform rewrites of a subexpression when it changes the type of
+a strictly larger expression. So, we can't turn a (... $ finReduce z) expression
+into a (... $ finReduce FZ) expression by rewriting using a (z = FZ).
+
+Likewise, we can't rewrite (... $ finReduce z) into (... $ Right pr) where (pr : FZ = FZ).
+
+Even an acceptable formulation of (finReduce z = Right Refl) is a challenge to write.
+
+Also, to state (finReduce z = finReduce FZ), we must write
+(finReduce (the (Fin $ S predn) z) ~=~ finReduce $ FZ {k=predn}).
+
+If a rewrite using a (~=~) is done, (sym) can't be applied, so the lemma
+would change depending on whether it's deployed via (rewrite) or preorder reasoning.
+
+Trying to make (pr) be the proof passed in makes the proof a tedious overkill
+hack exploiting the isomorphism between (x = x) and ().
+-}
+total
+finReduceIsRight_sym : (z : Fin (S predn))
+	-> (prFZ : z = FZ)
+	-> (pr : FZ {k=predn} = z ** Right pr = finReduce z)
+finReduceIsRight_sym FZ _ = (Refl ** Refl)
+finReduceIsRight_sym (FS k) pr = void $ FZNotFS $ sym pr
 
 weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
 weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
@@ -45,37 +108,62 @@ weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fro
 		to' : Fin n -> Fin n
 		to' nel = runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (FZNotFS . sym)) . sym) (finReduce $ to $ FS nel)) <*> (map sym $ finReduce $ to FZ)
 		from' : Fin n -> Fin n
-		from' = ?weakenIsoByValFZ_from_pr
+		from' nel = runIso eitherBotRight
+			$ (map ((permDoesntFix_corrolary
+					(MkIso from to fromTo toFrom)
+					(FS nel)
+					(FZNotFS . sym))
+				. sym)
+				$ finReduce $ from $ FS nel)
+			<*> (map sym $ finReduce $ from FZ)
 		toFrom' : (y : Fin n) -> to' (from' y) = y
 		-- Suggestion: with (to $ FS nel) or perhaps by injectivity of FS.
-		toFrom' = ?weakenIsoByValFZ_toFrom_pr
+		-- Can't use dependent pattern matching on the (splitFinFS) here.
+		-- Maybe we can use dependent pattern matching on (from $ FS y)!
+		-- But that doesn't quite cut it, since we still need the equality proof.
+		-- We can still get that from this (either), and maybe we can use both.
+		toFrom' y = either
+			(\prelAndPr => ?wibFZ_toFrom_prLeft)
+			(\fromfsyfz => ?wibFZ_toFrom_prRight)
+			$ splitFinFS $ from $ FS y
 		fromTo' : (x : Fin n) -> from' (to' x) = x
-		fromTo' = ?weakenIsoByValFZ_fromTo_pr
-
--- fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
--- goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
--- suffices: (FZ = to $ FS nel) -> Fin n
--- permDoesntFix_corrolary (MkIso to ...) (FS nel) : Not (FS nel = FZ) -> (to $ FS nel = FZ) -> Not (to FZ = FZ)
--- permDoesntFix_corrolary (MkIso to ...) (FS nel) (sym FZNotFS) : (to $ FS nel = FZ) -> Not (to FZ = FZ)
--- map (?above . sym) (finReduce $ to $ FS nel) : Either (Fin n) $ Not (to FZ = FZ)
--- finReduce $ to FZ: Either (Fin n) (FZ = to FZ)
--- ?aboveAbove <*> ?above : Either (Fin n) Void
--- -- aboveAbove with a left value will overwrite any value of above. aboveAbove with a Left value is the predecessor of (to $ FS nel) when (to $ FS nel) is nonzero, so this is appropriate.
--- runIso eitherBotRight ?above : Fin n
--- Hence, without using fromEither at all, we arrive at:
--- runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (sym FZNotFS)) . sym) (finReduce $ to $ FS nel)) <*> (finReduce $ to FZ) : Fin n
+		fromTo' y = either
+			(\prelAndPr => ?wibFZ_fromTo_prLeft)
+			(\tofsyfz => ?wibFZ_fromTo_prRight)
+			$ splitFinFS $ to $ FS y
 
 {-
+Thought process for writing (from', to'):
+
+Inspirational plumbing : fromEither {a=Fin n} : Either (Fin n) (Fin n) -> Fin n
+Goal : (finReduce $ to $ FS nel : Either (Fin n) (FZ = to $ FS nel)) -> Either (Fin n) (Fin n)
+Suffices : (FZ = to $ FS nel) -> Fin n
+
+0) permDoesntFix_corrolary (MkIso to ...) (FS nel) : Not (FS nel = FZ) -> (to $ FS nel = FZ) -> Not (to FZ = FZ)
+1) permDoesntFix_corrolary (MkIso to ...) (FS nel) (sym FZNotFS) : (to $ FS nel = FZ) -> Not (to FZ = FZ)
+2) map (?above . sym) (finReduce $ to $ FS nel) : Either (Fin n) $ Not (to FZ = FZ)
+3) finReduce $ to FZ: Either (Fin n) (FZ = to FZ)
+4) ?aboveAbove <*> ?above : Either (Fin n) Void
+5) -- aboveAbove with a left value will overwrite any value of above. aboveAbove with a Left value is the predecessor of (to $ FS nel) when (to $ FS nel) is nonzero, so this is appropriate.
+6) runIso eitherBotRight ?above : Fin n
+
+Hence, without using (fromEither) at all, we arrive at:
+
+runIso eitherBotRight $ (map ((permDoesntFix_corrolary (MkIso to from toFrom fromTo) (FS nel) (sym FZNotFS)) . sym) (finReduce $ to $ FS nel)) <*> (finReduce $ to FZ) : Fin n
+
+-----
+
+-- First attempted style:
+
 -- Something like this, maybe...
 
 		to' : Fin n -> Fin n
 		to' nel with (finReduce $ to $ FS nel)
 			| Right Refl = (runIso eitherBotRight) $ map (the (FZ = to $ to $ FS nel -> Void) ?weakval_absurdity) $ finReduce $ to $ to $ FS nel
 			| Left (FS nel') = nel'
--}
 
+---
 
-{-
 -- Can't use this because it won't accept the proof in to', analogous to from_fzfixedAndNotFixed, that FZ can't be fixed by the permutation if it is the value of a (Fin (S n)) other than FZ.
 
 weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
@@ -99,21 +187,88 @@ weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fro
 		fromTo' : (x : Fin n) -> from' (to' x) = x
 -}
 
+-- To reduce all the maps, just show the (finReduce) is a (Left k) in this case.
+-- Then rewrite the (to $ FS k) computed to (to $ from $ FS y) to get (FS y),
+-- whose (finReduce) is then (Left y). The maps finally reduce that to (y), w.w.t.b.d.
+wibFZ_toFrom_prLeft = proof
+  intros
+  rewrite sym $ finReduceIsLeft $ getProof prelAndPr
+  compute
+  rewrite sym $ finReduceIsLeft $ trans (cong {f=to} $ sym $ getProof prelAndPr) $ toFrom $ FS y
+  compute
+  exact Refl
+
+-- See above.
+wibFZ_fromTo_prLeft = proof
+  intros
+  rewrite sym $ finReduceIsLeft $ getProof prelAndPr
+  compute
+  rewrite sym $ finReduceIsLeft $ trans (cong {f=from} $ sym $ getProof prelAndPr) $ fromTo $ FS y
+  compute
+  exact Refl
+
+wibFZ_toFrom_prRight = proof
+  {-
+    The processes use the (runIso eitherBotRight) occurrences to apply to (Left x)s,
+  which turns those expressions into (x)s.
+    Hence, to make their composite's value explicit, we must turn
+  the (_<*>_)s into (Left x)s.
+    We turn them into (Right _ <*> Left x)s.
+  -}
+  intros
+  claim lem1 ( k : _ ** from FZ = FS k )
+  unfocus
+  -- Rewrite (from FZ) to (FS k), & hence (finReduce $ from FZ) to (Left k).
+  rewrite sym $ finReduceIsLeft $ getProof lem1
+  -- Rewrite (from $ FS y) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (from $ FS y) fromfsyfz
+  -- Rewrite (to FZ) to (FS y), & hence (finReduce $ to FZ) to (Left y).
+  rewrite sym $ finReduceIsLeft $ sym $ trans (sym $ toFrom $ FS y) $ cong {f=to} fromfsyfz
+  compute
+  -- Rewrite (to $ FS k) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (to $ FS $ getWitness lem1) $ trans (cong {f=to} $ sym $ getProof lem1) $ toFrom FZ
+  exact Refl
+  -- Goal: lem1.
+  exact runIso eitherBotRight $ map _ $ splitFinFS $ from FZ
+  -- Goal: (from FZ = FZ) -> Void.
+  exact \inPr => FZNotFS $ sym $ trans (sym $ toFrom $ FS y) $ trans (cong {f=to} $ trans fromfsyfz $ sym inPr) $ toFrom FZ
+
+-- (from<->to)-Symmetric copy of above.
+wibFZ_fromTo_prRight = proof
+  {-
+    The processes use the (runIso eitherBotRight) occurrences to apply to (Left x)s,
+  which turns those expressions into (x)s.
+    Hence, to make their composite's value explicit, we must turn
+  the (_<*>_)s into (Left x)s.
+    We turn them into (Right _ <*> Left x)s.
+  -}
+  intros
+  claim lem1 ( k : _ ** to FZ = FS k )
+  unfocus
+  -- Rewrite (to FZ) to (FS k), & hence (finReduce $ to FZ) to (Left k).
+  rewrite sym $ finReduceIsLeft $ getProof lem1
+  -- Rewrite (to $ FS y) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (to $ FS y) tofsyfz
+  -- Rewrite (from FZ) to (FS y), & hence (finReduce $ from FZ) to (Left y).
+  rewrite sym $ finReduceIsLeft $ sym $ trans (sym $ fromTo $ FS y) $ cong {f=from} tofsyfz
+  compute
+  -- Rewrite (from $ FS k) to (FZ) and (finReduce FZ) to (Right _).
+  -- Necessary to reduce (finReduce FZ <*> Left x) to (Left x).
+  rewrite getProof $ finReduceIsRight_sym (from $ FS $ getWitness lem1) $ trans (cong {f=from} $ sym $ getProof lem1) $ fromTo FZ
+  exact Refl
+  -- Goal: lem1.
+  exact runIso eitherBotRight $ map _ $ splitFinFS $ to FZ
+  -- Goal: (to FZ = FZ) -> Void.
+  exact \inPr => FZNotFS $ sym $ trans (sym $ fromTo $ FS y) $ trans (cong {f=from} $ trans tofsyfz $ sym inPr) $ fromTo FZ
+
 vectPermTo : Iso (Fin n) (Fin n) -> Vect n a -> Vect n a
 vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . to) range
 
-moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
-
-vecDeleteatpermEq : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( deleteAt (runIso sigma FZ) $ vectPermTo sigma xs = vectPermTo (weakenIsoByValFZ sigma) $ deleteAt FZ xs )
-vecDeleteatpermEq sigma@(MkIso to from toFrom fromTo) {xs} = ?vecDeleteatpermEq'
-
-deleteAtAsPermTail : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( xs = vectPermTo sigma (y::ys) ) -> ( deleteAt (runIso sigma FZ) xs = vectPermTo (weakenIsoByValFZ sigma) ys )
-deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::[]} {y} {ys=[]} = ?deleteAtAsPermTail_rhs_1
-	where
-		fin1elIsFZ : (el : Fin 1) -> el=FZ
-		fin1elIsFZ FZ = Refl
-		fin1elIsFZ (FS el) = FinZElim el
-deleteAtAsPermTail sigma@(MkIso to from toFrom fromTo) pr_xsRys {xs=xx::xxs} {y} {ys=yy::yys} = ?deleteAtAsPermTail_rhs_2
+vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
+vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
 
 replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
 replaceAtIndexForm1 {j} pr {v=[]} = FinZElim j
@@ -224,11 +379,6 @@ notEqFalse_Fin FZ FZ pr = void $ pr Refl
 notEqFalse_Fin (FS predi) FZ pr = Refl
 notEqFalse_Fin FZ (FS predj) pr = Refl
 notEqFalse_Fin (FS predi) (FS predj) pr = trans (FSPreservesBoolEq predi predj) $ notEqFalse_Fin predi predj $ pr . cong
-
-indexFinsIsIndex : index i $ fins n = i
-indexFinsIsIndex {i} {n=Z} = FinZElim i
-indexFinsIsIndex {i=FZ} {n=S predn} = Refl
-indexFinsIsIndex {i=FS preli} {n=S predn} = trans indexMapChariz $ cong indexFinsIsIndex
 
 idMatIndexChariz : RingWithUnity a => index i $ Id {a=a} = basis i
 idMatIndexChariz = trans (indexMapChariz {f=\n => basis n}) $ cong {f=basis} $ indexFinsIsIndex
@@ -1003,30 +1153,250 @@ permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigm
 
 permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
 
-swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (Not (mel=FZ),Not (mel=nel)) -> runIso sigma mel = mel) )
-
 {-
-Recall:
+-- Can't implement because of problems in expanding the nested (with)s of (decEq)s while proving the last characteristic property of the permutation.
 
-moveUpdateAt : (sigma : Iso (Fin n) (Fin n)) -> vectPermTo sigma $ updateAt nel f xs = updateAt (runIso sigma nel) f (vectPermTo sigma xs)
+-- {mel : _} leads to inability to apply the function obtained: "No such variable mel".
+swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> runIso sigma mel = mel) )
+swapFZPerm {predn} nel = (MkIso swapTo swapTo swapToTo swapToTo ** (Refl, Refl, sigpr))
+	where
+		{-
+		"
+		When checking left hand side of with in with block in ZZModuleSpan.swapFZPerm, sigpr:
+		Can't match on with block in ZZModuleSpan.swapFZPerm, sigpr predn
+			nel
+			mel
+			(No notFZ)
+			notFZ
+			notNel
+		"
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ)
+			| Yes isFZ = nel
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = FZ
+				| No norNel = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ)
+			| Yes isFZ = ?swapToTo_rhs_1
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = ?swapToTo_rhs_2
+				| No norNel = ?swapToTo_rhs_3 -- Should be Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ)
+			| Yes isFZ = void $ notFZ isFZ
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = void $ notNel isNel
+				| No norNel = Refl
+		-}
+		{-
+		-- "Can't match on with block ...
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = nel
+			| (No notFZ, Yes isNel) = FZ
+			| (No notFZ, No notNel) = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = ?swapToTo_rhs_1
+			| (No notFZ, Yes isNel) = ?swapToTo_rhs_3
+			| (No notFZ, No notNel) = Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = void $ notFZ isFZ
+			-- "Can't match on with block in ..."
+			-- but "is a valid case"
+			| (No notFZ, Yes isNel) = void $ notNel isNel
+			| (No notFZ, No notNel) = Refl
+		-}
 
----
-
-deleteAtAsPermTail : (sigma : Iso (Fin (S n)) (Fin (S n))) -> ( xs = vectPermTo sigma (y::ys) ) -> ( deleteAt (runIso sigma FZ) xs = vectPermTo (weakenIsoByValFZ sigma) ys )
+-- Abbreviation
+swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
+swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
 -}
 
-headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ} -> ((xx : Vect m ZZ) -> (xxs: Matrix predn m ZZ) -> spanslz (f xx xxs :: xxs) (xx::xxs)) -> (nel : Fin (S predn)) -> (xs: Matrix (S predn) m ZZ) -> spanslz (updateAt nel (\xx => f xx (deleteRow nel xs)) xs) xs
-{-
--- For starters:
-headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs
-	with (swapFZPerm nel)
-		| ( sigma ** ( fzToNelpr, nelToFZpr, elseToSelfpr ) ) =
-			...
--- Main idea: sigma can then be used to take (xs) to a ((x'::xs') : Vect _ _) such that (index nel xs = index FZ (x'::xs') = x') and, by analyzing weakenIsoByValFZ, ((vectToPerm $ isoSym $ weakenIsoByValFZ sigma) $ deleteRow nel xs=tail xs').
--- With weakenIsoByValFZ, we basically want to use a permutation used on a Vect to act on its row-deleted form as if the deleted row at (nel : Fin (S predn)) were sent to a row that were never added and reindex around the deleted row. However, there would also be an element being sent TO that deleted row, and we haven't accounted for that by giving it a new value. Since there are currently no properties that weakenIsoByValFZ must satisfy to make the algorithm correct, we can set that value arbitrarily, except that we'd have to make sure it's a permutation. This is not a regular process to perform!
--- Why wouldn't it work to just tighten the cycle the deleted row lies in so that it's skipped in order? What properties must weakenIsoByValFZ satisfy for it to allow headOpPreservesSpanslzImpliesUpdateAtDoes to be produced?
--- We may need ( vectToPerm $ weakenIsoByValFZ $ isoSym sigma ) instead of ( vectToPerm $ isoSym $ weakenIsoByValFZ sigma )
--}
+rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
+rotateAt {predn} {a} nel = ( sigma
+		** \xs => vecIndexwiseEq
+			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
+				$ (getProof $ rotateTo nel i) $ xs )
+	where
+		{-
+		Can't put (predn) directly into the types of (rotateTo) and (rotateFrom)
+		where (v)s are, because then (rotateFromTo) can't be implemented due
+		to conflicting reasonable dependent pattern matches, and it's harder
+		to implement (rotateToFrom) for the same reason.
+
+		See commit b1e0ad4bca for documentation of the problems.
+
+		Although we also forgot to do the (deleteTo (FS e) k@FZ/(FS k')) match,
+		so maybe (rotateFromTo) could have been implemented and that type error
+		just added noise.
+		-}
+		deleteTo : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( j : Fin (S v) **
+				(xs : Vect (S v) a) ->
+				(index j xs = index preli $ deleteAt el xs) )
+		deleteTo {v=Z} a b = FinZElim b
+		deleteTo FZ preli = ( FS preli ** prfn )
+			where
+				prfn (x::xs) = Refl
+		deleteTo (FS e) FZ = ( FZ ** prfn )
+			where
+				prfn (x::xs) = Refl
+		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
+			where
+				prfn (x::xs) = (getProof $ deleteTo e k) xs
+		deleteToSkipsFocus : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( el = getWitness $ deleteTo el preli )
+			-> Void
+		deleteToSkipsFocus {v=Z} _ b = FinZElim b
+		deleteToSkipsFocus {v=S v'} FZ preli = FZNotFS
+		deleteToSkipsFocus {v=S v'} (FS e) FZ = FZNotFS . sym
+		deleteToSkipsFocus {v=S v'} (FS e) (FS k) = (deleteToSkipsFocus e k) . FSinjective
+		rotateTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> ( j : Fin (S v) **
+				(xs : Vect (S v) a) ->
+				(index j xs = index i $ index el xs :: deleteAt el xs) )
+		rotateTo FZ FZ = ( FZ ** \xs => Refl )
+		rotateTo FZ (FS k) = ( FS k ** prfn )
+			where
+				prfn (x::xs) = Refl
+		rotateTo (FS e) FZ = ( FS e ** \xs => Refl )
+		rotateTo (FS e) (FS k) = deleteTo (FS e) k
+		deleteFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (Fin v) (el=i)
+		deleteFrom FZ FZ = Right Refl
+		deleteFrom FZ (FS k) = Left k
+		deleteFrom {v=Z} (FS e) _ = FinZElim e
+		deleteFrom {v=S predv} (FS e) FZ = Left FZ
+		deleteFrom {v=S predv} (FS e) (FS k) = either (Left . FS) (Right . (cong {f=FS})) $ deleteFrom e k
+		rotateFrom : Fin (S v)
+			-> Fin (S v)
+			-> Fin (S v)
+		rotateFrom FZ FZ = FZ
+		rotateFrom FZ (FS k) = FS k
+		rotateFrom (FS e) i with (decEq (FS e) i)
+			| Yes pr = FZ
+			| No prneg = FS $ runIso eitherBotRight
+				$ map prneg
+				$ deleteFrom (FS e) i
+		deleteFromFormula : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (i' : Fin v ** deleteFrom el i = Left i') (el = i)
+		deleteFromFormula el i with (deleteFrom el i)
+			| Left i' = Left (i' ** Refl)
+			| Right pr = Right pr
+		deleteToFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> (prneq : Not (el = i))
+			-> getWitness
+				$ deleteTo el
+				$ runIso Isomorphism.eitherBotRight
+				$ map prneq
+				$ deleteFrom el i = i
+		deleteToFrom FZ FZ prneq = void $ prneq Refl
+		deleteToFrom {v=Z} FZ (FS k) _ = FinZElim k
+		deleteToFrom {v=S predv} FZ (FS k) _ = Refl
+		deleteToFrom {v=Z} (FS e) _ _ = FinZElim e
+		deleteToFrom {v=S predv} (FS e) FZ _ = Refl
+		{-
+		-- Left with goal (FS $ getWitness $ deleteTo e k' = FS k)
+		-- Perhaps we can write an Either over each case of (deleteTo) & (deleteFrom)
+		-- of the equations of the function's value to the formula for that case,
+		-- letting us rewrite not to (k') but to a formula for (deleteFrom e k).
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			with (deleteFrom e k)
+				| Left k' = ?deleteToFrom_rhs_4
+				| Right pr = void $ prneq $ cong {f=FS} pr
+		-}
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			with (deleteFromFormula e k)
+				| Left (k' ** pr) = rewrite pr in cong {f=FS}
+					$ trans (cong {f=\x => getWitness
+							$ deleteTo e
+							$ runIso Isomorphism.eitherBotRight
+							$ map (prneq . (cong {f=FS})) x}
+							$ sym pr)
+					$ deleteToFrom e k (prneq . (cong {f=FS}))
+				| Right pr = void $ prneq $ cong {f=FS} pr
+		rotateToFrom : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> getWitness $ rotateTo el $ rotateFrom el i = i
+		rotateToFrom FZ FZ = Refl
+		rotateToFrom FZ (FS k) = Refl
+		rotateToFrom {v=Z} (FS e) _ = FinZElim e
+		rotateToFrom {v=S v'} (FS e) FZ = Refl
+		rotateToFrom (FS e) (FS k) with (decEq (FS e) (FS k))
+			| Yes pr = pr
+			| No prneg = deleteToFrom (FS e) (FS k) prneg
+		deleteFromTo : (el : Fin (S v))
+			-> (i : Fin v)
+			-> deleteFrom el $ getWitness $ deleteTo el i = Left i
+		deleteFromTo {v=Z} _ i = FinZElim i
+		deleteFromTo {v=S v'} FZ k = Refl
+		deleteFromTo {v=S v'} (FS e) FZ = Refl
+		deleteFromTo {v=S v'} (FS e) (FS k') = rewrite deleteFromTo e k' in Refl
+		-- This implementation typechecks too
+		-- deleteFromTo {v=S v'} (FS e) (FS k') = cong {f=either (Left . FS) (Right . (cong {f=FS {k=S v'}}))} $ deleteFromTo e k'
+		rotateFromTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> rotateFrom el $ getWitness $ rotateTo el i = i
+		rotateFromTo FZ FZ = Refl
+		rotateFromTo FZ (FS k) = Refl
+		rotateFromTo {v=Z} (FS e) _ = FinZElim e
+		rotateFromTo {v=S v'} (FS e) FZ with (decEq e e)
+			| No prneg = void $ prneg Refl
+			| Yes pr = Refl
+		rotateFromTo {v=S v'} (FS e) (FS FZ) = Refl
+		rotateFromTo {v=S v'} (FS e) (FS (FS k')) with (decEq (FS e) $ getWitness $ deleteTo (FS e) (FS k'))
+			| Yes pr = void $ deleteToSkipsFocus (FS e) (FS k') pr
+			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
+				$ deleteFromTo (FS e) (FS k')
+		sigma : Iso (Fin (S predn)) (Fin (S predn))
+		sigma = MkIso
+			(\i => getWitness $ rotateTo nel i)
+			(\i => rotateFrom nel i)
+			(\i => rotateToFrom nel i)
+			(\i => rotateFromTo nel i)
+
+headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ}
+	-> ((xx : Vect m ZZ)
+		-> (xxs: Matrix predn m ZZ)
+		-> spanslz (f xx xxs :: xxs) (xx::xxs))
+	-> (nel : Fin (S predn))
+	-> (xs: Matrix (S predn) m ZZ)
+	-> spanslz (updateAt nel (\xx => f xx (deleteRow nel xs)) xs) xs
+headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs =
+	spanslztrans ( permPreservesSpannedbylz $ getWitness $ rotateAt nel )
+	$ spanslztrans ( spanslzreflFromEq
+		$ trans ((getProof $ rotateAt nel)
+			$ updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
+		$ vecHeadtailsEq indexUpdateAtChariz updateDeleteAtChariz )
+	$ spanslztrans ( transfpr (index nel xs) (deleteAt nel xs) )
+	$ spanslztrans ( spanslzreflFromEq $ sym $ (getProof $ rotateAt nel) $ xs )
+	$ permPreservesSpanslz $ getWitness $ rotateAt nel
+
+headOpPreservesSpannedbylzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ}
+	-> ((xx : Vect m ZZ)
+		-> (xxs: Matrix predn m ZZ)
+		-> spanslz (xx::xxs) (f xx xxs :: xxs))
+	-> (nel : Fin (S predn))
+	-> (xs: Matrix (S predn) m ZZ)
+	-> spanslz xs (updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
+headOpPreservesSpannedbylzImpliesUpdateAtDoes {f} transfpr nel xs =
+	spanslztrans ( permPreservesSpannedbylz $ getWitness $ rotateAt nel )
+	$ spanslztrans ( spanslzreflFromEq $ (getProof $ rotateAt nel) $ xs )
+	$ spanslztrans ( transfpr (index nel xs) (deleteAt nel xs) )
+	$ spanslztrans ( spanslzreflFromEq $ sym
+			$ trans ((getProof $ rotateAt nel)
+				$ updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
+			$ vecHeadtailsEq indexUpdateAtChariz updateDeleteAtChariz )
+	$ permPreservesSpanslz $ getWitness $ rotateAt nel
 
 spanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> spanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
 spanslzAdditiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImpliesUpdateAtDoes {f=\argxx => \argxxs => argxx<+>(z<\>argxxs) } (\argxx => \argxxs => spanslzAdditiveExchange {y=argxx} {xs=argxxs} {z=z}) nel xs
@@ -1040,8 +1410,18 @@ spanslzSubtractiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImplie
 	xs
 
 spanslzAdditivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs)
+spanslzAdditivePreservationAt nel {predn} {xs} {z} = headOpPreservesSpannedbylzImpliesUpdateAtDoes
+	{f=(.(z<\>)).(<+>)}
+	(\argxx => \argxxs => spanslzAdditivePreservation)
+	nel
+	xs
 
 spanslzSubtractivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<->(z<\>(deleteRow nel xs))) xs)
+spanslzSubtractivePreservationAt nel {predn} {xs} {z} = headOpPreservesSpannedbylzImpliesUpdateAtDoes
+	{f=(.(z<\>)).(<->)}
+	(\argxx => \argxxs => spanslzSubtractivePreservation)
+	nel
+	xs
 
 bispanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
 bispanslzAdditiveExchangeAt nel = (spanslzAdditiveExchangeAt nel, spanslzAdditivePreservationAt nel)
@@ -1054,13 +1434,104 @@ bispansSamevecExtension {xs} {ys} (prXY, prYX) v =
 	( mergeSpannedLZs (spanslzHeadRow v xs) $ preserveSpanningLZByCons prXY,
 		mergeSpannedLZs (spanslzHeadRow v ys) $ preserveSpanningLZByCons prYX )
 
+spanslzNullcolExtension1 : (getCol FZ xs=Algebra.neutral)
+	-> ys `spanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `spanslz` xs
+spanslzNullcolExtension1 {xs} {ys} prColNeut (matMYTX ** prMYTX) = (matMYTX
+	** flip trans (
+		-- matMYTX<>(map ((Pos 0)::) ys)
+		trans timesPreservesLeadingZeroExtensionR
+		-- = map ((Pos 0)::) $ matMYTX<>ys
+		$ trans (cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMYTX ys)
+			$ prMYTX)
+		-- = map ((Pos 0)::) $ map tail xs
+		$ nullcolExtensionEq prColNeut
+		-- = xs
+		) $ sym $ timesMatMatAsMultipleLinearCombos matMYTX $ map ((Pos 0)::) ys
+	)
+{-
+-- Alternative solution to below error
+spanslzNullcolExtension1 : (getCol FZ xs=Algebra.neutral)
+	-> ys `spanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `spanslz` xs
+spanslzNullcolExtension1 {xs} {ys} prColNeut (matMYTX ** prMYTX) = (matMYTX
+	** trans ?spanslzNullcolExtension_patch
+		-- = matMYTX<>(map ((Pos 0)::) ys)
+		$ trans timesPreservesLeadingZeroExtensionR
+		-- = map ((Pos 0)::) $ matMYTX<>ys
+		$ trans (cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMYTX ys)
+			$ prMYTX)
+		-- = map ((Pos 0)::) $ map tail xs
+		$ nullcolExtensionEq prColNeut
+		-- = xs
+	)
+spanslzNullcolExtension_patch = proof
+  intros
+  exact sym $ timesMatMatAsMultipleLinearCombos matMYTX $ map ((Pos 0)::) ys
+
+-----
+
+-- Error: Type mismatch between (Vect n1 ZZ) & (Vect n k)
+-- where (ys : Matrix n1 k ZZ)
+spanslzNullcolExtension1 : (getCol FZ xs=Algebra.neutral)
+	-> ys `spanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `spanslz` xs
+spanslzNullcolExtension1 {xs} {ys} prColNeut (matMYTX ** prMYTX) = (matMYTX
+	** trans (sym $ timesMatMatAsMultipleLinearCombos matMYTX $ map ((Pos 0)::) ys)
+		-- = matMYTX<>(map ((Pos 0)::) ys)
+		$ trans timesPreservesLeadingZeroExtensionR
+		-- = map ((Pos 0)::) $ matMYTX<>ys
+		$ trans (cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMYTX ys)
+			$ prMYTX)
+		-- = map ((Pos 0)::) $ map tail xs
+		$ nullcolExtensionEq prColNeut
+		-- = xs
+	)
+-}
+
+spanslzNullcolExtension2 : (getCol FZ xs=Algebra.neutral)
+	-> map Vect.tail xs `spanslz` ys
+	-> xs `spanslz` map ((Pos Z)::) ys
+spanslzNullcolExtension2 {xs} {ys} prColNeut (matMTXY ** prMTXY) = (matMTXY
+	** trans (cong {f=zippyScale matMTXY} $ sym $ nullcolExtensionEq prColNeut)
+		-- = matMTXY `zippyScale` map ((Pos 0)::) $ map tail xs
+		$ flip trans (
+			-- matMTXY <> map ((Pos 0)::) $ map tail xs
+			trans timesPreservesLeadingZeroExtensionR
+			-- = map ((Pos 0)::) $ matMTXY <> map tail xs
+			$ cong {f=map ((Pos 0)::)}
+			$ trans (timesMatMatAsMultipleLinearCombos matMTXY $ map tail xs)
+			prMTXY
+			-- = map ((Pos 0)::) ys
+		) $ sym $ timesMatMatAsMultipleLinearCombos matMTXY $ map ((Pos 0)::) $ map tail xs
+	)
+
 -- Pad both starts with (sym $ timesMatMatAsMultipleLinearCombos).
 -- Then indexwise, using double (vecIndexwiseEq) and (matMultIndicesChariz).
 -- (getCol FZ xs=Algebra.neutral {a=Vect n ZZ}) -> map ((Pos Z)::) $ map tail xs = xs
 bispansNullcolExtension : (getCol FZ xs=Algebra.neutral)
-	-> ys `bispanslz` map tail xs
+	-> ys `bispanslz` map Vect.tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
+bispansNullcolExtension prColNeut bisYX' = (spanslzNullcolExtension1 prColNeut $ fst bisYX', spanslzNullcolExtension2 prColNeut $ snd bisYX')
 
 
 
 spansImpliesSameFirstColNeutrality : xs `spanslz` ys -> getCol FZ xs = Algebra.neutral -> getCol FZ ys = Algebra.neutral
+spansImpliesSameFirstColNeutrality {xs} {ys} (matXY ** prXY) prXColNeut = vecIndexwiseEq $ \i =>
+	trans indexMapChariz
+	-- = indices i FZ ys
+	$ trans ( cong {f=indices i FZ}
+		$ trans (sym prXY)
+		$ sym $ timesMatMatAsMultipleLinearCombos matXY xs )
+	-- = indices i FZ $ matXY<>xs
+	$ trans matMultIndicesChariz
+	-- = (index i matXY)<:>(getCol FZ xs)
+	$ trans (cong {f=((index i matXY)<:>)} prXColNeut)
+	-- = (index i matXY)<:>Algebra.neutral
+	$ trans (neutralVectIsDotProductZero_R $ index i matXY)
+	-- = Algebra.neutral
+	$ sym indexReplicateChariz
+	-- = index i Algebra.neutral

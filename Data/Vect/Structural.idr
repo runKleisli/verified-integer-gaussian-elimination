@@ -93,6 +93,10 @@ indexUpdateAtChariz {xs=[]} {i} = FinZElim i
 indexUpdateAtChariz {xs=(x::xs)} {f} {i=FZ} = Refl
 indexUpdateAtChariz {xs=x::xs} {f} {i=FS i} = indexUpdateAtChariz {xs=xs} {f=f} {i=i}
 
+indexUpdateAtChariz2 : Not (i = j) -> index i $ updateAt j f xs = index i xs
+
+updateDeleteAtChariz : deleteAt i $ updateAt i f xs = deleteAt i xs
+
 updateAtIndIsMapAtInd : index i $ updateAt i f xs = index i $ map f xs
 updateAtIndIsMapAtInd = trans indexUpdateAtChariz $ sym indexMapChariz
 
@@ -191,6 +195,16 @@ weakenedInd {xs=x::xs} {k=FS j} {v} = weakenedInd {xs=xs} {k=j} {v}
 extensionalEqToMapEq : (exteq : (a : ty) -> (f a = g a)) -> (xs : Vect n ty) -> (map f xs = map g xs)
 extensionalEqToMapEq exteq [] = Refl
 extensionalEqToMapEq exteq (x::xs) = vecHeadtailsEq (exteq x) $ extensionalEqToMapEq exteq xs
+
+
+
+-- Functorial nature of (map).
+composeUnderMap : (v : Vect n a)
+	-> (g : b -> c)
+	-> (f : a -> b)
+	-> map g $ map f v = map (g . f) v
+composeUnderMap [] g f = Refl
+composeUnderMap (v::vs) g f = vecHeadtailsEq Refl $ composeUnderMap vs g f
 
 
 

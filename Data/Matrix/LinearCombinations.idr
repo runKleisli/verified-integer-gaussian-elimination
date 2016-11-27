@@ -736,3 +736,16 @@ matMultCancelsHeadWithZeroColExtensionL {xs} {ys} {z} = vecIndexwiseEq
 			$ trans (cong {f=(<:>(getCol j $ z::ys))} indexMapChariz)
 			$ trans (dotCancelsHeadWithLeadingZeroL {r=index j z} (index i xs) (getCol j ys))
 			$ sym $ matMultIndicesChariz {l=xs} {r=ys}
+
+timesPreservesLeadingZeroExtensionR : xs<>(map ((Pos 0)::) ys) = map ((Pos 0)::) $ xs<>ys
+timesPreservesLeadingZeroExtensionR {xs} {ys} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j => filmy i j
+	where
+		filmy : (i : _) -> (j : _) -> indices i j $ xs<>(map ((Pos 0)::) ys) = indices i j $ map ((Pos 0)::) $ xs<>ys
+		filmy i FZ = trans matMultIndicesChariz
+			$ trans (cong {f=((index i xs)<:>)} $ leadingElemExtensionFirstColReplicate $ Pos 0)
+			$ trans (neutralVectIsDotProductZero_R $ index i xs)
+			$ sym $ cong {f=index FZ} $ indexMapChariz {f=((Pos 0)::)}
+		filmy i (FS prelj) = trans matMultIndicesChariz
+			$ trans (cong {f=((index i xs)<:>)} leadingElemExtensionColFSId)
+			$ trans (sym $ matMultIndicesChariz)
+			$ sym $ cong {f=index $ FS prelj} $ indexMapChariz {f=((Pos 0)::)}

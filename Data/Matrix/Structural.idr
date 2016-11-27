@@ -49,3 +49,38 @@ headVecMatMultChariz {v} {xs} = trans (sym $ indexFZIsheadValued {xs=v<\>xs})
 
 matMultIndicesChariz : Ring a => {l : Matrix _ _ a} -> {r : Matrix _ _ a} -> indices i j (l<>r) = (index i l)<:>(getCol j r)
 matMultIndicesChariz {l} {r} {i} {j} = trans (cong {f=index j} $ indexMapChariz {f=(<\>r)}) $ trans (indexMapChariz {f=((index i l)<:>)}) $ cong {f=((Vect.index i l)<:>)} transposeIndexChariz
+
+
+
+-- But basically from (map) being a verifiable functor.
+leadingElemExtensionFirstColReplicate : (r : a) -> getCol FZ $ map (r::) xs = replicate _ r
+leadingElemExtensionFirstColReplicate {xs=[]} r = Refl
+leadingElemExtensionFirstColReplicate {xs=x::xs} r = vecHeadtailsEq Refl $ leadingElemExtensionFirstColReplicate r
+
+-- But basically from (map) being a verifiable functor.
+leadingElemExtensionColFSId : getCol (FS i) $ map (r::) xs = getCol i xs
+leadingElemExtensionColFSId {xs} {r} {i} = trans (composeUnderMap xs (index $ FS i) (r::)) $ the (map ((index $ FS i) . (r::)) xs = map (index i) xs) $ extensionalEqToMapEq (\v => Refl) xs
+
+leadingElemExtensionAsZipWithCons : map (r::) xs = Vect.zipWith Vect.(::) (replicate _ r) xs
+leadingElemExtensionAsZipWithCons {xs=[]} = Refl
+leadingElemExtensionAsZipWithCons {xs=x::xs} = vecHeadtailsEq Refl leadingElemExtensionAsZipWithCons
+
+nullcolExtensionEq : Monoid a => {xs : Matrix n (S predm) a} -> (getCol FZ xs=Algebra.neutral) -> map ((Algebra.neutral)::) $ map Vect.tail xs = xs
+nullcolExtensionEq {xs} prColNeut = trans leadingElemExtensionAsZipWithCons
+	-- = zipWith (::) Algebra.neutral $ map tail xs
+	$ trans (cong {f=zipWith (::) Algebra.neutral} $ sym $ transposeNTail)
+	-- = zipWith (::) Algebra.neutral $ transpose $ tail $ transpose xs
+	-- === transpose $ Algebra.neutral :: (tail $ transpose xs)
+	$ trans (cong {f=transpose}
+		$ trans (vecHeadtailsEq
+			(trans (sym prColNeut)
+				-- Algebra.neutral = getCol FZ xs
+				$ trans (sym transposeIndexChariz)
+				-- = index FZ $ transpose xs
+				$ indexFZIsheadValued)
+			Refl)
+		-- Algebra.neutral :: (tail $ transpose xs) = head _ :: tail _
+		$ sym $ headtails $ transpose xs)
+	-- = transpose $ transpose xs
+	transposeIsInvolution
+	-- = xs
