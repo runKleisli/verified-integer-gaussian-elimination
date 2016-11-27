@@ -1335,8 +1335,18 @@ spanslzSubtractiveExchangeAt nel {predn} {xs} {z} = headOpPreservesSpanslzImplie
 	xs
 
 spanslzAdditivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs)
+spanslzAdditivePreservationAt nel {predn} {xs} {z} = headOpPreservesSpannedbylzImpliesUpdateAtDoes
+	{f=(.(z<\>)).(<+>)}
+	(\argxx => \argxxs => spanslzAdditivePreservation)
+	nel
+	xs
 
 spanslzSubtractivePreservationAt : (nel : Fin (S predn)) -> spanslz xs (updateAt nel (<->(z<\>(deleteRow nel xs))) xs)
+spanslzSubtractivePreservationAt nel {predn} {xs} {z} = headOpPreservesSpannedbylzImpliesUpdateAtDoes
+	{f=(.(z<\>)).(<->)}
+	(\argxx => \argxxs => spanslzSubtractivePreservation)
+	nel
+	xs
 
 bispanslzAdditiveExchangeAt : (nel : Fin (S predn)) -> bispanslz (updateAt nel (<+>(z<\>(deleteRow nel xs))) xs) xs
 bispanslzAdditiveExchangeAt nel = (spanslzAdditiveExchangeAt nel, spanslzAdditivePreservationAt nel)
