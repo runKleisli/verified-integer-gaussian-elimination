@@ -60,28 +60,6 @@ indexConcatAsIndexAppended : (i : Fin m) -> index (shift n i) $ xs++ys = index i
 indexConcatAsIndexAppended i {xs=[]} = Refl
 indexConcatAsIndexAppended i {xs=x::xs} = indexConcatAsIndexAppended {xs=xs} i
 
-permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin n) -> (runIso sigma nel1 = nel2) -> Either (Not (runIso sigma nel2 = nel2)) (nel1 = nel2)
-{-
--- Positive form. Not strong enough for our purposes.
-permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
--}
-permDoesntFixAValueNotFixed (MkIso to from toFrom fromTo) nel1 nel2 nel1GoesTo2
-	with (decEq nel1 nel2)
-		| Yes pr = Right pr
-		| No prneq = Left $ \nel2GoesTo2 =>
-			prneq $ trans (sym $ fromTo nel1) $ flip trans (fromTo nel2)
-			$ cong {f=from} $ trans nel1GoesTo2 $ sym nel2GoesTo2
-{-
--- Alternatively, this form can be used with a (DecEq)-as-(Either) to remove the (with).
-		| No prneq = Left $ prneq
-			. ( trans (sym $ fromTo nel1) )
-			. ( flip trans (fromTo nel2) )
-			. ( cong {f=from} ) . ( trans nel1GoesTo2 ) . sym
--}
-
-permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
-permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
-
 splitFinFS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = FS k ) ( i = Fin.FZ {k=predn} )
 splitFinFS FZ = Right Refl
 splitFinFS (FS k) = Left (k ** Refl)
@@ -119,6 +97,30 @@ finReduceIsRight_sym : (z : Fin (S predn))
 	-> (pr : FZ {k=predn} = z ** Right pr = finReduce z)
 finReduceIsRight_sym FZ _ = (Refl ** Refl)
 finReduceIsRight_sym (FS k) pr = void $ FZNotFS $ sym pr
+
+
+
+permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin n) -> (runIso sigma nel1 = nel2) -> Either (Not (runIso sigma nel2 = nel2)) (nel1 = nel2)
+{-
+-- Positive form. Not strong enough for our purposes.
+permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
+-}
+permDoesntFixAValueNotFixed (MkIso to from toFrom fromTo) nel1 nel2 nel1GoesTo2
+	with (decEq nel1 nel2)
+		| Yes pr = Right pr
+		| No prneq = Left $ \nel2GoesTo2 =>
+			prneq $ trans (sym $ fromTo nel1) $ flip trans (fromTo nel2)
+			$ cong {f=from} $ trans nel1GoesTo2 $ sym nel2GoesTo2
+{-
+-- Alternatively, this form can be used with a (DecEq)-as-(Either) to remove the (with).
+		| No prneq = Left $ prneq
+			. ( trans (sym $ fromTo nel1) )
+			. ( flip trans (fromTo nel2) )
+			. ( cong {f=from} ) . ( trans nel1GoesTo2 ) . sym
+-}
+
+permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
+permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
 
 weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
 weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
