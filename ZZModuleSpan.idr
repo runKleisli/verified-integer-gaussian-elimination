@@ -42,6 +42,24 @@ finReduce : (snel : Fin (S n)) -> Either (Fin n) (FZ = snel)
 finReduce FZ = Right Refl
 finReduce (FS nel) = Left nel
 
+splitFinAtConcat : (i : Fin $ n+m)
+	-> Either (k : Fin n ** i = weakenN m k) (k : Fin m ** i = shift n k)
+splitFinAtConcat i {n=Z} = Right (i ** Refl)
+splitFinAtConcat FZ {n=S predn} = Left (FZ ** Refl)
+splitFinAtConcat (FS k) {n=S predn} = either
+	( \kAsWkn => Left (FS $ getWitness kAsWkn ** cong {f=FS} $ getProof kAsWkn) )
+	( \kAsShift => Right (getWitness kAsShift ** cong {f=FS} $ getProof kAsShift) )
+	$ splitFinAtConcat k
+
+indexConcatAsIndexAppendee : (i : Fin n) -> index (weakenN m i) $ xs++ys = index i xs
+indexConcatAsIndexAppendee i {xs=[]} = FinZElim i
+indexConcatAsIndexAppendee FZ {xs=x::xs} = Refl
+indexConcatAsIndexAppendee (FS k) {xs=x::xs} = indexConcatAsIndexAppendee {xs=xs} k
+
+indexConcatAsIndexAppended : (i : Fin m) -> index (shift n i) $ xs++ys = index i ys
+indexConcatAsIndexAppended i {xs=[]} = Refl
+indexConcatAsIndexAppended i {xs=x::xs} = indexConcatAsIndexAppended {xs=xs} i
+
 permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin n) -> (runIso sigma nel1 = nel2) -> Either (Not (runIso sigma nel2 = nel2)) (nel1 = nel2)
 {-
 -- Positive form. Not strong enough for our purposes.
@@ -270,6 +288,122 @@ vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . t
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
 vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
 
+vectPermToRefl : vectPermTo Isomorphism.isoRefl xs = xs
+vectPermToRefl = vecIndexwiseEq $ \i => vectPermToIndexChariz {sigma=isoRefl}
+
+vectPermToTrans : vectPermTo (isoTrans sigma tau) xs = vectPermTo tau $ vectPermTo sigma xs
+
+{-
+-- Section discusses a system for permuting (xs++ys) to (ys++xs).
+
+||| See (FSAtConcatChariz).
+FSAtConcat : (n, m : Nat) -> Fin (n+m) -> Fin (n+(S m))
+FSAtConcat Z m el = FS el
+FSAtConcat (S Z) m FZ = FS FZ
+FSAtConcat (S (S prededn)) m FZ = weaken $ FSAtConcat (S prededn) m FZ
+FSAtConcat (S predn) m (FS k) = FS $ FSAtConcat predn m k
+
+finFSCong : {el : Fin n} -> {le : Fin m} -> el ~=~ le -> FS el ~=~ FS le
+
+finWeakenCong : {el : Fin n} -> {le : Fin m} -> el ~=~ le -> weaken el ~=~ weaken le
+
+FSAtConcatChariz : (n, m : Nat) -> (el : Fin (n+m)) -> FSAtConcat n m el ~=~ FS el
+FSAtConcatChariz Z m el = Refl
+FSAtConcatChariz (S Z) m FZ = Refl
+FSAtConcatChariz (S (S prededn)) m FZ = finWeakenCong $ FSAtConcatChariz (S prededn) m FZ
+FSAtConcatChariz (S predn) m (FS k) = finFSCong $ FSAtConcatChariz predn m k
+
+splitFinFSAtConcat : (n, m : Nat)
+	-> (i : Fin $ (S n)+(S m))
+	-> Either ( k : Fin $ (S n)+m ** i = FSAtConcat (S n) m k )
+		( i = Fin.FZ {k=n+(S m)} )
+-- splitFinFSAtConcat FZ = Right Refl
+-- splitFinFSAtConcat (FS k) = Left (k ** Refl)
+
+FSAsFSAtConcat : (n, m : Nat)
+	-> (i : Fin $ n+(S m))
+	-> ( k : Fin $ (S n)+m ** FS i = FSAtConcat (S n) m k )
+
+||| See (permThroughFSChariz).
+permThroughFS : Iso (Fin n) (Fin n) -> Iso (Fin $ S n) (Fin $ S n)
+permThroughFS (MkIso to from toFrom fromTo) {n} = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin $ S n -> Fin $ S n
+		to' FZ = FZ
+		to' (FS k) = FS $ to k
+		from' : Fin $ S n -> Fin $ S n
+		from' FZ = FZ
+		from' (FS k) = FS $ from k
+		toFrom' : (y : _) -> to' (from' y) = y
+		toFrom' FZ = Refl
+		toFrom' (FS k) = cong {f=FS} $ toFrom k
+		fromTo' : (x : _) -> from' (to' x) = x
+		fromTo' FZ = Refl
+		fromTo' (FS k) = cong {f=FS} $ fromTo k
+
+permThroughFSChariz : vectPermTo (permThroughFS sigma) (x::xs) = x :: vectPermTo sigma xs
+permThroughFSChariz {sigma=MkIso to from toFrom fromTo} {x} {xs} = vecIndexwiseEq pr
+	where
+		{-
+		pr : (i : _) -> index i $ vectPermTo (permThroughFS sigma) (x::xs)
+			= index i $ x :: vectPermTo sigma xs
+		-}
+		pr FZ = Refl
+		pr (FS k) = vectPermToIndexChariz
+				{sigma=permThroughFS $ MkIso to from toFrom fromTo}
+				{i=FS k}
+				{xs=x::xs}
+			`trans` (sym $ vectPermToIndexChariz
+				{sigma=MkIso to from toFrom fromTo}
+				{i=k}
+				{xs=xs})
+
+||| See (permThroughFSInConcatChariz).
+permThroughFSInConcat : Iso (Fin $ (S n)+m) (Fin $ (S n)+m) -> Iso (Fin $ (S n)+(S m)) (Fin $ (S n)+(S m))
+permThroughFSInConcat (MkIso to from toFrom fromTo) {n} {m} = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin $ (S n)+(S m) -> Fin $ (S n)+(S m)
+		to' FZ = FZ
+		to' (FS prel) = FSAtConcat (S n) m $ to
+			$ getWitness $ FSAsFSAtConcat n m prel
+		{-
+		to' (FS prel) with (splitFinFSAtConcat n m $ FS prel)
+			| Left (k ** pr) = FSAtConcat (S n) m $ to k
+			| Right pr = ?permThroughFSInConcat_to'
+		-}
+		from' : Fin $ (S n)+(S m) -> Fin $ (S n)+(S m)
+		from' FZ = FZ
+		from' (FS prel) = FSAtConcat (S n) m $ from
+			$ getWitness $ FSAsFSAtConcat n m prel
+		{-
+		from' (FS prel) with (splitFinFSAtConcat n m $ FS prel)
+			| Left (k ** pr) = FSAtConcat (S n) m $ from k
+			| Right pr = ?permThroughFSInConcat_from'
+		-}
+		{-
+		from' el with (splitFinFSAtConcat n m el)
+			| Left (k ** pr) = FSAtConcat (S n) m $ from k
+			| Right pr = FZ
+		-}
+		toFrom' : (y : _) -> to' (from' y) = y
+		-- toFrom' FZ = Refl
+		-- toFrom' (FS k) = cong {f=FS} $ toFrom k
+		toFrom' FZ = Refl
+		toFrom' (FS k) = ?permThroughFSInConcat_toFrom_2
+		fromTo' : (x : _) -> from' (to' x) = x
+		-- fromTo' FZ = Refl
+		-- fromTo' (FS k) = cong {f=FS} $ fromTo k
+		fromTo' FZ = Refl
+		fromTo' (FS k) = ?permThroughFSInConcat_fromTo_2
+
+permThroughFSInConcatChariz :
+	(vs : Vect ((S n)+(S m)) a)
+	-> (w : a)
+	-> (ws : Vect ((S n)+m) a)
+	-> vs ~=~ w::ws
+	-> vectPermTo (permThroughFSInConcat sigma) vs ~=~ w :: vectPermTo sigma ws
+-}
+
 {-
 -- Can't implement because of problems in expanding the nested (with)s of (decEq)s while proving the last characteristic property of the permutation.
 
@@ -332,11 +466,15 @@ swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
 swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
 -}
 
-rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
-rotateAt {predn} {a} nel = ( sigma
-		** \xs => vecIndexwiseEq
+-- > \xs => (getProof $ rotateAt $ 3 `shift` (FZ {k=5})) Char $ ['a','b','c']++xs
+rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn))
+	** (a : Type)
+		-> (xs : Vect (S predn) a)
+		-> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
+rotateAt {predn} nel = ( sigma
+		** \a => \xs => vecIndexwiseEq
 			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
-				$ (getProof $ rotateTo nel i) $ xs )
+				$ (getProof $ rotateTo nel i) a xs )
 	where
 		{-
 		Can't put (predn) directly into the types of (rotateTo) and (rotateFrom)
@@ -353,18 +491,19 @@ rotateAt {predn} {a} nel = ( sigma
 		deleteTo : ( el : Fin (S v) )
 			-> ( preli : Fin v )
 			-> ( j : Fin (S v) **
+				(a : Type) ->
 				(xs : Vect (S v) a) ->
 				(index j xs = index preli $ deleteAt el xs) )
 		deleteTo {v=Z} a b = FinZElim b
 		deleteTo FZ preli = ( FS preli ** prfn )
 			where
-				prfn (x::xs) = Refl
+				prfn _ (x::xs) = Refl
 		deleteTo (FS e) FZ = ( FZ ** prfn )
 			where
-				prfn (x::xs) = Refl
+				prfn _ (x::xs) = Refl
 		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
 			where
-				prfn (x::xs) = (getProof $ deleteTo e k) xs
+				prfn a (x::xs) = (getProof $ deleteTo e k) a xs
 		deleteToSkipsFocus : ( el : Fin (S v) )
 			-> ( preli : Fin v )
 			-> ( el = getWitness $ deleteTo el preli )
@@ -376,13 +515,14 @@ rotateAt {predn} {a} nel = ( sigma
 		rotateTo : ( el : Fin (S v) )
 			-> ( i : Fin (S v) )
 			-> ( j : Fin (S v) **
+				(a : Type) ->
 				(xs : Vect (S v) a) ->
 				(index j xs = index i $ index el xs :: deleteAt el xs) )
-		rotateTo FZ FZ = ( FZ ** \xs => Refl )
+		rotateTo FZ FZ = ( FZ ** \a => \xs => Refl )
 		rotateTo FZ (FS k) = ( FS k ** prfn )
 			where
-				prfn (x::xs) = Refl
-		rotateTo (FS e) FZ = ( FS e ** \xs => Refl )
+				prfn _ (x::xs) = Refl
+		rotateTo (FS e) FZ = ( FS e ** \a => \xs => Refl )
 		rotateTo (FS e) (FS k) = deleteTo (FS e) k
 		deleteFrom : (el : Fin (S v))
 			-> (i : Fin (S v))
@@ -480,6 +620,172 @@ rotateAt {predn} {a} nel = ( sigma
 			(\i => rotateFrom nel i)
 			(\i => rotateToFrom nel i)
 			(\i => rotateFromTo nel i)
+
+
+
+{-
+-- Section discusses a system for permuting (xs++ys) to (ys++xs).
+-- Requires (permThroughFSInConcat) to replace (permThroughFS).
+
+nullAppendId : (xs : Vect n a) -> xs++[] ~=~ xs
+nullAppendId [] = Refl
+nullAppendId (x::xs) = vectConsCong x (xs++[]) xs (nullAppendId xs)
+
+nullAppendIdSym : (xs : Vect n a) -> xs ~=~ xs++[]
+nullAppendIdSym [] = Refl
+nullAppendIdSym (x::xs) = vectConsCong x xs (xs++[]) (nullAppendIdSym xs)
+
+-- Design warning: (deleteAtConcatChariz) impossible if rewrites are used to define
+||| See (reconcatChariz).
+reconcat : Vect (n + S m) a -> Vect (S $ n+m) a
+reconcat [] {n=Z} impossible
+reconcat [] {n=S predn} impossible
+reconcat (x::xs) {n=Z} = x::xs
+reconcat (x::xs) {n=S predn} = x::reconcat xs
+
+-- Design warning: (deleteAtConcatChariz) impossible if rewrites are used to define
+reconcatChariz : (xs : Vect (n + S m) a) -> xs ~=~ reconcat xs
+reconcatChariz [] {n=Z} impossible
+reconcatChariz [] {n=S predn} impossible
+reconcatChariz (x::xs) {n=Z} = Refl
+reconcatChariz (x::xs) {n=S predn} = vectConsCong x xs (reconcat xs) $ reconcatChariz xs
+
+-- Design warning: (deleteAtConcatChariz) impossible if rewrites are used to define
+||| See (deleteAtConcatChariz).
+deleteAtConcat : Fin (n + S m) -> Vect (n + S m) a -> Vect (n+m) a
+deleteAtConcat _ {n=Z} {m} [] impossible
+deleteAtConcat _ {n=S predn} [] impossible
+deleteAtConcat k {n=Z} xs = deleteAt k xs
+deleteAtConcat FZ {n=S predn} (x::xs) = reconcat xs
+deleteAtConcat (FS k) {n=S predn} (x::xs) = x :: deleteAtConcat k xs
+
+shiftedIndexId : index (shift m nel) (xs++ys) = index nel ys
+shiftedIndexId {nel} {xs=[]} {ys} = Refl
+shiftedIndexId {nel} {xs=x::xs} {ys} = shiftedIndexId {xs=xs}
+
+deleteAtConcatChariz : (xs : Vect (S n) a)
+	-> (ys : Vect (S m) a)
+	-> deleteAt k (xs++ys) ~=~ deleteAtConcat {n=S n} {m=m} k (xs++ys)
+deleteAtConcatChariz {k=FZ} (x::xs) ys = reconcatChariz $ xs++ys
+deleteAtConcatChariz {k=FS k} {n=Z} (x::[]) ys = Refl
+deleteAtConcatChariz {k=FS k} {n=S predn} (x::xs) ys = vectConsCong
+	x
+	(deleteAt k (xs++ys))
+	(deleteAtConcat k (xs++ys))
+	$ deleteAtConcatChariz {k=k} xs ys
+
+deletionDecapitatingAppended : (xs : Vect (S predn) a)
+	-> (y : a)
+	-> (ys : Vect predm a)
+	-> deleteAtConcat {n=S predn} {m=predm} (S predn `shift` FZ) (xs++y::ys) = xs++ys
+deletionDecapitatingAppended {predn=Z} (x::[]) y ys = Refl
+deletionDecapitatingAppended {predn=S prededn} (x::xs) y ys = cong {f=(x::)}
+	$ deletionDecapitatingAppended {predn=prededn} xs y ys
+
+rotationSappingHeadFromAppended_lemma : (xs : Vect (S predn) a)
+	-> (y : a)
+	-> (ys : Vect predm a)
+	-> index (S predn `shift` FZ) (xs++y::ys)
+		:: deleteAtConcat {n=S predn} {m=predm} (S predn `shift` FZ) (xs++y::ys)
+		= y :: xs++ys
+rotationSappingHeadFromAppended_lemma {predn} xs y ys = vecHeadtailsEq
+	(shiftedIndexId {nel=FZ} {m=S predn} {xs=xs} {ys=y::ys})
+	$ deletionDecapitatingAppended xs y ys
+
+-- Interesting this could be implemented giving a (=) & not a (~=~)
+rotationSappingHeadFromAppended : (xs : Vect (S predn) a)
+	-> (y : a)
+	-> (ys : Vect predm a)
+	-> vectPermTo (getWitness $ rotateAt $ S predn `shift` FZ) (xs ++ y::ys)
+		= y :: xs++ys
+rotationSappingHeadFromAppended {predn} {predm} {a} xs y ys
+	= trans ((getProof $ rotateAt $ S predn `shift` FZ) a (xs++y::ys))
+		$ trans (vectConsCong (index (S predn `shift` FZ) $ xs++y::ys)
+			( deleteAt (S predn `shift` FZ) (xs++y::ys) )
+			( deleteAtConcat {n=S predn} {m=predm}
+				(S predn `shift` FZ)
+				(xs++y::ys) )
+			$ deleteAtConcatChariz xs (y::ys))
+		$ rotationSappingHeadFromAppended_lemma xs y ys
+
+-- Can't make (a) from the (getProof) implicit.
+reverseConcatPerm : (n, m : _) -> ( sigma : Iso (Fin (n+m)) (Fin (n+m))
+	** (a : Type)
+		-> (xs : Vect n a)
+		-> (ys : Vect m a)
+		-> vectPermTo sigma (xs++ys) ~=~ ys++xs )
+reverseConcatPerm n Z = ( isoRefl ** pr )
+	where
+		pr : (a : Type)
+			-> (xs : Vect n a)
+			-> (ys : Vect Z a)
+			-> vectPermTo Isomorphism.isoRefl (xs++ys) ~=~ ys++xs
+		pr _ xs [] = trans vectPermToRefl $ nullAppendId xs
+reverseConcatPerm Z m = ( isoRefl ** pr )
+	where
+		pr : (a : Type)
+			-> (xs : Vect Z a)
+			-> (ys : Vect m a)
+			-> vectPermTo Isomorphism.isoRefl (xs++ys) ~=~ ys++xs
+		pr _ [] ys = trans vectPermToRefl $ nullAppendIdSym ys
+reverseConcatPerm (S predn) (S predm) = ( isoTrans
+		(getWitness $ rotateAt $ S predn `shift` FZ)
+		$ permThroughFS $ getWitness $ reverseConcatPerm predn (S predm)
+	** pr )
+	where
+		pr_lem1 : (a : Type)
+			-> (xs : Vect (S predn) a)
+			-> (y : a)
+			-> (ys : Vect predm a)
+			-> y::( vectPermTo {n=S predn + predm}
+					(getWitness $ reverseConcatPerm (S predn) predm)
+					(xs++ys) )
+				~=~ y::ys++xs
+		pr_lem1 a xs y ys = vectConsCong y
+			( vectPermTo {n=(S predn)+predm}
+				(getWitness $ reverseConcatPerm (S predn) predm)
+				(xs++ys) )
+			(ys++xs)
+			$ (getProof $ reverseConcatPerm (S predn) predm) a xs ys
+		pr : (a : Type)
+			-> (xs : Vect (S predn) a)
+			-> (ys : Vect (S predm) a)
+			-> vectPermTo (isoTrans
+					(getWitness $ rotateAt $ S predn `shift` FZ)
+					$ permThroughFS $ getWitness
+						$ reverseConcatPerm predn (S predm))
+				(xs++ys)
+				~=~ ys++xs
+		pr a xs (y::ys) = trans ?pr_lem2 $ pr_lem1 a xs y ys
+		-- pr a xs (y::ys) = ?reverseConcatPerm'
+		{-
+		pr a xs (y::ys) = trans vectPermToTrans
+			$ trans (cong {f=vectPermTo
+					$ getWitness
+					$ reverseConcatPerm (S predn) predm}
+				$ rotationSappingHeadFromAppended xs y ys)
+			-- The type error is the same if these implicits are removed.
+			$ trans (permThroughFSChariz {x=y} {sigma=getWitness
+				$ reverseConcatPerm (S predn) predm}
+				{xs=xs++ys})
+			$ pr_lem1 a xs y ys
+		-}
+		{-
+		pr a xs (y::ys) = trans vectPermToTrans
+			{-
+			$ trans (cong {f=vectPermTo
+					$ getWitness
+					$ reverseConcatPerm (S predn) predm}
+				$ rotationSappingHeadFromAppended xs y ys)
+			-}
+			$ trans ?pr_lem2
+			-- The type error is the same if these implicits are removed.
+			$ trans (permThroughFSChariz {x=y} {sigma=getWitness
+				$ reverseConcatPerm (S predn) predm}
+				{xs=xs++ys})
+			$ pr_lem1 a xs y ys
+		-}
+-}
 
 
 
@@ -1258,9 +1564,109 @@ extendSpanningLZsByPreconcatTrivially : spanslz xs ys -> spanslz (zs++xs) ys
 extendSpanningLZsByPreconcatTrivially {zs=[]} prsp = prsp
 extendSpanningLZsByPreconcatTrivially {zs=z::zs} prsp = preserveSpanningLZByCons {z=z} $ extendSpanningLZsByPreconcatTrivially {zs=zs} prsp
 
--- Could be done by (spanslztrans) of above with a reversal permutation `spanslz`.
--- Equality of the (Fin) types and induced eq of the (Iso) types w/ (Auto)s suffices.
+-- Compare w/ proof of (multIdLeftNeutral) as a factor of (zippyScaleIdLeftNeutral).
+concatSpanslzFlipConcat : {xs : Matrix n k ZZ} -> {ys : Matrix m k ZZ}
+	-> spanslz (xs++ys) (ys++xs)
+concatSpanslzFlipConcat {xs} {ys} {n} {m} {k} =
+	( (map ((Data.Matrix.Algebraic.basis).(shift n)) $ fins m)
+		++(map ((Data.Matrix.Algebraic.basis).(weakenN m)) $ fins n)
+	** trans (sym $ timesMatMatAsMultipleLinearCombos
+			( (map ((Data.Matrix.Algebraic.basis).(shift n)) $ fins m)
+				++(map ((Data.Matrix.Algebraic.basis).(weakenN m)) $ fins n) )
+			(xs++ys))
+		$ vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+			trans (matMultIndicesChariz {i=i} {j=j}
+				{l=(map ((Data.Matrix.Algebraic.basis).(shift n)) $ fins m)
+					++(map ((Data.Matrix.Algebraic.basis).(weakenN m)) $ fins n)}
+				{r=xs++ys})
+			$ either
+				(\iAsFinM => withweaken i j iAsFinM)
+				(\iAsFinN => withshift i j iAsFinN)
+				$ splitFinAtConcat i
+	)
+	where
+		withweaken i j iAsFinM = rewrite getProof iAsFinM
+			in rewrite indexConcatAsIndexAppendee
+				{xs=ys} {ys=xs} (getWitness iAsFinM)
+			in rewrite indexConcatAsIndexAppendee
+				{xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n))
+					$ fins m}
+				{ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m))
+					$ fins n}
+				(getWitness iAsFinM)
+			in trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz)
+			$ trans (cong {f=(<:>(getCol j $ xs++ys))
+					.(Data.Matrix.Algebraic.basis {a=ZZ})
+					.(shift n)}
+				$ indexFinsIsIndex)
+			$ trans (dotBasisLIsIndex {i=shift n $ getWitness iAsFinM}
+				$ getCol j $ xs++ys)
+			$ trans (cong $ sym $ transposeIndexChariz {k=j})
+			$ trans (transposeIndicesChariz (shift n $ getWitness iAsFinM) j)
+			$ cong {f=index j} $ indexConcatAsIndexAppended
+				{xs=xs} {ys=ys} (getWitness iAsFinM)
+		withshift i j iAsFinN = rewrite getProof iAsFinN
+			in rewrite indexConcatAsIndexAppended
+				{xs=ys} {ys=xs} (getWitness iAsFinN)
+			in rewrite indexConcatAsIndexAppended 
+				{xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n))
+					$ fins m}
+				{ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m))
+					$ fins n}
+				(getWitness iAsFinN)
+			in trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz)
+			$ trans (cong {f=(<:>(getCol j $ xs++ys))
+					.(Data.Matrix.Algebraic.basis {a=ZZ})
+					.(weakenN m)}
+				$ indexFinsIsIndex)
+			$ trans (dotBasisLIsIndex {i=weakenN m $ getWitness iAsFinN}
+				$ getCol j $ xs++ys)
+			$ trans (cong $ sym $ transposeIndexChariz {k=j})
+			$ trans (transposeIndicesChariz (weakenN m $ getWitness iAsFinN) j)
+			$ cong {f=index j} $ indexConcatAsIndexAppendee
+				{xs=xs} {ys=ys} (getWitness iAsFinN)
+
+{-
+-- REPL-only
+
+concatSpanslzFlipConcat {xs} {ys} {n} {m} {k} =
+	(... **
+			...
+			$ either
+				(\iAsFinM => ?concatSpanslzFlipConcat_withweaken)
+				(\iAsFinN => ?concatSpanslzFlipConcat_withshift)
+				$ splitFinAtConcat i
+	)
+
+concatSpanslzFlipConcat_withweaken = proof
+  intros
+  rewrite sym $ getProof iAsFinM
+  rewrite sym $ indexConcatAsIndexAppendee {xs=ys} {ys=xs} (getWitness iAsFinM)
+  rewrite sym $ indexConcatAsIndexAppendee {xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n)) $ fins m} {ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m)) $ fins n} (getWitness iAsFinM)
+  exact trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz) $ _
+  exact trans (cong {f=(<:>(getCol j $ xs++ys)).(Data.Matrix.Algebraic.basis {a=ZZ}).(shift n)} $ indexFinsIsIndex) $ _
+  exact trans (dotBasisLIsIndex {i=shift n $ getWitness iAsFinM} $ getCol j $ xs++ys) $ _
+  exact trans (cong $ sym $ transposeIndexChariz {k=j}) $ _
+  exact trans (transposeIndicesChariz (shift n $ getWitness iAsFinM) j) $ _
+  exact cong {f=index j} $ indexConcatAsIndexAppended {xs=xs} {ys=ys} (getWitness iAsFinM)
+
+concatSpanslzFlipConcat_withshift = proof
+  intros
+  rewrite sym $ getProof iAsFinN
+  rewrite sym $ indexConcatAsIndexAppended {xs=ys} {ys=xs} (getWitness iAsFinN)
+  rewrite sym $ indexConcatAsIndexAppended  {xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n)) $ fins m} {ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m)) $ fins n} (getWitness iAsFinN)
+  exact trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz) $ _
+  exact trans (cong {f=(<:>(getCol j $ xs++ys)).(Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m)} $ indexFinsIsIndex) $ _
+  exact trans (dotBasisLIsIndex {i=weakenN m $ getWitness iAsFinN} $ getCol j $ xs++ys) $ _
+  exact trans (cong $ sym $ transposeIndexChariz {k=j}) $ _
+  exact trans (transposeIndicesChariz (weakenN m $ getWitness iAsFinN) j) $ _
+  exact cong {f=index j} $ indexConcatAsIndexAppendee {xs=xs} {ys=ys} (getWitness iAsFinN)
+-}
+
 extendSpanningLZsByPostconcatTrivially : spanslz xs ys -> spanslz (xs++zs) ys
+extendSpanningLZsByPostconcatTrivially {xs} {ys} {zs} spXY = spanslztrans
+	concatSpanslzFlipConcat
+	$ extendSpanningLZsByPreconcatTrivially spXY
 
 concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
 concatSpansRellz spXZ spYW = mergeSpannedLZs (extendSpanningLZsByPostconcatTrivially spXZ) (extendSpanningLZsByPreconcatTrivially spYW)
@@ -1378,11 +1784,11 @@ headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ 
 headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs =
 	spanslztrans ( permPreservesSpannedbylz $ getWitness $ rotateAt nel )
 	$ spanslztrans ( spanslzreflFromEq
-		$ trans ((getProof $ rotateAt nel)
+		$ trans ((getProof $ rotateAt nel) _
 			$ updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
 		$ vecHeadtailsEq indexUpdateAtChariz updateDeleteAtChariz )
 	$ spanslztrans ( transfpr (index nel xs) (deleteAt nel xs) )
-	$ spanslztrans ( spanslzreflFromEq $ sym $ (getProof $ rotateAt nel) $ xs )
+	$ spanslztrans ( spanslzreflFromEq $ sym $ (getProof $ rotateAt nel) _ $ xs )
 	$ permPreservesSpanslz $ getWitness $ rotateAt nel
 
 headOpPreservesSpannedbylzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ}
@@ -1394,10 +1800,10 @@ headOpPreservesSpannedbylzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m
 	-> spanslz xs (updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
 headOpPreservesSpannedbylzImpliesUpdateAtDoes {f} transfpr nel xs =
 	spanslztrans ( permPreservesSpannedbylz $ getWitness $ rotateAt nel )
-	$ spanslztrans ( spanslzreflFromEq $ (getProof $ rotateAt nel) $ xs )
+	$ spanslztrans ( spanslzreflFromEq $ (getProof $ rotateAt nel) _ $ xs )
 	$ spanslztrans ( transfpr (index nel xs) (deleteAt nel xs) )
 	$ spanslztrans ( spanslzreflFromEq $ sym
-			$ trans ((getProof $ rotateAt nel)
+			$ trans ((getProof $ rotateAt nel) _
 				$ updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
 			$ vecHeadtailsEq indexUpdateAtChariz updateDeleteAtChariz )
 	$ permPreservesSpanslz $ getWitness $ rotateAt nel
