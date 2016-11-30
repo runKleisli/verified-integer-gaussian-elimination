@@ -296,7 +296,7 @@ vectPermToRefl = vecIndexwiseEq $ \i => vectPermToIndexChariz {sigma=isoRefl}
 vectPermToTrans : vectPermTo (isoTrans sigma tau) xs = vectPermTo tau $ vectPermTo sigma xs
 
 {-
--- Section discusses a system for permuting (xs++ys) to (ys++xs).
+-- (1/2) Section discusses a system for permuting (xs++ys) to (ys++xs).
 
 ||| See (FSAtConcatChariz).
 FSAtConcat : (n, m : Nat) -> Fin (n+m) -> Fin (n+(S m))
@@ -626,7 +626,7 @@ rotateAt {predn} nel = ( sigma
 
 
 {-
--- Section discusses a system for permuting (xs++ys) to (ys++xs).
+-- (2/2) Section discusses a system for permuting (xs++ys) to (ys++xs).
 -- Requires (permThroughFSInConcat) to replace (permThroughFS).
 
 nullAppendId : (xs : Vect n a) -> xs++[] ~=~ xs
