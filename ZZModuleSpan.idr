@@ -26,8 +26,17 @@ Trivial lemmas and plumbing
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to
 
+isoSymIsInvolution : isoSym $ isoSym sigma = sigma
+isoSymIsInvolution {sigma=MkIso to from toFrom fromTo} = Refl
+
 runIsoTrans : runIso (isoTrans sigma tau) x = runIso tau $ runIso sigma x
 runIsoTrans {sigma=MkIso to _ _ _} {tau=MkIso to' _ _ _} = Refl
+
+runIsoSym1 : runIso (isoTrans sigma $ isoSym sigma) x = x
+runIsoSym1 {sigma=MkIso to from toFrom fromTo} {x} = fromTo x
+
+runIsoSym2 : runIso (isoTrans (isoSym sigma) sigma) x = x
+runIsoSym2 {sigma=MkIso to from toFrom fromTo} {x} = toFrom x
 
 total
 indexRangeIsIndex : index i Vect.range = i
@@ -303,6 +312,14 @@ vectPermToTrans {sigma} {tau} {xs} = vecIndexwiseEq $ \i =>
 	$ trans vectPermToIndexChariz
 	$ trans vectPermToIndexChariz
 	$ cong {f=flip index xs} $ sym $ runIsoTrans {sigma=sigma} {tau=tau} {x=i}
+
+vectPermToSym1 : vectPermTo (isoTrans sigma $ isoSym sigma) xs = xs
+vectPermToSym1 {xs} = vecIndexwiseEq $ \i => trans vectPermToIndexChariz
+	$ cong {f=flip index xs} runIsoSym1
+
+vectPermToSym2 : vectPermTo (isoTrans (isoSym sigma) sigma) xs = xs
+vectPermToSym2 {xs} = vecIndexwiseEq $ \i => trans vectPermToIndexChariz
+	$ cong {f=flip index xs} runIsoSym2
 
 {-
 -- (1/2) Section discusses a system for permuting (xs++ys) to (ys++xs).
@@ -1788,9 +1805,33 @@ Implication of bispannability: Transformations of this form preserve the span of
 
 
 
-permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigma xs) xs
+-- Compare w/ proof of (multIdLeftNeutral).
+permMatrixId : (sigma : Iso (Fin n) (Fin n))
+	-> {xs : Matrix n m ZZ}
+	-> (vectPermTo sigma Id)<>xs = vectPermTo sigma xs
+permMatrixId sigma {xs} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+	trans matMultIndicesChariz
+	$ trans (cong {f=(<:>(getCol j xs))}
+		$ trans vectPermToIndexChariz
+		$ idMatIndexChariz)
+	$ trans (dotBasisLIsIndex $ getCol j xs)
+	$ trans (cong $ sym $ transposeIndexChariz {k=j})
+	$ trans (transposeIndicesChariz (runIso sigma i) j)
+	$ cong $ sym $ vectPermToIndexChariz
+
+permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n))
+	-> {xs : Matrix n m ZZ}
+	-> spanslz (vectPermTo sigma xs) xs
+permPreservesSpanslz sigma = (vectPermTo (isoSym sigma) Id **
+	trans (sym $ timesMatMatAsMultipleLinearCombos _ _)
+	$ trans (permMatrixId (isoSym sigma))
+	$ trans (sym vectPermToTrans)
+	$ vectPermToSym2
+	)
 
 permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
+permPreservesSpannedbylz sigma = (vectPermTo sigma Id **
+	trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ permMatrixId sigma)
 
 
 
