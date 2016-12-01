@@ -26,6 +26,9 @@ Trivial lemmas and plumbing
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to
 
+runIsoTrans : runIso (isoTrans sigma tau) x = runIso tau $ runIso sigma x
+runIsoTrans {sigma=MkIso to _ _ _} {tau=MkIso to' _ _ _} = Refl
+
 total
 indexRangeIsIndex : index i Vect.range = i
 indexRangeIsIndex {i=FZ} = Refl
@@ -293,7 +296,13 @@ vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapCh
 vectPermToRefl : vectPermTo Isomorphism.isoRefl xs = xs
 vectPermToRefl = vecIndexwiseEq $ \i => vectPermToIndexChariz {sigma=isoRefl}
 
-vectPermToTrans : vectPermTo (isoTrans sigma tau) xs = vectPermTo tau $ vectPermTo sigma xs
+vectPermToTrans : vectPermTo (isoTrans sigma tau) xs = vectPermTo sigma $ vectPermTo tau xs
+vectPermToTrans {sigma} {tau} {xs} = vecIndexwiseEq $ \i =>
+	trans vectPermToIndexChariz
+	$ sym
+	$ trans vectPermToIndexChariz
+	$ trans vectPermToIndexChariz
+	$ cong {f=flip index xs} $ sym $ runIsoTrans {sigma=sigma} {tau=tau} {x=i}
 
 {-
 -- (1/2) Section discusses a system for permuting (xs++ys) to (ys++xs).
@@ -628,6 +637,15 @@ rotateAt {predn} nel = ( sigma
 {-
 -- (2/2) Section discusses a system for permuting (xs++ys) to (ys++xs).
 -- Requires (permThroughFSInConcat) to replace (permThroughFS).
+
+!!!!!!!!
+Uses incorrect definition of (vectPermToTrans):
+
+vectPermToTrans : vectPermTo (isoTrans sigma tau) xs = vectPermTo tau $ vectPermTo sigma xs
+
+The fact is, vectPermTo (isoTrans sigma tau) xs = vectPermTo sigma $ vectPermTo tau xs
+!!!!!!!!
+
 
 nullAppendId : (xs : Vect n a) -> xs++[] ~=~ xs
 nullAppendId [] = Refl
