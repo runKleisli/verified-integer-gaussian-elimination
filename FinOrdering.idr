@@ -75,3 +75,9 @@ instance DecLT (Fin n) where
 -}
 
 lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b
+lteToLTERel LTEZero {b=Z} = Right Refl
+lteToLTERel LTEZero {b=S predb} = Left $ LTESucc $ LTEZero {right=predb}
+lteToLTERel (LTESucc ltepr) {a=S preda} {b=S predb} = either
+	(Left . LTESucc)
+	(Right . (cong {f=S}))
+	$ lteToLTERel ltepr
