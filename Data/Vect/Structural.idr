@@ -94,8 +94,17 @@ indexUpdateAtChariz {xs=(x::xs)} {f} {i=FZ} = Refl
 indexUpdateAtChariz {xs=x::xs} {f} {i=FS i} = indexUpdateAtChariz {xs=xs} {f=f} {i=i}
 
 indexUpdateAtChariz2 : Not (i = j) -> index i $ updateAt j f xs = index i xs
+indexUpdateAtChariz2 prneq {i=FZ} {j=FZ} = void $ prneq Refl
+indexUpdateAtChariz2 prneq {i=FS k} {j=FZ} {xs=x::xs} = Refl
+indexUpdateAtChariz2 prneq {i=FZ} {j=FS k} {xs=x::xs} = Refl
+indexUpdateAtChariz2 prneq {i=FS ki} {j=FS kj} {xs=x::xs} = indexUpdateAtChariz2 {xs=xs}
+	$ prneq . (cong {f=FS})
 
 updateDeleteAtChariz : deleteAt i $ updateAt i f xs = deleteAt i xs
+updateDeleteAtChariz {i=FZ} {xs=x::xs} = Refl
+updateDeleteAtChariz {i=FS k} {xs=x::[]} = FinZElim k
+updateDeleteAtChariz {i=FS k} {xs=x::x2::xs} = cong {f=(x::)}
+	$ updateDeleteAtChariz {i=k} {xs=x2::xs}
 
 updateAtIndIsMapAtInd : index i $ updateAt i f xs = index i $ map f xs
 updateAtIndIsMapAtInd = trans indexUpdateAtChariz $ sym indexMapChariz
