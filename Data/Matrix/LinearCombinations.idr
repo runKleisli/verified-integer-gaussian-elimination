@@ -536,6 +536,8 @@ timesMatMatAsMultipleLinearCombos' = proof
 * Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
 * Prove transposition is an antiendomorphism of multiplication and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
 * Some Algebra.neutral is a zero element proofs.
+* Prove scalar multiplication of the left factor in a vector- or matrix-matrix product
+is the same as multiplying the product by the same scalar. (Note rel. to bilinearity)
 -}
 
 
@@ -749,3 +751,57 @@ timesPreservesLeadingZeroExtensionR {xs} {ys} = vecIndexwiseEq $ \i => vecIndexw
 			$ trans (cong {f=((index i xs)<:>)} leadingElemExtensionColFSId)
 			$ trans (sym $ matMultIndicesChariz)
 			$ sym $ cong {f=index $ FS prelj} $ indexMapChariz {f=((Pos 0)::)}
+
+
+
+scaledNeutralIsNeutral_zz : {m : Nat}
+	-> (z : ZZ)
+	-> z<#>(the (Vect m ZZ) Algebra.neutral) = Algebra.neutral
+scaledNeutralIsNeutral_zz _ {m=Z} = Refl
+scaledNeutralIsNeutral_zz z {m=S predm} = vecHeadtailsEq (ringNeutralIsMultZeroR z)
+	$ scaledNeutralIsNeutral_zz z {m=predm}
+
+vectVectLScalingCompatibility : {z : ZZ} -> (z<#>l)<:>r = z<.>(l<:>r)
+vectVectLScalingCompatibility {z} {l=[]} {r=[]} = sym $ ringNeutralIsMultZeroR z
+vectVectLScalingCompatibility {z} {l=l::ls} {r=r::rs} =
+	trans (dotproductRewrite {v=z<#>(l::ls)} {w=r::rs})
+	$ trans (cong {f=monoidsum} $ vecHeadtailsEq (sym $ ringOpIsAssociative z l r) Refl)
+	$ trans monoidrec1D
+	$ trans (cong {f=((z<.>(l<.>r))<+>)}
+		$ trans (sym $ dotproductRewrite {v=z<#>ls} {w=rs})
+		$ (vectVectLScalingCompatibility {z=z} {l=ls} {r=rs}))
+	$ trans (sym $ ringOpIsDistributiveL z (l<.>r) (ls<:>rs))
+	-- z<.>(l<.>r <+> ls<:>rs)
+	$ cong {f=(z<.>)}
+	$ trans (cong {f=((l<.>r)<+>)} $ dotproductRewrite {v=ls} {w=rs})
+	-- (l<.>r)<+>(monoidsum $ zipWith (<.>) ls rs)
+	$ trans (sym monoidrec1D)
+	$ sym $ dotproductRewrite {v=l::ls} {w=r::rs}
+
+-- Note the relationship to bilinearity of matrix multiplication
+vectMatLScalingCompatibility : {z : ZZ} -> {rs : Matrix k m ZZ} -> (z <#> la) <\> rs = z <#> (la <\> rs)
+vectMatLScalingCompatibility {z} {la=[]} {rs=[]} =
+	trans zippyLemA
+	$ sym $ trans (cong {f=(z<#>)} zippyLemA)
+	$ scaledNeutralIsNeutral_zz z
+vectMatLScalingCompatibility {z} {la=l::la} {rs=r::rs} {m=Z} = zeroVecEq
+-- vectMatLScalingCompatibility {z} {la=l::la} {rs=r::rs} {m=S predm} = ?vMLSC_rhs_2
+vectMatLScalingCompatibility {z} {la=l::la} {rs=r::rs} {m=S predm} =
+	trans (timesVectMatAsHeadTail_ByTransposeElimination
+		{scals=z<#>(l::la)} {vects=r::rs})
+	$ trans ( vecHeadtailsEq
+			(vectVectLScalingCompatibility {z=z} {l=l::la} {r=map head $ r::rs})
+			$ vectMatLScalingCompatibility {z=z}
+				{la=l::la} {rs=map tail $ r::rs} )
+	$ sym $ cong {f=(z<#>)} $ timesVectMatAsHeadTail_ByTransposeElimination
+		{scals=l::la} {vects=r::rs}
+
+matMatLScalingCompatibility :
+	(scal : ZZ)
+	-> (xs : Matrix n k ZZ)
+	-> (ys : Matrix k m ZZ)
+	-> (scal <#> xs) <> ys = scal <#> (xs <> ys)
+matMatLScalingCompatibility _ [] _ = zeroVecEq
+matMatLScalingCompatibility scal (x::xs) ys = vecHeadtailsEq
+	vectMatLScalingCompatibility
+	$ matMatLScalingCompatibility scal xs ys

@@ -1474,31 +1474,7 @@ updateAtEquality {ls=[]} updi f fnpreq = FinZElim updi
 updateAtEquality {ls=l::ls} {rs} FZ f fnpreq = vecHeadtailsEq {xs=tail $ (l::ls) `zippyScale` rs} ( trans (sym $ timesVectMatAsLinearCombo (f _ l) rs) $ trans (fnpreq l) $ cong {f=f _} $ timesVectMatAsLinearCombo l rs ) Refl
 updateAtEquality {ls=l::ls} (FS penupdi) f fnpreq = vecHeadtailsEq Refl $ updateAtEquality penupdi f fnpreq
 
--- Note the relationship to bilinearity of matrix multiplication
-vectMatLScalingCompatibility : {z : ZZ} -> {rs : Matrix k m ZZ} -> (z <#> la) <\> rs = z <#> (la <\> rs)
-vectMatLScalingCompatibility {z} {la} {rs} = ?vectMatLScalingCompatibility_rhs
 
-{-
--- Works in REPL, untested otherwise
-vectMatLScalingCompatibility_rhs = proof
-  intros
-  claim vectmatLiftId1 (z <#> la) <\> rs = head $ (row $ z <#> la) <> rs
-  unfocus
-  claim moveScaleOutsideRow row (z <#> la) = z <#> (row la)
-  unfocus
-  claim chScaleOutsideTimes (row (z <#> la)) <> rs = z <#> ((row la) <> rs)
-  unfocus
-  exact trans vectmatLiftId1 $ cong {f=head} chScaleOutsideTimes
-  trivial
-  unfocus
-  exact trans (cong {f=(<> rs)} moveScaleOutsideRow) _
-  trivial
-  compute
-  claim scalMatMatCompat (scal : ZZ) -> {nu, ka, mu : Nat} -> (xs : Matrix nu ka ZZ) -> (ys : Matrix ka mu ZZ) -> (scal <#> xs) <> ys = scal <#> (xs <> ys)
-  unfocus
-  exact scalMatMatCompat z (row la) rs
-  exact ?timesScalarLeftCommutesWithTimesMatRight
--}
 
 spanRowScalelz : (z : ZZ) -> (updi : Fin n') -> spanslz xs ys -> spanslz xs (updateAt updi (z<#>) ys)
 spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scaleMain $ rewrite sym prvs in Refl)
@@ -1509,6 +1485,11 @@ spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scal
 
 
 spanScalelz : (z : ZZ) -> spanslz xs ys -> spanslz xs (z<#>ys)
+spanScalelz z {ys} spXY = spanslztrans spXY
+	$ ( z<#>Id **
+	trans (sym $ timesMatMatAsMultipleLinearCombos (z<#>Id) ys)
+	$ trans (matMatLScalingCompatibility z Id ys)
+	$ cong {f=(z<#>)} $ multIdLeftNeutral ys )
 
 spanAdd : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <+> zs)
 spanAdd {xs} {ys} {zs} spXY spXZ = ((getWitness spXY)<+>(getWitness spXZ) **
