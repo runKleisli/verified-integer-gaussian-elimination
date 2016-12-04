@@ -187,8 +187,33 @@ Trivial identities about (unital) rings.
 -- Actually theorems about quasigroups
 groupOpIsCancellativeL : VerifiedGroup a => (left, right1, right2 : a) -> left<+>right1 = left<+>right2 -> right1=right2
 groupOpIsCancellativeL left right1 right2 pr = trans (sym $ trans (cong {f=(<+>right1)} $ groupInverseIsInverseR left) $ monoidNeutralIsNeutralR right1) $ trans (trans (sym $ semigroupOpIsAssociative (inverse left) left right1) $ trans (cong {f=((inverse left)<+>)} pr) $ semigroupOpIsAssociative (inverse left) left right2) $ trans (cong {f=(<+>right2)} $ groupInverseIsInverseR left) $ monoidNeutralIsNeutralR right2
+
 groupOpIsCancellativeR : VerifiedGroup a => (left1, left2, right : a) -> left1<+>right = left2<+>right -> left1=left2
 groupOpIsCancellativeR left1 left2 right pr = trans (sym $ trans (cong {f=(left1<+>)} $ groupInverseIsInverseL right) $ monoidNeutralIsNeutralL left1) $ trans (trans (semigroupOpIsAssociative left1 right (inverse right)) $ trans (cong {f=(<+>(inverse right))} pr) $ sym $ semigroupOpIsAssociative left2 right (inverse right)) $ trans (cong {f=(left2<+>)} $ groupInverseIsInverseL right) $ monoidNeutralIsNeutralL left2
+
+groupOpIsCancellativeL_Vect : VerifiedRingWithUnity a =>
+	(left, right1, right2 : Vect n a)
+	-> left<+>right1 = left<+>right2 -> right1=right2
+groupOpIsCancellativeL_Vect left right1 right2 pr =
+	trans (sym $ trans (cong {f=(<+>right1)} $ groupInverseIsInverseR_Vect left)
+		$ monoidNeutralIsNeutralR_Vect right1)
+	$ trans (trans (sym $ semigroupOpIsAssociative_Vect (inverse left) left right1)
+		$ trans (cong {f=((inverse left)<+>)} pr)
+		$ semigroupOpIsAssociative_Vect (inverse left) left right2)
+	$ trans (cong {f=(<+>right2)} $ groupInverseIsInverseR_Vect left)
+	$ monoidNeutralIsNeutralR_Vect right2
+
+groupOpIsCancellativeR_Vect : VerifiedRingWithUnity a =>
+	(left1, left2, right : Vect n a)
+	-> (left1 <+> right = left2 <+> right) -> left1 = left2
+groupOpIsCancellativeR_Vect left1 left2 right pr =
+	trans (sym $ trans (cong {f=(left1<+>)} $ groupInverseIsInverseL_Vect right)
+		$ monoidNeutralIsNeutralL_Vect left1)
+	$ trans (trans (semigroupOpIsAssociative_Vect left1 right (inverse right))
+		$ trans (cong {f=(<+>(inverse right))} pr)
+		$ sym $ semigroupOpIsAssociative_Vect left2 right (inverse right))
+	$ trans (cong {f=(left2<+>)} $ groupInverseIsInverseL_Vect right)
+	$ monoidNeutralIsNeutralL_Vect left2
 
 -- Not used for the below, but for elsewhere.
 neutralSelfInverse : VerifiedGroup a => inverse $ the a $ Algebra.neutral = the a $ Algebra.neutral
@@ -199,6 +224,7 @@ groupElemOwnDoubleImpliesNeut x pr = groupOpIsCancellativeL x x Algebra.neutral 
 
 ringNeutralIsMultZeroL : VerifiedRing a => (x : a) -> Algebra.neutral <.> x = Algebra.neutral
 ringNeutralIsMultZeroL x = groupElemOwnDoubleImpliesNeut (Algebra.neutral <.> x) $ trans (sym $ ringOpIsDistributiveR Algebra.neutral Algebra.neutral x) $ cong {f=(<.>x)} $ monoidNeutralIsNeutralL Algebra.neutral
+
 ringNeutralIsMultZeroR : VerifiedRing a => (x : a) -> x <.> Algebra.neutral = Algebra.neutral
 ringNeutralIsMultZeroR x = groupElemOwnDoubleImpliesNeut (x <.> Algebra.neutral) $ trans (sym $ ringOpIsDistributiveL x Algebra.neutral Algebra.neutral) $ cong {f=(x<.>)} $ monoidNeutralIsNeutralL Algebra.neutral
 
