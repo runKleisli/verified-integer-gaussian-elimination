@@ -728,6 +728,11 @@ neutralVectIsVectTimesZero xs {mu=S predmu} = trans timesVectMatAsHeadTail_ByTra
 		(neutralVectIsDotProductZero_L $ map head xs)
 		$ neutralVectIsVectTimesZero $ map tail xs
 
+emptyVectIsTimesVectZero : (x : Matrix nu Z ZZ) -> x</>[] = Algebra.neutral
+emptyVectIsTimesVectZero [] = Refl
+emptyVectIsTimesVectZero (x::xs) = vecHeadtailsEq (neutralVectIsDotProductZero_L x)
+	$ emptyVectIsTimesVectZero xs
+
 neutralMatIsMultZeroL : (x : Matrix nu mu ZZ) -> Algebra.neutral <> x = Algebra.neutral
 neutralMatIsMultZeroL x = vecIndexwiseEq $ \i => trans indexMapChariz $ trans (cong {f=(<\>x)} indexReplicateChariz) $ trans (neutralVectIsVectTimesZero x) $ sym $ indexReplicateChariz
 

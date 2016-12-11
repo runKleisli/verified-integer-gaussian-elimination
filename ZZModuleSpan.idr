@@ -1135,18 +1135,446 @@ matTimesVerMonoid {r} {n} = matTimesVerMonoid'
 Associative property for matrix multiplication
 -}
 
+zipWithTimesIsDistributiveL : (l, c, r : Vect n ZZ)
+	-> zipWith (<.>) l $ c<+>r = zipWith (<.>) l c <+> zipWith (<.>) l r
+zipWithTimesIsDistributiveL [] [] [] = Refl
+zipWithTimesIsDistributiveL (l::ls) (c::cs) (r::rs) = vecHeadtailsEq
+	(ringOpIsDistributiveL l c r)
+	$ zipWithTimesIsDistributiveL ls cs rs
+
+zipWithTimesIsRecDistributiveL : (l : Vect n ZZ)
+	-> (rs : Matrix m n ZZ)
+	-> zipWith (<.>) l $ monoidsum rs = monoidsum $ map (zipWith (<.>) l) rs
+zipWithTimesIsRecDistributiveL {n} l [] = vecIndexwiseEq
+	$ \i => trans (zipWithEntryChariz {i=i} {m=\x : ZZ => \y => x <.> y})
+		$ trans (cong {f=((index i l)<.>)} $ indexReplicateChariz {n=n})
+		$ trans (ringNeutralIsMultZeroR $ index i l)
+		$ sym indexReplicateChariz
+{-
+-- No matter how many implicit arguments you try and fill in, this rewrite is REPL-only.
+-- "Specifically: Type mismatch between neutral and Pos 0"
+zipWithTimesIsRecDistributiveL {n} l [] = vecIndexwiseEq
+	$ \i => trans (zipWithEntryChariz {i=i} {m=\x : ZZ => \y => x <.> y})
+		$ rewrite (indexReplicateChariz {k=i} {n=n} {a=Pos 0})
+		in ringNeutralIsMultZeroR $ index i l
+-}
+zipWithTimesIsRecDistributiveL l (r::rs) =
+	trans (cong {f=zipWith (<.>) l}
+		$ monoidrec2D)
+	$ trans (zipWithTimesIsDistributiveL l r $ monoidsum rs)
+	$ trans (cong {f=((zipWith (<.>) l r)<+>)} $ zipWithTimesIsRecDistributiveL l rs)
+	$ sym $ monoidrec2D
+
+vecMatVecRebracketing : {l : Vect n ZZ}
+	-> {c : Matrix n m ZZ}
+	-> {r : Vect m ZZ}
+	-> l <:> (c</>r) = (l<\>c) <:> r
+vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
+	where
+		-- (w/ timesVectMatAsLinearCombo)
+		-- sum_i $ l_i . (sum_j $ r_j <#> c*_j)_i
+		step1 : l <:> (c</>r)
+			= monoidsum $ zipWith (<.>) l
+				$ monoidsum $ zipWith (<#>) r $ transpose c
+		step1 = cong {f=(l<:>)}
+			$ trans (matVecMultIsVecTransposeMult r c)
+			$ timesVectMatAsLinearCombo r $ transpose c
+		-- distributivity
+		-- sum_i $ sum_j $ l_i . (r_j <#> c*_j)_i
+		step2 : monoidsum $ zipWith (<.>) l
+				$ monoidsum $ zipWith (<#>) r $ transpose c
+			= monoidsum $ monoidsum
+				$ map (zipWith (<.>) l) $ zipWith (<#>) r $ transpose c
+		step2 = cong {f=monoidsum} $ zipWithTimesIsRecDistributiveL l _
+		-- mapIndexwiseEq w/ (<#>), generalized to a (<:>) situation.
+		-- sum_i $ sum_j $ l_i . (r_j . c*_j_i)
+		step3 : (monoidsum {t=Vect n} {a=ZZ}) $ (monoidsum {t=Vect m} {a=Vect n ZZ})
+				$ map (zipWith (<.>) l) $ zipWith (<#>) r $ transpose c
+			=(monoidsum {t=Vect n} {a=ZZ}) $ (monoidsum {t=Vect m} {a=Vect n ZZ})
+				$ map (\j => map ( \i => index i l
+						<.> (index j r
+							<.> (indices j i $ transpose c)) )
+					$ fins n)
+				$ fins m
+		{-
+		Without the implicit args filled for each (monoidsum), there are not
+		enough helpful error msgs about missing implicits to find a solution.
+		-}
+		step3 = cong {f=(monoidsum {t=Vect n} {a=ZZ})
+				. (monoidsum {t=Vect m} {a=Vect n ZZ})}
+			$ vecIndexwiseEq
+			$ \jj => trans (indexMapChariz {f=zipWith (<.>) l})
+				$ trans (
+				trans (cong $ zipWithEntryChariz
+						{m=(<#>) {a=ZZ} {b=Vect n ZZ}})
+					$ vecIndexwiseEq
+					$ \ii => trans (zipWithEntryChariz {m=(<.>) {a=ZZ}})
+						$ trans (cong {f=((index ii l)<.>)}
+							$ indexMapChariz)
+						$ sym $ trans indexMapChariz
+						{-
+						$ rewrite indexFinsIsIndex {i=ii}
+						in rewrite indexFinsIsIndex {i=jj} in Refl
+						-- fails, so the following instead.
+						-}
+						$ trans (cong
+							-- Elaborating upon
+							-- {f=(<.>_) . (flip index l)}
+							{f=\ind => index ind l
+							<.>(index (index jj $ fins m) r
+								<.> (indices
+									(index jj $ fins m)
+									ind
+								$ transpose c))}
+							$ indexFinsIsIndex {i=ii}
+						) $ cong {f=((index ii l)<.>)}
+						$ trans (cong {f=(<.>(indices
+									(index jj $ fins m)
+									ii
+								$ transpose c))
+							. (flip index r)}
+							$ indexFinsIsIndex {i=jj})
+						$ cong {f=((index jj r)<.>)
+							. (index ii)
+							. (flip index $ transpose c)}
+							$ indexFinsIsIndex {i=jj}
+				)
+				$ sym indexMapChariz
+		{-
+		-- REPL-only; otherwise:
+		-- Type mismatch between
+		--         a = c (Type of trans _ _)
+		-- and
+		--         Nat (Expected type)
+
+		step3 = cong {f=monoidsum . monoidsum} $ the (
+				map (zipWith (<.>) l) $ zipWith (<#>) r $ transpose c
+				= map (\j => map ( \i => index i l
+						<.> (index j r
+							<.> (indices j i $ transpose c)) )
+					$ fins n)
+				$ fins m
+			) $ ?vecMatVecRebracketing_step3'
+
+		vecMatVecRebracketing_step3' = proof
+		  intros
+		  exact vecIndexwiseEq $ \jj => _
+		  exact trans indexMapChariz $ trans _ $ sym indexMapChariz
+		  compute
+		  rewrite sym $ indexFinsIsIndex {i=jj}
+		  exact trans (cong zipWithEntryChariz) $ _
+		  compute
+		  exact vecIndexwiseEq $ \ii => _
+		  exact trans zipWithEntryChariz $ trans _ $ sym indexMapChariz
+		  compute
+		  rewrite sym $ indexFinsIsIndex {i=ii}
+		  exact cong {f=((index ii l)<.>)} $ _
+		  exact indexMapChariz
+
+		-----
+
+		-- Attempt at diagnosing compile-time failure of script:
+
+		vecMatVecRebracketing_step3' = proof
+			intros
+			exact vecIndexwiseEq $ \jj => _
+			-- Good!
+			{-
+			Tricky debugging.
+
+			Symptoms:
+			* Does not accept REPL proof.
+			* Type mismatch error when trying to finish by using (exact) on a hole, after only
+			one previous line of (exact)s.
+			* Can't use intros after an (exact), though it looks like
+			there are missing implicit arguments (undeduced) to one of the expressions.
+
+			This could happen if the (exact) on the hole filled the goal of an implicit argument,
+			and there were more goals to fill to complete the proof. When using (intros), you
+			get the type of that goal in the message for the error for trying a lambda expr.
+			"Can't use lambda here: type is Type"
+			for the first hole, and if we continue and use a second hole, we get a type mis-
+			match which implies that hole is for the (xs) argument to (indexMapChariz).
+			---
+			-- att0 - bad:
+			exact trans indexMapChariz $ trans _ $ sym indexMapChariz
+			exact ?vmmS3
+			---
+			-- att1 - bad:
+			exact trans (indexMapChariz {k=jj}) $ _ -- 0_att1
+			exact sym $ trans (indexMapChariz {k=jj}) $ sym $ _ -- 0_att1
+			exact ?vmmS3 -- Type mismatch error. The function (f) is missing.
+			---
+			-- att2 - bad:
+			exact trans (indexMapChariz {k=jj}) $ _ -- 0_att2
+			exact sym $ trans (indexMapChariz {k=jj}) $ _ -- 0_att2
+			exact ?vmmS3 -- Type mismatch error. The function (f) is missing.
+			---
+			-- att3 - bad:
+			exact trans (indexMapChariz {k=jj}) $ _ -- 0_att3
+			exact ?vmmS3_1 -- This hole is for a Type.
+			exact ?vmmS3_2 -- This hole is for (xs). The Functor (m) for map missing.
+			---
+			-- att4 - lost cause:
+			exact trans (indexMapChariz {k=jj} {xs=zipWith (<#>) r $ transpose c}) $ _
+			exact ?vmmS3
+			-}
+			{-
+			-- These are the lines that can't be added yet but would complete the proof.
+			rewrite sym $ indexFinsIsIndex {i=jj}
+			exact trans (cong zipWithEntryChariz) $ _
+			compute
+			exact vecIndexwiseEq $ \ii => _
+			exact trans zipWithEntryChariz $ trans _ $ sym indexMapChariz
+			compute
+			rewrite sym $ indexFinsIsIndex {i=ii}
+			exact cong {f=((index ii l)<.>)} $ _
+			exact indexMapChariz
+			-}
+
+		-----
+
+		-- 1st attempt to include rewrites as-is:
+
+		-- "When checking an application of function trans:
+		--         rewrite did not change type f (index k xs) = b"
+		step3 = cong {f=monoidsum . monoidsum} $ vecIndexwiseEq
+			$ \jj => trans indexMapChariz
+				$ trans (rewrite indexFinsIsIndex {i=jj}
+					in trans (cong zipWithEntryChariz) $ vecIndexwiseEq
+					$ \ii => trans zipWithEntryChariz
+						$ trans (
+							rewrite indexFinsIsIndex {i=ii}
+							in cong {f=((index ii l)<.>)}
+							$ indexMapChariz
+						)
+						$ sym indexMapChariz
+				)
+				$ sym indexMapChariz
+
+		-----
+
+		-- This far and no further -- attempt to patch enough implicit args:
+		-- rewrite did not change type
+		-- 	zipWith (...) l (index jj (zipWith ...)) = b
+		step3 = cong {f=monoidsum . monoidsum} $ vecIndexwiseEq
+			$ \jj => trans (indexMapChariz
+					{f=zipWith (<.>) l}
+					{k=jj}
+					{xs=zipWith (<#>) r $ transpose c})
+				$ trans (rewrite indexFinsIsIndex {i=jj}
+					in trans {b=zipWith (<.>) l $ (index jj r)
+							<#> (index jj $ transpose c)}
+						(cong {f=zipWith (<.>) l}
+							$ zipWithEntryChariz
+							{i=jj}
+							{x=r}
+							{y=transpose c})
+					$ vecIndexwiseEq
+					$ \ii => trans (zipWithEntryChariz {x=l})
+						$ trans (
+							rewrite indexFinsIsIndex {i=ii}
+							in the (index ii l <.>
+									(index ii
+									$ (index jj r)
+									<#>
+									(index jj
+									$ transpose c))
+								= index ii l <.>
+									(index jj r
+									<.>
+									(indices jj ii
+									$ transpose c))
+							)
+							$ cong {f=((index ii l)<.>)}
+							$ indexMapChariz
+								{k=ii}
+								{f=((index jj r)<.>)}
+								{xs=index jj $ transpose c}
+						)
+						$ sym $ indexMapChariz {xs=fins n}
+				)
+				$ sym $ indexMapChariz {xs=fins m}
+
+		-----
+
+		-- proof script w/ RWs pushed all the way to center of string of equations.
+		-- REPL-only
+		vecMatVecRebracketing_step3' = proof
+		  intros
+		  exact vecIndexwiseEq $ \jj => _
+		  exact trans indexMapChariz $ trans _ $ sym indexMapChariz
+		  exact trans (cong zipWithEntryChariz) $ _
+		  exact vecIndexwiseEq $ \ii => _
+		  exact trans zipWithEntryChariz $ _
+		  exact trans (cong {f=((index ii l)<.>)} $ indexMapChariz) $ _
+		  exact sym $ _
+		  exact trans indexMapChariz $ _
+		  compute
+		  exact rewrite indexFinsIsIndex {i=ii} in rewrite indexFinsIsIndex {i=jj} in Refl
+
+		-}
+		-- cong transposeIndexChariz & transposeIndicesChariz
+		-- sum_i $ sum_j $ l_i . (r_j . c_i_j)
+		step4 : monoidsum $ monoidsum
+				$ map (\j => map ( \i => index i l
+						<.> (index j r
+							<.> (indices j i $ transpose c)) )
+					$ fins n)
+				$ fins m
+			= monoidsum $ monoidsum
+				$ map (\j => map ( \i => index i l
+						<.> (index j r <.> indices i j c) )
+					$ fins n)
+				$ fins m
+		-- associativity of multiplication
+		-- sum_i $ sum_j $ (l_i . r_j) . c_i_j
+		step5 : monoidsum $ monoidsum
+				$ map (\j => map ( \i => index i l
+						<.> (index j r <.> indices i j c) )
+					$ fins n)
+				$ fins m
+			= monoidsum $ monoidsum
+				$ map (\j => map ( \i => index i l <.> index j r
+						<.> indices i j c )
+					$ fins n)
+				$ fins m
+		-- ** SYM **
+		-- (w/ timesVectMatAsLinearCombo)
+		-- sum_j $ r_j . (sum_i $ l_i <#> c_i)_j
+		step1s : (l<\>c)<:>r
+			= monoidsum $ zipWith (<.>) r $ monoidsum $ zipWith (<#>) l c
+		step1s = trans (dotProductCommutative _ r)
+			$ cong {f=(r<:>)} $ timesVectMatAsLinearCombo l c
+		-- distributivity
+		-- sum_j $ sum_i $ r_j . (l_i <#> c_i)_j
+		step2s : monoidsum $ zipWith (<.>) r
+				$ monoidsum $ zipWith (<#>) l c
+			= monoidsum $ monoidsum
+				$ map (zipWith (<.>) r) $ zipWith (<#>) l c
+		step2s = cong {f=monoidsum} $ zipWithTimesIsRecDistributiveL r _
+		-- mapIndexwiseEq w/ (<#>), generalized to a (<:>) situation.
+		-- sum_j $ sum_i $ r_j . (l_i . c_i_j)
+		step3s : monoidsum $ monoidsum $ map (zipWith (<.>) r) $ zipWith (<#>) l c
+			= monoidsum $ monoidsum
+				$ map (\i => map ( \j => index j r
+							<.> (index i l <.> indices i j c) )
+					$ fins m)
+				$ fins n
+		-- associativity & commutativity of multiplication
+		-- sum_j $ sum_i $ (r_j . l_i) . c_i_j
+		-- sum_j $ sum_i $ (l_i . r_j) . c_i_j
+		step5s : monoidsum $ monoidsum
+				$ map (\i => map ( \j => index j r
+							<.> (index i l <.> indices i j c) )
+					$ fins m)
+				$ fins n
+			= monoidsum $ monoidsum
+				$ map (\i => map ( \j => index i l <.> index j r
+							<.> indices i j c )
+					$ fins m)
+				$ fins n
+		-- generalized associativity law: (x+y)+(z+w)=(x+z)+(y+w);
+		-- 	monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs
+		-- sum_i $ sum_j $ (l_i . r_j) <.> c_i_j
+		step6 : monoidsum $ monoidsum
+				$ map (\i => map ( \j => index i l <.> index j r
+							<.> indices i j c )
+					$ fins m)
+				$ fins n
+			= monoidsum $ monoidsum
+				$ map (\j => map ( \i => index i l <.> index j r
+							<.> indices i j c )
+					$ fins n)
+				$ fins m
+
+{-
+vecMatVecRebracketing {l=[]} {c=[]} {r} = sym
+	$ trans (cong {f=(<:>r)} zippyLemA)
+	$ neutralVectIsDotProductZero_L r
+vecMatVecRebracketing {l=l::ls} {c=c::cs} {r=r::rs} = ?vecMatVecRebracketing_pr
+{-
+	trans (dotproductRewrite {v=l::ls} {w=(c::cs)</>(r::rs)})
+-- > exact trans (dotproductRewrite {v=l1::ls} {w=(c1::cs)</>(r1::rs)}) $ _
+	$ trans monoidrec1D
+-- > exact trans monoidrec1D $ _
+	$ trans (cong {f=(( l<.>((r::rs)<:>c) )<+>)}
+		$ trans (sym $ dotproductRewrite {v=ls} {w=cs</>(r::rs)})
+		$ trans (vecMatVecRebracketing {l=ls} {c=cs} {r=r::rs})
+		$ dotproductRewrite {v=ls<\>cs} {w=r::rs})
+{-
+> claim reclem (l : Vect _ ZZ) -> (c : Matrix _ _ ZZ) -> (r : Vect _ ZZ) -> l <:> (c</>r) = (l<\>c) <:> r
+> exact trans (cong {f=(( l1<.>((r1::rs)<:>c1) )<+>)} $ trans (sym $ dotproductRewrite {v=ls} {w=cs</>(r1::rs)}) $ trans (reclem ls cs (r1::rs)) $ dotproductRewrite {v=ls<\>cs} {w=r1::rs}) $ _
+-}
+	$ trans (cong {f=(<+>( monoidsum
+			$ zipWith (<.>) (ls<\>cs) (r::rs) ))}
+		$ ?vecMatVecRebracketing_p1)
+----
+	$ trans (sym monoidrec1D)
+	-- monoidsum $ _ :: zipWith (<.>) (ls<\>cs) (r::rs)
+	-- timesVectMatAsLinearCombo
+	-- timesVectMatAsHeadTail_ByTransposeElimination
+	$ ?vecMatVecRebracketing_p2
+----
+	$ sym
+	$ trans (dotproductRewrite {v=(l::ls)<\>(c::cs)} {w=r::rs})
+	$ monoidrec1D
+-}
+-- timesVectMatAsHeadTail_ByTransposeElimination
+-- timesVectMatAsLinearCombo
+-- neutralVectIsVectTimesZero
+-- neutralMatIsMultZeroL
+-- neutralVectIsDotProductZero_R
+vecMatVecRebracketing {l} {c} {r=[]} =
+	trans (cong {f=(l<:>)} $ emptyVectIsTimesVectZero c)
+	$ trans (neutralVectIsDotProductZero_R l)
+	$ sym $ neutralVectIsDotProductZero_R (l<\>c)
+-}
+
 -- but probably (VerifiedCommutativeRing a)
-timesMatMatIsAssociative : VerifiedRing a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
+timesMatMatIsAssociative : {l : Matrix _ _ ZZ} -> {c : Matrix _ _ ZZ} -> {r : Matrix _ _ ZZ}
+	-> l <> (c <> r) = (l <> c) <> r
 timesMatMatIsAssociative = vecIndexwiseEq
 	$ \i => vecIndexwiseEq
 		$ \j => trans matMultIndicesChariz $ trans indicesAssoc $ sym $ matMultIndicesChariz
 	where
-		indicesAssoc : VerifiedRing a => {l : Matrix _ _ a}
-			-> {c : Matrix _ _ a}
-			-> {r : Matrix _ _ a}
+		indicesAssoc : {l : Matrix _ _ ZZ}
+			-> {c : Matrix _ _ ZZ}
+			-> {r : Matrix _ _ ZZ}
 			-> (index i l) <:> (getCol j $ c<>r)
 				= (index i $ l<>c) <:> (getCol j r)
-		indicesAssoc = ?indicesAssoc_pr
+		indicesAssoc {l} {c} {r} {i} {j} =
+			{-
+			-- Lemma: getCol j $ c<>r = c</>(getCol j r)
+			-- Both proofs require commutativity;
+			-- (dotProductCommutative) or (matrixTransposeAntiendoMatrixMult).
+			--
+			-----
+			-- Proof 1:
+			-}
+			trans ( cong {f=((index i l)<:>)} $ vecIndexwiseEq
+				$ \ind => trans (cong {f=index ind}
+						$ sym transposeIndexChariz)
+					$ trans (transposeIndicesChariz ind j)
+					$ trans matMultIndicesChariz
+					-- index ind c <:> getCol j r
+					$ trans (dotProductCommutative _ _)
+					$ sym $ indexMapChariz {f=((getCol j r)<:>)} )
+			{-
+			-----
+			-- Proof 2:
+
+			trans ( cong {f=((index i l)<:>)}
+				$ trans (sym $ transposeIndexChariz)
+				$ trans (cong $ matrixTransposeAntiendoMatrixMult c r)
+				$ trans ( indexMapChariz {f=(<\>(transpose c))}
+						{k=j} {xs=transpose r} )
+				$ trans (sym $ matVecMultIsVecTransposeMult
+					(index j $ transpose r) c)
+				$ cong {f=(c</>)} $ transposeIndexChariz )
+			-}
+			$ trans (vecMatVecRebracketing {l=index i l} {c=c} {r=getCol j r})
+			$ cong {f=(<:>(getCol j r))} $ sym $ indexMapChariz {f=(<\>c)} {xs=l}
 
 
 
