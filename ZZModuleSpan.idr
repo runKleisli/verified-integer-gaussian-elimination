@@ -1169,7 +1169,9 @@ vecMatVecRebracketing : {l : Vect n ZZ}
 	-> {c : Matrix n m ZZ}
 	-> {r : Vect m ZZ}
 	-> l <:> (c</>r) = (l<\>c) <:> r
-vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
+vecMatVecRebracketing {l} {c} {r} {n} {m} =
+	trans step1 $ trans step2 $ trans step3 $ trans step4 $ trans step5
+	$ sym $ trans step1s $ trans step2s $ step3s
 	where
 		-- (w/ timesVectMatAsLinearCombo)
 		-- sum_i $ l_i . (sum_j $ r_j <#> c*_j)_i
@@ -1414,64 +1416,6 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
 		  exact rewrite indexFinsIsIndex {i=ii} in rewrite indexFinsIsIndex {i=jj} in Refl
 
 		-}
-		{-
-		-- This works, but we prefer to combine several steps into this one.
-		-- cong transposeIndexChariz & transposeIndicesChariz
-		-- sum_i $ sum_j $ l_i . (r_j . c_i_j)
-		step4 : monoidsum $ monoidsum
-				$ map (\j => map ( \i => index i l
-						<.> (index j r
-							<.> (indices j i $ transpose c)) )
-					$ fins n)
-				$ fins m
-			= monoidsum $ monoidsum
-				$ map (\j => map ( \i => index i l
-						<.> (index j r <.> indices i j c) )
-					$ fins n)
-				$ fins m
-		step4 = cong {f=(monoidsum {t=Vect n} {a=ZZ})
-				. (monoidsum {t=Vect m} {a=Vect n ZZ})}
-			$ vecIndexwiseEq
-			$ \jj => trans indexMapChariz
-				$ trans (cong {f=\jjj => flip map (fins n)
-						$ \iii => index iii l <.>
-							(index jjj r <.>
-								(indices jjj iii
-									$ transpose c))}
-					$ indexFinsIsIndex {i=jj})
-				$ trans (vecIndexwiseEq
-				$ \ii => trans indexMapChariz
-					$ trans (cong {f=\iii => index iii l <.>
-							(index jj r <.>
-								(indices jj iii
-									$ transpose c))}
-						$ indexFinsIsIndex {i=ii})
-					$ trans (cong {f=((index ii l)<.>)
-							. ((index jj r)<.>)}
-						$ transposeIndicesChariz ii jj {xs=c})
-					$ sym $ trans (indexMapChariz {k=ii})
-					$ cong {f=\iii => index iii l <.>
-						(index jj r <.> indices iii jj c)}
-					$ indexFinsIsIndex {i=ii}
-				) $ sym $ trans (indexMapChariz {k=jj})
-				$ cong {f=\jjj => flip map (fins n)
-					$ \iii => index iii l <.>
-						(index jjj r <.> indices iii jjj c)}
-				$ indexFinsIsIndex {i=jj}
-		-- Combined into step4_2
-		-- associativity of multiplication
-		-- sum_i $ sum_j $ (l_i . r_j) . c_i_j
-		step5 : monoidsum $ monoidsum
-				$ map (\j => map ( \i => index i l
-						<.> (index j r <.> indices i j c) )
-					$ fins n)
-				$ fins m
-			= monoidsum $ monoidsum
-				$ map (\j => map ( \i => index i l <.> index j r
-						<.> indices i j c )
-					$ fins n)
-				$ fins m
-		-}
 		-- 1) transposeIndicesChariz
 		-- sum_i $ sum_j $ l_i . (r_j . c_i_j)
 		-- 2) associativity of multiplication
@@ -1480,7 +1424,7 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
 		-- sum_i $ sum_j $ (r_j . l_i) . c_i_j
 		-- 4) associativity multiplication
 		-- sum_i $ sum_j $ r_j . (l_i . c_i_j)
-		step4_2 : monoidsum $ monoidsum
+		step4 : monoidsum $ monoidsum
 				$ map (\j => map ( \i => index i l
 						<.> (index j r
 							<.> (indices j i $ transpose c)) )
@@ -1491,7 +1435,7 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
 						<.> (index i l <.> indices i j c) )
 					$ fins n)
 				$ fins m
-		step4_2 = cong {f=(monoidsum {t=Vect n} {a=ZZ})
+		step4 = cong {f=(monoidsum {t=Vect n} {a=ZZ})
 				. (monoidsum {t=Vect m} {a=Vect n ZZ})}
 			--	UNPACK LAYERS (map, map, product) LEFT TO RIGHT	--
 			$ vecIndexwiseEq
@@ -1552,7 +1496,7 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
 		-- generalized associativity law: (x+y)+(z+w)=(x+z)+(y+w);
 		-- 	monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs
 		-- sum_j $ sum_i $ r_j . (l_i . c_i_j)
-		step6_2 : monoidsum $ monoidsum
+		step5 : monoidsum $ monoidsum
 				$ map (\j => map ( \i => index j r
 						<.> (index i l <.> indices i j c) )
 					$ fins n)
@@ -1584,38 +1528,6 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
 							<.> (index i l <.> indices i j c) )
 					$ fins m)
 				$ fins n
-		{-
-		-- Combined into step4_2
-		-- associativity & commutativity of multiplication
-		-- sum_j $ sum_i $ (r_j . l_i) . c_i_j
-		-- sum_j $ sum_i $ (l_i . r_j) . c_i_j
-		step5s : monoidsum $ monoidsum
-				$ map (\i => map ( \j => index j r
-							<.> (index i l <.> indices i j c) )
-					$ fins m)
-				$ fins n
-			= monoidsum $ monoidsum
-				$ map (\i => map ( \j => index i l <.> index j r
-							<.> indices i j c )
-					$ fins m)
-				$ fins n
-		-- The transformation is moved to a different order, and before the (sym),
-		-- so the sides of the equation are swapped and the algebraic expr changed.
-		-- See step6_2.
-		-- generalized associativity law: (x+y)+(z+w)=(x+z)+(y+w);
-		-- 	monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs
-		-- sum_i $ sum_j $ (l_i . r_j) <.> c_i_j
-		step6 : monoidsum $ monoidsum
-				$ map (\i => map ( \j => index i l <.> index j r
-							<.> indices i j c )
-					$ fins m)
-				$ fins n
-			= monoidsum $ monoidsum
-				$ map (\j => map ( \i => index i l <.> index j r
-							<.> indices i j c )
-					$ fins n)
-				$ fins m
-		-}
 
 {-
 vecMatVecRebracketing {l=[]} {c=[]} {r} = sym
