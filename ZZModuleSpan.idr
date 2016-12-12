@@ -1427,6 +1427,35 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} = ?vecMatVecRebracketing_pr
 						<.> (index j r <.> indices i j c) )
 					$ fins n)
 				$ fins m
+		step4 = cong {f=(monoidsum {t=Vect n} {a=ZZ})
+				. (monoidsum {t=Vect m} {a=Vect n ZZ})}
+			$ vecIndexwiseEq
+			$ \jj => trans indexMapChariz
+				$ trans (cong {f=\jjj => flip map (fins n)
+						$ \iii => index iii l <.>
+							(index jjj r <.>
+								(indices jjj iii
+									$ transpose c))}
+					$ indexFinsIsIndex {i=jj})
+				$ trans (vecIndexwiseEq
+				$ \ii => trans indexMapChariz
+					$ trans (cong {f=\iii => index iii l <.>
+							(index jj r <.>
+								(indices jj iii
+									$ transpose c))}
+						$ indexFinsIsIndex {i=ii})
+					$ trans (cong {f=((index ii l)<.>)
+							. ((index jj r)<.>)}
+						$ transposeIndicesChariz ii jj {xs=c})
+					$ sym $ trans (indexMapChariz {k=ii})
+					$ cong {f=\iii => index iii l <.>
+						(index jj r <.> indices iii jj c)}
+					$ indexFinsIsIndex {i=ii}
+				) $ sym $ trans (indexMapChariz {k=jj})
+				$ cong {f=\jjj => flip map (fins n)
+					$ \iii => index iii l <.>
+						(index jjj r <.> indices iii jjj c)}
+				$ indexFinsIsIndex {i=jj}
 		-- associativity of multiplication
 		-- sum_i $ sum_j $ (l_i . r_j) . c_i_j
 		step5 : monoidsum $ monoidsum
