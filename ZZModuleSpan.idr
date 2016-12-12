@@ -1227,14 +1227,14 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} =
 								<.> (indices
 									(index jj $ fins m)
 									ind
-								$ transpose c))}
+									$ transpose c))}
 							$ indexFinsIsIndex {i=ii}
 						) $ cong {f=((index ii l)<.>)}
 						$ trans (cong {f=(<.>(indices
 									(index jj $ fins m)
 									ii
-								$ transpose c))
-							. (flip index r)}
+									$ transpose c))
+								. (flip index r)}
 							$ indexFinsIsIndex {i=jj})
 						$ cong {f=((index jj r)<.>)
 							. (index ii)
@@ -1493,6 +1493,7 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} =
 					$ \iii => index jjj r <.>
 						(index iii l <.> indices iii jjj c)}
 				$ indexFinsIsIndex {i=jj}
+		-- Exchanging the order of summation.
 		-- generalized associativity law: (x+y)+(z+w)=(x+z)+(y+w);
 		-- 	monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs
 		-- sum_j $ sum_i $ r_j . (l_i . c_i_j)
@@ -1528,6 +1529,52 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} =
 							<.> (index i l <.> indices i j c) )
 					$ fins m)
 				$ fins n
+		-- Takes the implementation of (step3) and exchanges the roles of
+		-- n and m; l and r; ii and jj; (transpose c) and (c).
+		{-
+		Without the implicit args filled for each (monoidsum), there are not
+		enough helpful error msgs about missing implicits to find a solution.
+		-}
+		step3s = cong {f=(monoidsum {t=Vect m} {a=ZZ})
+				. (monoidsum {t=Vect n} {a=Vect m ZZ})}
+			$ vecIndexwiseEq
+			$ \ii => trans (indexMapChariz {f=zipWith (<.>) r})
+				$ trans (
+				trans (cong $ zipWithEntryChariz
+						{m=(<#>) {a=ZZ} {b=Vect m ZZ}})
+					$ vecIndexwiseEq
+					$ \jj => trans (zipWithEntryChariz {m=(<.>) {a=ZZ}})
+						$ trans (cong {f=((index jj r)<.>)}
+							$ indexMapChariz)
+						$ sym $ trans indexMapChariz
+						{-
+						$ rewrite indexFinsIsIndex {i=jj}
+						in rewrite indexFinsIsIndex {i=ii} in Refl
+						-- fails, so the following instead.
+						-}
+						$ trans (cong
+							-- Elaborating upon
+							-- {f=(<.>_) . (flip index r)}
+							{f=\ind => index ind r
+							<.>(index (index ii $ fins n) l
+								<.> (indices
+									(index ii $ fins n)
+									ind
+									c))}
+							$ indexFinsIsIndex {i=jj}
+						) $ cong {f=((index jj r)<.>)}
+						$ trans (cong {f=(<.>(indices
+									(index ii $ fins n)
+									jj
+									c))
+								. (flip index l)}
+							$ indexFinsIsIndex {i=ii})
+						$ cong {f=((index ii l)<.>)
+							. (index jj)
+							. (flip index c)}
+							$ indexFinsIsIndex {i=ii}
+				)
+				$ sym indexMapChariz
 
 -- but probably (VerifiedCommutativeRing a)
 timesMatMatIsAssociative : {l : Matrix _ _ ZZ} -> {c : Matrix _ _ ZZ} -> {r : Matrix _ _ ZZ}
