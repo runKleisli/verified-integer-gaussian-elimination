@@ -1529,49 +1529,6 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} =
 					$ fins m)
 				$ fins n
 
-{-
-vecMatVecRebracketing {l=[]} {c=[]} {r} = sym
-	$ trans (cong {f=(<:>r)} zippyLemA)
-	$ neutralVectIsDotProductZero_L r
-vecMatVecRebracketing {l=l::ls} {c=c::cs} {r=r::rs} = ?vecMatVecRebracketing_pr
-{-
-	trans (dotproductRewrite {v=l::ls} {w=(c::cs)</>(r::rs)})
--- > exact trans (dotproductRewrite {v=l1::ls} {w=(c1::cs)</>(r1::rs)}) $ _
-	$ trans monoidrec1D
--- > exact trans monoidrec1D $ _
-	$ trans (cong {f=(( l<.>((r::rs)<:>c) )<+>)}
-		$ trans (sym $ dotproductRewrite {v=ls} {w=cs</>(r::rs)})
-		$ trans (vecMatVecRebracketing {l=ls} {c=cs} {r=r::rs})
-		$ dotproductRewrite {v=ls<\>cs} {w=r::rs})
-{-
-> claim reclem (l : Vect _ ZZ) -> (c : Matrix _ _ ZZ) -> (r : Vect _ ZZ) -> l <:> (c</>r) = (l<\>c) <:> r
-> exact trans (cong {f=(( l1<.>((r1::rs)<:>c1) )<+>)} $ trans (sym $ dotproductRewrite {v=ls} {w=cs</>(r1::rs)}) $ trans (reclem ls cs (r1::rs)) $ dotproductRewrite {v=ls<\>cs} {w=r1::rs}) $ _
--}
-	$ trans (cong {f=(<+>( monoidsum
-			$ zipWith (<.>) (ls<\>cs) (r::rs) ))}
-		$ ?vecMatVecRebracketing_p1)
-----
-	$ trans (sym monoidrec1D)
-	-- monoidsum $ _ :: zipWith (<.>) (ls<\>cs) (r::rs)
-	-- timesVectMatAsLinearCombo
-	-- timesVectMatAsHeadTail_ByTransposeElimination
-	$ ?vecMatVecRebracketing_p2
-----
-	$ sym
-	$ trans (dotproductRewrite {v=(l::ls)<\>(c::cs)} {w=r::rs})
-	$ monoidrec1D
--}
--- timesVectMatAsHeadTail_ByTransposeElimination
--- timesVectMatAsLinearCombo
--- neutralVectIsVectTimesZero
--- neutralMatIsMultZeroL
--- neutralVectIsDotProductZero_R
-vecMatVecRebracketing {l} {c} {r=[]} =
-	trans (cong {f=(l<:>)} $ emptyVectIsTimesVectZero c)
-	$ trans (neutralVectIsDotProductZero_R l)
-	$ sym $ neutralVectIsDotProductZero_R (l<\>c)
--}
-
 -- but probably (VerifiedCommutativeRing a)
 timesMatMatIsAssociative : {l : Matrix _ _ ZZ} -> {c : Matrix _ _ ZZ} -> {r : Matrix _ _ ZZ}
 	-> l <> (c <> r) = (l <> c) <> r
