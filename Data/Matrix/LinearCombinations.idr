@@ -75,6 +75,14 @@ doubleSumInnerSwap a b c d = trans (sym $ semigroupOpIsAssociative a b (c<+>d))
 		$ sym $ semigroupOpIsAssociative c b d)
 	$ semigroupOpIsAssociative a c (b<+>d)
 
+doubleSumInnerSwap_Vect : VerifiedRingWithUnity t => (a, b, c, d : Vect n t)
+	-> (a<+>b)<+>(c<+>d) = (a<+>c)<+>(b<+>d)
+doubleSumInnerSwap_Vect a b c d = trans (sym $ semigroupOpIsAssociative_Vect a b (c<+>d))
+	$ trans ( cong {f=(a<+>)} $ trans (semigroupOpIsAssociative_Vect b c d)
+		$ trans (cong {f=(<+>d)} $ abelianGroupOpIsCommutative_Vect b c)
+		$ sym $ semigroupOpIsAssociative_Vect c b d)
+	$ semigroupOpIsAssociative_Vect a c (b<+>d)
+
 
 
 lemma_VectAddHead : (v, w : Vect (S n) ZZ) -> head(v<+>w) = (head v)<+>(head w)

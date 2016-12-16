@@ -1135,6 +1135,233 @@ matTimesVerMonoid {r} {n} = matTimesVerMonoid'
 Associative property for matrix multiplication
 -}
 
+{-
+-- A hassle, but may be possible.
+-- monoidrec; monoidNeutralIsNeutralR/monoidNeutralIsNeutralR_Vect; recursion
+monoidsumNeutralIsNeutral1D : VerifiedRingWithUnity a =>
+	monoidsum $ the (Vect n a) Algebra.neutral = Algebra.neutral
+monoidsumNeutralIsNeutral1D {n=Z} = Refl
+monoidsumNeutralIsNeutral1D {n=S predn} = ?monoidsumNeutralIsNeutral1D_rhs
+
+monoidsumNeutralIsNeutral2D : VerifiedRingWithUnity a =>
+	monoidsum {t=Vect n} $ the (Matrix n m a) Algebra.neutral = Algebra.neutral
+monoidsumNeutralIsNeutral2D {n=Z} = Refl
+monoidsumNeutralIsNeutral2D {n=S predn} = ?monoidsumNeutralIsNeutral2D_rhs
+-}
+
+monoidsumNeutralIsNeutral1D : monoidsum $ the (Vect n ZZ) Algebra.neutral = Algebra.neutral
+monoidsumNeutralIsNeutral1D {n=Z} = Refl
+monoidsumNeutralIsNeutral1D {n=S predn} = trans monoidrec1D
+	$ trans (monoidNeutralIsNeutralR _)
+	$ monoidsumNeutralIsNeutral1D
+
+monoidsumNeutralIsNeutral2D : monoidsum {t=Vect n} $ the (Matrix n m ZZ) Algebra.neutral
+	= Algebra.neutral
+monoidsumNeutralIsNeutral2D {n=Z} = Refl
+monoidsumNeutralIsNeutral2D {n=S predn} = trans monoidrec2D
+	$ trans (monoidNeutralIsNeutralR_Vect _)
+	$ monoidsumNeutralIsNeutral2D
+
+sumTransposeMapRelation : (xs : Matrix n m ZZ)
+	-> monoidsum $ transpose xs = map monoidsum xs
+sumTransposeMapRelation [] = zeroVecEq
+sumTransposeMapRelation ([]::xs) {m=Z} =
+	trans (cong {f=monoidsum} $ zeroVecEq {a=zipWith (::) [] $ transpose xs} {b=[]})
+	$ vecHeadtailsEq Refl $ vecIndexwiseEq
+	$ \i =>
+		trans indexReplicateChariz
+		$ sym $ trans indexMapChariz
+		$ cong {f=monoidsum} $ zeroVecEq {a=index i xs} {b=[]}
+sumTransposeMapRelation (x::xs) {m=S predm} =
+	trans (headtails $ monoidsum $ transpose $ x::xs)
+	$ vecHeadtailsEq
+		(trans (headOfSumIsSumOfHeads $ transpose $ x::xs)
+			$ cong {f=monoidsum}
+			$ trans (sym transposeNHead)
+			$ cong {f=head} $ transposeIsInvolution {xs=x::xs})
+		(trans (tailOfSumIsSumOfTails {vs=transpose $ x::xs})
+			$ trans (cong {f=monoidsum}
+				$ trans (sym transposeNTail)
+				$ cong {f=transpose . tail}
+				$ transposeIsInvolution {xs=x::xs})
+			$ sumTransposeMapRelation xs)
+
+-- generalized associativity law: (x+y)+(z+w)=(x+z)+(y+w);
+-- doubleSumInnerSwap
+orderOfSummationExchange : (xs : Matrix n m ZZ)
+	-> monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs
+orderOfSummationExchange [] {m} = trans monoidsumNeutralIsNeutral1D
+	$ sym $ trans (cong {f=monoidsum} $ monoidsumNeutralIsNeutral2D {n=m} {m=Z})
+	$ monoidsumNeutralIsNeutral1D {n=Z}
+orderOfSummationExchange ([]::xs) {m=Z} =
+	sym $ trans (assert_total $ orderOfSummationExchange $ transpose $ []::xs)
+	$ rewrite transposeIsInvolution {xs=[]::xs} in Refl
+	{-
+	-- Trying not to scare the totality checker by using the constant ([]), didn't help.
+	sym
+	$ trans (cong {f=monoidsum . monoidsum} $ zeroVecEq {a=transpose $ []::xs} {b=[]})
+	$ trans (assert_total $ orderOfSummationExchange $ the (Matrix 0 (S _) ZZ) [])
+	$ cong {f=monoidsum . monoidsum}
+	$ trans (zeroVecVecId $ transpose $ the (Matrix 0 (S _) ZZ) [])
+	$ sym $ zeroVecVecId ([]::xs)
+	-}
+{-
+Notation where terms are applied from the inside out to a matrix argument.
+Equality here denotes equality of results when applied to that arg; hence, it's extensional.
+
+Operations applied to the matrix argument to the function:
+-|--	identity
+-|	head operation
+|--	tail operation
+a|	head . a
+|a	tail . a
+|^f--, |^f	f . tail	<<f of tail of>>	e.g., |^[--] = [] . |-- = [|--]
+|^f	""
+^f-|, ^f|	f . head
+[f]	monoidsum . f
+<f>	map f	e.g., <|--> = map tail, <[-|--]> = map monoidsum,
+		|^<|--> = (map tail) . tail
+f*	transpose . f;	e.g. (-|--)* is the transpose of the matrix argument
+a b	\h => a h <+> b h	<<sum (of results)>>
+a :: b	\h => a h :: b h	<<cons (of results)>>	e.g., -|::|-- = -|--
+
+Extranotational operations:
+f . g	f . g (informal)
+f $ g	f . g
+
+Observations:
+|[--]	is nonsensical.
+|<f>	denotes	tail . (map f),
+while	(map f) . tail	is denoted	<f> . |-- = |^<f>
+and they are extensionally equal.
+map f $ |(-|) :: |^<|--> = map f $ <|--> . (-| :: |--) = <|^f--> . (-|::|--) = <|^f-->
+No uniform notation for	f . tail . g.
+
+Proof:
+
+-- Sect 1) Split the first column's sum off as one term.
+[[-|--]]	={headOfSumIsSumOfHeads; tailOfSumIsSumOfTails}=
+= [[<-|>] :: [<|-->]]	={monoidrec1D}=
+-- Sect 2) Split the topleft corner off from the first column.
+= [<-|>] [[<|-->]]	={monoidrec1D}=
+-- Sect 3) Recurse
+= (-|)| [|<-|>] [[<|-->]]	={orderOfSummationExchange (recursing)}=
+-- Sect 4) Split the first row's tail's sum off as one term
+= (-|)| [|<-|>] [[<|-->*]]	={sumTransposeMapRelation}=
+= (-|)| [|<-|>] [<[|--]>]	={headMapChariz}=
+= (-|)| [|<-|>] [[|(-|)] :: |<[|--]>]	={monoidrec1D}=
+-- Sect 5) Reorder terms to sum the 1st row head & tail directly & 1st col tail w/ leftovers.
+= (-|)| [|<-|>] [|(-|)] [|<[|--]>]	={doubleSumInnerSwap}=
+-- Sect 6) Merge the 1st row head & tail into the 1st row
+= (-|)| [|(-|)] [|<-|>] [|<[|--]>]	={monoidrec1D}=
+= [-|] [|<-|>] [|<[|--]>]
+-- Sect 7) Merge the 1st col tail & leftovers into the tail of the matrix.
+	={ tailMapChariz {f} {xs} = cong {f=tail . (map f)} $ headtails {v=xs} }=
+= [-|] [|^<-|>] [|<[|--]>]	={headOfSumIsSumOfHeads}=
+= [-|] [|--]| [|<[|--]>]	={tailMapChariz; functorComposition (composeUnderMap)}=
+= [-|] [|--]| [<[-|--]> . <|--> . |--]	={sumTransposeMapRelation}=
+= [-|] [|--]| [[(<|--> . |--)*]]	={orderOfSummationExchange (recursing)}=
+= [-|] [|--]| [[<|--> . |--]]	={tailOfSumIsSumOfTails}=
+= [-|] [|--]| [|[|--]]	={monoidrec1D}=
+-- Sect 8) Identify the sum of the head-sum and tail-sum w/ the double sum of the transpose.
+= [-|] [[|--]]	={orderOfSummationExchange (recursing)}=
+= [-|] [[(|--)*]]	={sumTransposeMapRelation}=
+= [-|] [|^<[--]>]	={monoidrec1D}=
+= [<[-|--]>]	={sumTransposeMapRelation}=
+= [[(-|--)*]]
+-}
+orderOfSummationExchange (x::xs) {m=S predm} =
+	-- (Sect 1)
+	-- [[-|--]]	={headOfSumIsSumOfHeads; tailOfSumIsSumOfTails}=
+	trans (cong {f=monoidsum} $ trans (headtails $ monoidsum $ x::xs)
+		$ vecHeadtailsEq
+			(headOfSumIsSumOfHeads $ x::xs)
+			(tailOfSumIsSumOfTails {vs=x::xs}))
+	-- = [[<-|>] :: [<|-->]]	={monoidrec1D}=
+	$ trans (monoidrec1D
+		{v=monoidsum $ map head $ x::xs} {vs=monoidsum $ map tail $ x::xs})
+	-- (Sect 2)
+	-- = [<-|>] [[<|-->]]	={monoidrec1D}=
+	$ trans (cong {f=(<+>(monoidsum $ monoidsum $ map Vect.tail $ x::xs))}
+		$ monoidrec1D {v=head x} {vs=map head xs})
+	-- (Sects 3-4)
+	-- = (-|)| [|<-|>] [[<|-->]]	={orderOfSummationExchange (recursing)}=
+	-- = (-|)| [|<-|>] [[<|-->*]]	={sumTransposeMapRelation}=
+	-- = (-|)| [|<-|>] [<[|--]>]
+	-- = (-|)| [|<-|>] [[|(-|)] :: |<[|--]>]	={monoidrec1D}=
+	$ trans (cong {f=((head x <+> (monoidsum $ map head xs))<+>)}
+		$ trans (orderOfSummationExchange $ map tail $ x::xs)
+		$ trans (cong {f=monoidsum}
+			$ sumTransposeMapRelation $ map Vect.tail $ x::xs)
+		$ monoidrec1D {v=monoidsum $ tail x} {vs=map monoidsum $ map tail xs})
+	-- (Sect 5)
+	-- = (-|)| [|<-|>] [|(-|)] [|<[|--]>]	={doubleSumInnerSwap}=
+	$ trans (doubleSumInnerSwap
+		(head x) (monoidsum $ map head xs)
+		(monoidsum $ tail x) (monoidsum $ map monoidsum $ map tail xs))
+	-- (Sect 6)
+	-- = (-|)| [|(-|)] [|<-|>] [|<[|--]>]	={monoidrec1D}=
+	$ trans (cong {f=(<+>((monoidsum $ map head xs)
+			<+>(monoidsum $ map monoidsum $ map tail xs)))}
+		$ sym $ trans (cong {f=monoidsum} $ headtails x)
+		$ monoidrec1D {v=head x} {vs=tail x})
+	-- ORDER OF STEPS DIFFERS FROM COMMENTS DUE TO NO NEED TO TRANSF. MIDDLE TERM TWICE
+	-- (Sect 7)
+	-- = [-|] [|<-|>] [|<[|--]>]
+	-- = [-|] [|^<-|>] [|<[|--]>]
+	-- = [-|] [|^<-|>] [<[-|--]> . |^<|-->]	={sumTransposeMapRelation}=
+	-- = [-|] [|^<-|>] [[(|^<|-->)*]]	={orderOfSummationExchange (recursing)}=
+	$ trans (cong {f=((monoidsum x) <+>) . ((monoidsum $ map head xs)<+>)}
+		$ sym $ trans (orderOfSummationExchange $ map tail xs)
+		$ cong {f=monoidsum} $ sumTransposeMapRelation $ map tail xs)
+	-- = [-|] [|^<-|>] [[|^<|-->]]	={monoidrec1D}=
+	-- = [-|] [[|^<-|>] :: [|^<|-->]]
+	--	={headOfSumIsSumOfHeads; tailOfSumIsSumOfTails}=
+	-- = [-|] [[|--]| :: |[|--]]
+	$ trans (cong {f=((monoidsum x)<+>)}
+		-- The implicits on this (monoidsum) are needed for (headtails).
+		$ sym $ trans (cong {f=monoidsum {t=Vect $ S predm} {a=ZZ}}
+			$ trans (headtails $ monoidsum xs)
+			$ vecHeadtailsEq
+				(headOfSumIsSumOfHeads xs) (tailOfSumIsSumOfTails {vs=xs}))
+		$ monoidrec1D {v=monoidsum $ map Vect.head xs} {vs=monoidsum $ map tail xs})
+	-- ORDER RESUMES FROM COMMENTS
+	-- (Sect 8)
+	-- = [-|] [[|--]]	={orderOfSummationExchange (recursing)}=
+	-- = [-|] [[(|--)*]]	={sumTransposeMapRelation}=
+	$ trans (cong {f=((monoidsum x)<+>)}
+		$ trans (orderOfSummationExchange xs)
+		$ cong {f=monoidsum} $ sumTransposeMapRelation xs)
+	-- = [-|] [|^<[--]>]	={monoidrec1D}=
+	$ trans (sym $ monoidrec1D {v=monoidsum x} {vs=map monoidsum xs})
+	-- = [<[-|--]>]	={sumTransposeMapRelation}=
+	$ cong {f=monoidsum} $ sym $ sumTransposeMapRelation $ x::xs
+	-- = [[(-|--)*]]	wwtbd.
+
+{-
+-- Reference: A proof script for (orderOfSummationExchange)'s inductive step.
+orderOfSummationExchange_rhs_3 = proof
+  intros
+  exact trans (cong {f=monoidsum} $ trans (headtails $ monoidsum $ x::xs) $ vecHeadtailsEq (headOfSumIsSumOfHeads $ x::xs) (tailOfSumIsSumOfTails {vs=x::xs})) $ _
+  exact trans (monoidrec1D {v=monoidsum $ map head $ x::xs} {vs=monoidsum $ map tail $ x::xs}) $ _
+  exact trans (cong {f=(<+>(monoidsum $ monoidsum $ map Vect.tail $ x::xs))} $ monoidrec1D {v=head x} {vs=map head xs}) $ _
+  exact trans (cong {f=((head x <+> (monoidsum $ map head xs))<+>)} $ trans (orderOfSummationExchange $ map tail $ x::xs) $ trans (cong {f=monoidsum} $ sumTransposeMapRelation $ map Vect.tail $ x::xs) $ monoidrec1D {v=monoidsum $ tail x} {vs=map monoidsum $ map tail xs}) $ _
+  exact trans (doubleSumInnerSwap (head x) (monoidsum $ map head $ xs) (monoidsum $ tail x) (monoidsum $ map monoidsum $ map tail $ xs)) $ _
+  exact trans (cong {f=(<+>((monoidsum $ map head xs)<+>(monoidsum $ map monoidsum $ map tail xs)))} $ sym $ trans (cong {f=monoidsum} $ headtails x) $ monoidrec1D {v=head x} {vs=tail x}) $ _
+  exact trans (cong {f=((monoidsum x) <+>) . ((monoidsum $ map head xs)<+>)} $ sym $ trans (orderOfSummationExchange $ map tail xs) $ cong {f=monoidsum} $ sumTransposeMapRelation $ map tail xs) $ _
+  -- Unusual implicits needed here for (headtails): monoidsum {t=Vect $ S predm} {a=ZZ}
+  exact trans (cong {f=((monoidsum x)<+>)} $ sym $ trans (cong {f=monoidsum {t=Vect $ S predm} {a=ZZ}} $ trans (headtails $ monoidsum xs) $ vecHeadtailsEq (headOfSumIsSumOfHeads xs) (tailOfSumIsSumOfTails {vs=xs})) $ monoidrec1D {v=monoidsum $ map head xs} {vs=monoidsum $ map tail xs}) $ _
+  exact trans (cong {f=((monoidsum x)<+>)} $ trans (orderOfSummationExchange xs) $ cong {f=monoidsum} $ sumTransposeMapRelation xs) $ _
+  exact trans (sym $ monoidrec1D {v=monoidsum x} {vs=map monoidsum xs}) $ _
+  exact cong {f=monoidsum} $ sym $ sumTransposeMapRelation $ x::xs
+-}
+
+-- Not needed in Gaussian elimination, but a nice corrollary.
+sumSumAsSumMapSum : (xs : Matrix n m ZZ)
+	-> monoidsum $ map monoidsum xs = monoidsum $ monoidsum xs
+sumSumAsSumMapSum xs = trans (cong {f=monoidsum} $ sym $ sumTransposeMapRelation xs)
+	$ sym $ orderOfSummationExchange xs
+
 zipWithTimesIsDistributiveL : (l, c, r : Vect n ZZ)
 	-> zipWith (<.>) l $ c<+>r = zipWith (<.>) l c <+> zipWith (<.>) l r
 zipWithTimesIsDistributiveL [] [] [] = Refl
@@ -1507,6 +1734,51 @@ vecMatVecRebracketing {l} {c} {r} {n} {m} =
 						<.> (index i l <.> indices i j c) )
 					$ fins m)
 				$ fins n
+		step5 = trans (orderOfSummationExchange
+				$ map (\j => map ( \i => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins n)
+				$ fins m)
+			$ cong {f=(monoidsum {t=Vect m} {a=ZZ})
+				. (monoidsum {t=Vect n} {a=Vect m ZZ})}
+			$ vecIndexwiseEq $ \ii => vecIndexwiseEq $ \jj =>
+			trans (transposeIndicesChariz jj ii
+				{xs=map (\j => map ( \i => index j r
+							<.> (index i l <.> indices i j c) )
+						$ fins n)
+					$ fins m})
+			$ trans (cong {f=index ii} $ indexMapChariz {xs=fins m} {k=jj}
+				{f=\j => map ( \i => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins n})
+			$ trans (indexMapChariz {xs=fins n} {k=ii}
+				{f=\i => index (index jj $ fins m) r
+					<.> (index i l
+						<.> indices i (index jj $ fins m) c)})
+			$ sym
+			$ trans (cong {f=index jj} $ indexMapChariz {xs=fins n} {k=ii}
+				{f=\i => map ( \j => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins m})
+			$ indexMapChariz {xs=fins m} {k=jj}
+				{f=\j => index j r
+					<.> (index (index ii $ fins n) l
+						<.> indices (index ii $ fins n) j c)}
+		{-
+		vmv_step5_pr = proof
+		  intros
+		  exact trans (orderOfSummationExchange _) $ _
+		  exact cong {f=(monoidsum {t=Vect m} {a=ZZ}) . (monoidsum {t=Vect n} {a=Vect m ZZ})} $ _
+		  exact vecIndexwiseEq $ \ii => vecIndexwiseEq $ \jj => _
+		  exact trans (transposeIndicesChariz jj ii) $ _
+		  exact trans (cong {f=index ii} indexMapChariz) $ _
+		  exact trans indexMapChariz $ _
+		  exact sym $ _
+		  exact trans (cong {f=index jj} indexMapChariz) $ _
+		  exact trans indexMapChariz $ _
+		  compute
+		  exact Refl
+		-}
 		-- ** SYM **
 		-- (w/ timesVectMatAsLinearCombo)
 		-- sum_j $ r_j . (sum_i $ l_i <#> c_i)_j
