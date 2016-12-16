@@ -1962,10 +1962,13 @@ zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
 
 -- Inherited properties from (<>) equality proven in Data.Matrix.LinearCombinations
 zippyScaleIsAssociative : l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
-{-
-zippyScaleIsAssociative = ?zippyScaleIsAssociative'
--- zippyScaleIsAssociative = rewriteAssociativityUnderEquality timesMatMatAsMultipleLinearCombos
--}
+zippyScaleIsAssociative {l} {c} {r} =
+	trans (sym $ timesMatMatAsMultipleLinearCombos l $ c `zippyScale` r)
+	$ trans (cong {f=(l<>)} $ sym $ timesMatMatAsMultipleLinearCombos c r)
+	$ trans timesMatMatIsAssociative
+	$ trans (cong {f=(<>r)} $ timesMatMatAsMultipleLinearCombos l c)
+	$ timesMatMatAsMultipleLinearCombos (l `zippyScale` c) r
+
 zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
 -- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
 zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
