@@ -26,6 +26,18 @@ Trivial lemmas and plumbing
 runIso : Iso a b -> a -> b
 runIso (MkIso to _ _ _) = to
 
+isoSymIsInvolution : isoSym $ isoSym sigma = sigma
+isoSymIsInvolution {sigma=MkIso to from toFrom fromTo} = Refl
+
+runIsoTrans : runIso (isoTrans sigma tau) x = runIso tau $ runIso sigma x
+runIsoTrans {sigma=MkIso to _ _ _} {tau=MkIso to' _ _ _} = Refl
+
+runIsoSym1 : runIso (isoTrans sigma $ isoSym sigma) x = x
+runIsoSym1 {sigma=MkIso to from toFrom fromTo} {x} = fromTo x
+
+runIsoSym2 : runIso (isoTrans (isoSym sigma) sigma) x = x
+runIsoSym2 {sigma=MkIso to from toFrom fromTo} {x} = toFrom x
+
 total
 indexRangeIsIndex : index i Vect.range = i
 indexRangeIsIndex {i=FZ} = Refl
@@ -42,27 +54,23 @@ finReduce : (snel : Fin (S n)) -> Either (Fin n) (FZ = snel)
 finReduce FZ = Right Refl
 finReduce (FS nel) = Left nel
 
-permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin n) -> (runIso sigma nel1 = nel2) -> Either (Not (runIso sigma nel2 = nel2)) (nel1 = nel2)
-{-
--- Positive form. Not strong enough for our purposes.
-permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
--}
-permDoesntFixAValueNotFixed (MkIso to from toFrom fromTo) nel1 nel2 nel1GoesTo2
-	with (decEq nel1 nel2)
-		| Yes pr = Right pr
-		| No prneq = Left $ \nel2GoesTo2 =>
-			prneq $ trans (sym $ fromTo nel1) $ flip trans (fromTo nel2)
-			$ cong {f=from} $ trans nel1GoesTo2 $ sym nel2GoesTo2
-{-
--- Alternatively, this form can be used with a (DecEq)-as-(Either) to remove the (with).
-		| No prneq = Left $ prneq
-			. ( trans (sym $ fromTo nel1) )
-			. ( flip trans (fromTo nel2) )
-			. ( cong {f=from} ) . ( trans nel1GoesTo2 ) . sym
--}
+splitFinAtConcat : (i : Fin $ n+m)
+	-> Either (k : Fin n ** i = weakenN m k) (k : Fin m ** i = shift n k)
+splitFinAtConcat i {n=Z} = Right (i ** Refl)
+splitFinAtConcat FZ {n=S predn} = Left (FZ ** Refl)
+splitFinAtConcat (FS k) {n=S predn} = either
+	( \kAsWkn => Left (FS $ getWitness kAsWkn ** cong {f=FS} $ getProof kAsWkn) )
+	( \kAsShift => Right (getWitness kAsShift ** cong {f=FS} $ getProof kAsShift) )
+	$ splitFinAtConcat k
 
-permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
-permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
+indexConcatAsIndexAppendee : (i : Fin n) -> index (weakenN m i) $ xs++ys = index i xs
+indexConcatAsIndexAppendee i {xs=[]} = FinZElim i
+indexConcatAsIndexAppendee FZ {xs=x::xs} = Refl
+indexConcatAsIndexAppendee (FS k) {xs=x::xs} = indexConcatAsIndexAppendee {xs=xs} k
+
+indexConcatAsIndexAppended : (i : Fin m) -> index (shift n i) $ xs++ys = index i ys
+indexConcatAsIndexAppended i {xs=[]} = Refl
+indexConcatAsIndexAppended i {xs=x::xs} = indexConcatAsIndexAppended {xs=xs} i
 
 splitFinFS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = FS k ) ( i = Fin.FZ {k=predn} )
 splitFinFS FZ = Right Refl
@@ -101,6 +109,30 @@ finReduceIsRight_sym : (z : Fin (S predn))
 	-> (pr : FZ {k=predn} = z ** Right pr = finReduce z)
 finReduceIsRight_sym FZ _ = (Refl ** Refl)
 finReduceIsRight_sym (FS k) pr = void $ FZNotFS $ sym pr
+
+
+
+permDoesntFixAValueNotFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel1, nel2 : Fin n) -> (runIso sigma nel1 = nel2) -> Either (Not (runIso sigma nel2 = nel2)) (nel1 = nel2)
+{-
+-- Positive form. Not strong enough for our purposes.
+permpermFixedImpliesPermFixed : (sigma : Iso (Fin n) (Fin n)) -> (nel : Fin n) -> (runIso sigma nel = runIso sigma $ runIso sigma nel) -> (nel = runIso sigma nel2)
+-}
+permDoesntFixAValueNotFixed (MkIso to from toFrom fromTo) nel1 nel2 nel1GoesTo2
+	with (decEq nel1 nel2)
+		| Yes pr = Right pr
+		| No prneq = Left $ \nel2GoesTo2 =>
+			prneq $ trans (sym $ fromTo nel1) $ flip trans (fromTo nel2)
+			$ cong {f=from} $ trans nel1GoesTo2 $ sym nel2GoesTo2
+{-
+-- Alternatively, this form can be used with a (DecEq)-as-(Either) to remove the (with).
+		| No prneq = Left $ prneq
+			. ( trans (sym $ fromTo nel1) )
+			. ( flip trans (fromTo nel2) )
+			. ( cong {f=from} ) . ( trans nel1GoesTo2 ) . sym
+-}
+
+permDoesntFix_corrolary : (sigma : Iso (Fin (S n)) (Fin (S n))) -> (snel : Fin (S n)) -> Not (snel = FZ) -> (runIso sigma snel = FZ) -> Not (runIso sigma FZ = FZ)
+permDoesntFix_corrolary sigma snel ab pr = runIso eitherBotRight $ map ab (permDoesntFixAValueNotFixed sigma snel FZ pr)
 
 weakenIsoByValFZ : Iso (Fin (S n)) (Fin (S n)) -> Iso (Fin n) (Fin n)
 weakenIsoByValFZ {n} (MkIso to from toFrom fromTo) = MkIso to' from' toFrom' fromTo'
@@ -269,6 +301,530 @@ vectPermTo (MkIso to from toFrom fromTo) {n} {a} xs = map (((flip index) xs) . t
 
 vectPermToIndexChariz : index i $ vectPermTo sigma xs = index (runIso sigma i) xs
 vectPermToIndexChariz {sigma=sigma@(MkIso to _ _ _)} {xs} {i} = trans indexMapChariz $ cong {f=flip Vect.index xs . runIso sigma} {b=i} indexRangeIsIndex
+
+vectPermToRefl : vectPermTo Isomorphism.isoRefl xs = xs
+vectPermToRefl = vecIndexwiseEq $ \i => vectPermToIndexChariz {sigma=isoRefl}
+
+vectPermToTrans : vectPermTo (isoTrans sigma tau) xs = vectPermTo sigma $ vectPermTo tau xs
+vectPermToTrans {sigma} {tau} {xs} = vecIndexwiseEq $ \i =>
+	trans vectPermToIndexChariz
+	$ sym
+	$ trans vectPermToIndexChariz
+	$ trans vectPermToIndexChariz
+	$ cong {f=flip index xs} $ sym $ runIsoTrans {sigma=sigma} {tau=tau} {x=i}
+
+vectPermToSym1 : vectPermTo (isoTrans sigma $ isoSym sigma) xs = xs
+vectPermToSym1 {xs} = vecIndexwiseEq $ \i => trans vectPermToIndexChariz
+	$ cong {f=flip index xs} runIsoSym1
+
+vectPermToSym2 : vectPermTo (isoTrans (isoSym sigma) sigma) xs = xs
+vectPermToSym2 {xs} = vecIndexwiseEq $ \i => trans vectPermToIndexChariz
+	$ cong {f=flip index xs} runIsoSym2
+
+{-
+-- (1/2) Section discusses a system for permuting (xs++ys) to (ys++xs).
+
+||| See (FSAtConcatChariz).
+FSAtConcat : (n, m : Nat) -> Fin (n+m) -> Fin (n+(S m))
+FSAtConcat Z m el = FS el
+FSAtConcat (S Z) m FZ = FS FZ
+FSAtConcat (S (S prededn)) m FZ = weaken $ FSAtConcat (S prededn) m FZ
+FSAtConcat (S predn) m (FS k) = FS $ FSAtConcat predn m k
+
+finFSCong : {el : Fin n} -> {le : Fin m} -> el ~=~ le -> FS el ~=~ FS le
+
+finWeakenCong : {el : Fin n} -> {le : Fin m} -> el ~=~ le -> weaken el ~=~ weaken le
+
+FSAtConcatChariz : (n, m : Nat) -> (el : Fin (n+m)) -> FSAtConcat n m el ~=~ FS el
+FSAtConcatChariz Z m el = Refl
+FSAtConcatChariz (S Z) m FZ = Refl
+FSAtConcatChariz (S (S prededn)) m FZ = finWeakenCong $ FSAtConcatChariz (S prededn) m FZ
+FSAtConcatChariz (S predn) m (FS k) = finFSCong $ FSAtConcatChariz predn m k
+
+splitFinFSAtConcat : (n, m : Nat)
+	-> (i : Fin $ (S n)+(S m))
+	-> Either ( k : Fin $ (S n)+m ** i = FSAtConcat (S n) m k )
+		( i = Fin.FZ {k=n+(S m)} )
+-- splitFinFSAtConcat FZ = Right Refl
+-- splitFinFSAtConcat (FS k) = Left (k ** Refl)
+
+FSAsFSAtConcat : (n, m : Nat)
+	-> (i : Fin $ n+(S m))
+	-> ( k : Fin $ (S n)+m ** FS i = FSAtConcat (S n) m k )
+
+||| See (permThroughFSChariz).
+permThroughFS : Iso (Fin n) (Fin n) -> Iso (Fin $ S n) (Fin $ S n)
+permThroughFS (MkIso to from toFrom fromTo) {n} = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin $ S n -> Fin $ S n
+		to' FZ = FZ
+		to' (FS k) = FS $ to k
+		from' : Fin $ S n -> Fin $ S n
+		from' FZ = FZ
+		from' (FS k) = FS $ from k
+		toFrom' : (y : _) -> to' (from' y) = y
+		toFrom' FZ = Refl
+		toFrom' (FS k) = cong {f=FS} $ toFrom k
+		fromTo' : (x : _) -> from' (to' x) = x
+		fromTo' FZ = Refl
+		fromTo' (FS k) = cong {f=FS} $ fromTo k
+
+permThroughFSChariz : vectPermTo (permThroughFS sigma) (x::xs) = x :: vectPermTo sigma xs
+permThroughFSChariz {sigma=MkIso to from toFrom fromTo} {x} {xs} = vecIndexwiseEq pr
+	where
+		{-
+		pr : (i : _) -> index i $ vectPermTo (permThroughFS sigma) (x::xs)
+			= index i $ x :: vectPermTo sigma xs
+		-}
+		pr FZ = Refl
+		pr (FS k) = vectPermToIndexChariz
+				{sigma=permThroughFS $ MkIso to from toFrom fromTo}
+				{i=FS k}
+				{xs=x::xs}
+			`trans` (sym $ vectPermToIndexChariz
+				{sigma=MkIso to from toFrom fromTo}
+				{i=k}
+				{xs=xs})
+
+||| See (permThroughFSInConcatChariz).
+permThroughFSInConcat : Iso (Fin $ (S n)+m) (Fin $ (S n)+m) -> Iso (Fin $ (S n)+(S m)) (Fin $ (S n)+(S m))
+permThroughFSInConcat (MkIso to from toFrom fromTo) {n} {m} = MkIso to' from' toFrom' fromTo'
+	where
+		to' : Fin $ (S n)+(S m) -> Fin $ (S n)+(S m)
+		to' FZ = FZ
+		to' (FS prel) = FSAtConcat (S n) m $ to
+			$ getWitness $ FSAsFSAtConcat n m prel
+		{-
+		to' (FS prel) with (splitFinFSAtConcat n m $ FS prel)
+			| Left (k ** pr) = FSAtConcat (S n) m $ to k
+			| Right pr = ?permThroughFSInConcat_to'
+		-}
+		from' : Fin $ (S n)+(S m) -> Fin $ (S n)+(S m)
+		from' FZ = FZ
+		from' (FS prel) = FSAtConcat (S n) m $ from
+			$ getWitness $ FSAsFSAtConcat n m prel
+		{-
+		from' (FS prel) with (splitFinFSAtConcat n m $ FS prel)
+			| Left (k ** pr) = FSAtConcat (S n) m $ from k
+			| Right pr = ?permThroughFSInConcat_from'
+		-}
+		{-
+		from' el with (splitFinFSAtConcat n m el)
+			| Left (k ** pr) = FSAtConcat (S n) m $ from k
+			| Right pr = FZ
+		-}
+		toFrom' : (y : _) -> to' (from' y) = y
+		-- toFrom' FZ = Refl
+		-- toFrom' (FS k) = cong {f=FS} $ toFrom k
+		toFrom' FZ = Refl
+		toFrom' (FS k) = ?permThroughFSInConcat_toFrom_2
+		fromTo' : (x : _) -> from' (to' x) = x
+		-- fromTo' FZ = Refl
+		-- fromTo' (FS k) = cong {f=FS} $ fromTo k
+		fromTo' FZ = Refl
+		fromTo' (FS k) = ?permThroughFSInConcat_fromTo_2
+
+permThroughFSInConcatChariz :
+	(vs : Vect ((S n)+(S m)) a)
+	-> (w : a)
+	-> (ws : Vect ((S n)+m) a)
+	-> vs ~=~ w::ws
+	-> vectPermTo (permThroughFSInConcat sigma) vs ~=~ w :: vectPermTo sigma ws
+-}
+
+{-
+-- Can't implement because of problems in expanding the nested (with)s of (decEq)s while proving the last characteristic property of the permutation.
+
+-- {mel : _} leads to inability to apply the function obtained: "No such variable mel".
+swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> runIso sigma mel = mel) )
+swapFZPerm {predn} nel = (MkIso swapTo swapTo swapToTo swapToTo ** (Refl, Refl, sigpr))
+	where
+		{-
+		"
+		When checking left hand side of with in with block in ZZModuleSpan.swapFZPerm, sigpr:
+		Can't match on with block in ZZModuleSpan.swapFZPerm, sigpr predn
+			nel
+			mel
+			(No notFZ)
+			notFZ
+			notNel
+		"
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ)
+			| Yes isFZ = nel
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = FZ
+				| No norNel = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ)
+			| Yes isFZ = ?swapToTo_rhs_1
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = ?swapToTo_rhs_2
+				| No norNel = ?swapToTo_rhs_3 -- Should be Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ)
+			| Yes isFZ = void $ notFZ isFZ
+			| No notFZ with (decEq mel nel)
+				| Yes isNel = void $ notNel isNel
+				| No norNel = Refl
+		-}
+		{-
+		-- "Can't match on with block ...
+		swapTo : Fin (S predn) -> Fin (S predn)
+		swapTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = nel
+			| (No notFZ, Yes isNel) = FZ
+			| (No notFZ, No notNel) = mel
+		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
+		swapToTo mel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = ?swapToTo_rhs_1
+			| (No notFZ, Yes isNel) = ?swapToTo_rhs_3
+			| (No notFZ, No notNel) = Refl
+		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
+		sigpr mel notFZ notNel with (decEq mel FZ, decEq mel nel)
+			| (Yes isFZ, _) = void $ notFZ isFZ
+			-- "Can't match on with block in ..."
+			-- but "is a valid case"
+			| (No notFZ, Yes isNel) = void $ notNel isNel
+			| (No notFZ, No notNel) = Refl
+		-}
+
+-- Abbreviation
+swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
+swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
+-}
+
+-- > \xs => (getProof $ rotateAt $ 3 `shift` (FZ {k=5})) Char $ ['a','b','c']++xs
+rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn))
+	** (a : Type)
+		-> (xs : Vect (S predn) a)
+		-> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
+rotateAt {predn} nel = ( sigma
+		** \a => \xs => vecIndexwiseEq
+			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
+				$ (getProof $ rotateTo nel i) a xs )
+	where
+		{-
+		Can't put (predn) directly into the types of (rotateTo) and (rotateFrom)
+		where (v)s are, because then (rotateFromTo) can't be implemented due
+		to conflicting reasonable dependent pattern matches, and it's harder
+		to implement (rotateToFrom) for the same reason.
+
+		See commit b1e0ad4bca for documentation of the problems.
+
+		Although we also forgot to do the (deleteTo (FS e) k@FZ/(FS k')) match,
+		so maybe (rotateFromTo) could have been implemented and that type error
+		just added noise.
+		-}
+		deleteTo : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( j : Fin (S v) **
+				(a : Type) ->
+				(xs : Vect (S v) a) ->
+				(index j xs = index preli $ deleteAt el xs) )
+		deleteTo {v=Z} a b = FinZElim b
+		deleteTo FZ preli = ( FS preli ** prfn )
+			where
+				prfn _ (x::xs) = Refl
+		deleteTo (FS e) FZ = ( FZ ** prfn )
+			where
+				prfn _ (x::xs) = Refl
+		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
+			where
+				prfn a (x::xs) = (getProof $ deleteTo e k) a xs
+		deleteToSkipsFocus : ( el : Fin (S v) )
+			-> ( preli : Fin v )
+			-> ( el = getWitness $ deleteTo el preli )
+			-> Void
+		deleteToSkipsFocus {v=Z} _ b = FinZElim b
+		deleteToSkipsFocus {v=S v'} FZ preli = FZNotFS
+		deleteToSkipsFocus {v=S v'} (FS e) FZ = FZNotFS . sym
+		deleteToSkipsFocus {v=S v'} (FS e) (FS k) = (deleteToSkipsFocus e k) . FSinjective
+		rotateTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> ( j : Fin (S v) **
+				(a : Type) ->
+				(xs : Vect (S v) a) ->
+				(index j xs = index i $ index el xs :: deleteAt el xs) )
+		rotateTo FZ FZ = ( FZ ** \a => \xs => Refl )
+		rotateTo FZ (FS k) = ( FS k ** prfn )
+			where
+				prfn _ (x::xs) = Refl
+		rotateTo (FS e) FZ = ( FS e ** \a => \xs => Refl )
+		rotateTo (FS e) (FS k) = deleteTo (FS e) k
+		deleteFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (Fin v) (el=i)
+		deleteFrom FZ FZ = Right Refl
+		deleteFrom FZ (FS k) = Left k
+		deleteFrom {v=Z} (FS e) _ = FinZElim e
+		deleteFrom {v=S predv} (FS e) FZ = Left FZ
+		deleteFrom {v=S predv} (FS e) (FS k) = either (Left . FS) (Right . (cong {f=FS})) $ deleteFrom e k
+		rotateFrom : Fin (S v)
+			-> Fin (S v)
+			-> Fin (S v)
+		rotateFrom FZ FZ = FZ
+		rotateFrom FZ (FS k) = FS k
+		rotateFrom (FS e) i with (decEq (FS e) i)
+			| Yes pr = FZ
+			| No prneg = FS $ runIso eitherBotRight
+				$ map prneg
+				$ deleteFrom (FS e) i
+		deleteFromFormula : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> Either (i' : Fin v ** deleteFrom el i = Left i') (el = i)
+		deleteFromFormula el i with (deleteFrom el i)
+			| Left i' = Left (i' ** Refl)
+			| Right pr = Right pr
+		deleteToFrom : (el : Fin (S v))
+			-> (i : Fin (S v))
+			-> (prneq : Not (el = i))
+			-> getWitness
+				$ deleteTo el
+				$ runIso Isomorphism.eitherBotRight
+				$ map prneq
+				$ deleteFrom el i = i
+		deleteToFrom FZ FZ prneq = void $ prneq Refl
+		deleteToFrom {v=Z} FZ (FS k) _ = FinZElim k
+		deleteToFrom {v=S predv} FZ (FS k) _ = Refl
+		deleteToFrom {v=Z} (FS e) _ _ = FinZElim e
+		deleteToFrom {v=S predv} (FS e) FZ _ = Refl
+		{-
+		-- Left with goal (FS $ getWitness $ deleteTo e k' = FS k)
+		-- Perhaps we can write an Either over each case of (deleteTo) & (deleteFrom)
+		-- of the equations of the function's value to the formula for that case,
+		-- letting us rewrite not to (k') but to a formula for (deleteFrom e k).
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			with (deleteFrom e k)
+				| Left k' = ?deleteToFrom_rhs_4
+				| Right pr = void $ prneq $ cong {f=FS} pr
+		-}
+		deleteToFrom {v=S predv} (FS e) (FS k) prneq
+			with (deleteFromFormula e k)
+				| Left (k' ** pr) = rewrite pr in cong {f=FS}
+					$ trans (cong {f=\x => getWitness
+							$ deleteTo e
+							$ runIso Isomorphism.eitherBotRight
+							$ map (prneq . (cong {f=FS})) x}
+							$ sym pr)
+					$ deleteToFrom e k (prneq . (cong {f=FS}))
+				| Right pr = void $ prneq $ cong {f=FS} pr
+		rotateToFrom : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> getWitness $ rotateTo el $ rotateFrom el i = i
+		rotateToFrom FZ FZ = Refl
+		rotateToFrom FZ (FS k) = Refl
+		rotateToFrom {v=Z} (FS e) _ = FinZElim e
+		rotateToFrom {v=S v'} (FS e) FZ = Refl
+		rotateToFrom (FS e) (FS k) with (decEq (FS e) (FS k))
+			| Yes pr = pr
+			| No prneg = deleteToFrom (FS e) (FS k) prneg
+		deleteFromTo : (el : Fin (S v))
+			-> (i : Fin v)
+			-> deleteFrom el $ getWitness $ deleteTo el i = Left i
+		deleteFromTo {v=Z} _ i = FinZElim i
+		deleteFromTo {v=S v'} FZ k = Refl
+		deleteFromTo {v=S v'} (FS e) FZ = Refl
+		deleteFromTo {v=S v'} (FS e) (FS k') = rewrite deleteFromTo e k' in Refl
+		-- This implementation typechecks too
+		-- deleteFromTo {v=S v'} (FS e) (FS k') = cong {f=either (Left . FS) (Right . (cong {f=FS {k=S v'}}))} $ deleteFromTo e k'
+		rotateFromTo : ( el : Fin (S v) )
+			-> ( i : Fin (S v) )
+			-> rotateFrom el $ getWitness $ rotateTo el i = i
+		rotateFromTo FZ FZ = Refl
+		rotateFromTo FZ (FS k) = Refl
+		rotateFromTo {v=Z} (FS e) _ = FinZElim e
+		rotateFromTo {v=S v'} (FS e) FZ with (decEq e e)
+			| No prneg = void $ prneg Refl
+			| Yes pr = Refl
+		rotateFromTo {v=S v'} (FS e) (FS FZ) = Refl
+		rotateFromTo {v=S v'} (FS e) (FS (FS k')) with (decEq (FS e) $ getWitness $ deleteTo (FS e) (FS k'))
+			| Yes pr = void $ deleteToSkipsFocus (FS e) (FS k') pr
+			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
+				$ deleteFromTo (FS e) (FS k')
+		sigma : Iso (Fin (S predn)) (Fin (S predn))
+		sigma = MkIso
+			(\i => getWitness $ rotateTo nel i)
+			(\i => rotateFrom nel i)
+			(\i => rotateToFrom nel i)
+			(\i => rotateFromTo nel i)
+
+
+
+{-
+-- (2/2) Section discusses a system for permuting (xs++ys) to (ys++xs).
+-- Requires (permThroughFSInConcat) to replace (permThroughFS).
+
+!!!!!!!!
+Uses incorrect definition of (vectPermToTrans):
+
+vectPermToTrans : vectPermTo (isoTrans sigma tau) xs = vectPermTo tau $ vectPermTo sigma xs
+
+The fact is, vectPermTo (isoTrans sigma tau) xs = vectPermTo sigma $ vectPermTo tau xs
+!!!!!!!!
+
+
+nullAppendId : (xs : Vect n a) -> xs++[] ~=~ xs
+nullAppendId [] = Refl
+nullAppendId (x::xs) = vectConsCong x (xs++[]) xs (nullAppendId xs)
+
+nullAppendIdSym : (xs : Vect n a) -> xs ~=~ xs++[]
+nullAppendIdSym [] = Refl
+nullAppendIdSym (x::xs) = vectConsCong x xs (xs++[]) (nullAppendIdSym xs)
+
+-- Design warning: (deleteAtConcatChariz) impossible if rewrites are used to define
+||| See (reconcatChariz).
+reconcat : Vect (n + S m) a -> Vect (S $ n+m) a
+reconcat [] {n=Z} impossible
+reconcat [] {n=S predn} impossible
+reconcat (x::xs) {n=Z} = x::xs
+reconcat (x::xs) {n=S predn} = x::reconcat xs
+
+-- Design warning: (deleteAtConcatChariz) impossible if rewrites are used to define
+reconcatChariz : (xs : Vect (n + S m) a) -> xs ~=~ reconcat xs
+reconcatChariz [] {n=Z} impossible
+reconcatChariz [] {n=S predn} impossible
+reconcatChariz (x::xs) {n=Z} = Refl
+reconcatChariz (x::xs) {n=S predn} = vectConsCong x xs (reconcat xs) $ reconcatChariz xs
+
+-- Design warning: (deleteAtConcatChariz) impossible if rewrites are used to define
+||| See (deleteAtConcatChariz).
+deleteAtConcat : Fin (n + S m) -> Vect (n + S m) a -> Vect (n+m) a
+deleteAtConcat _ {n=Z} {m} [] impossible
+deleteAtConcat _ {n=S predn} [] impossible
+deleteAtConcat k {n=Z} xs = deleteAt k xs
+deleteAtConcat FZ {n=S predn} (x::xs) = reconcat xs
+deleteAtConcat (FS k) {n=S predn} (x::xs) = x :: deleteAtConcat k xs
+
+shiftedIndexId : index (shift m nel) (xs++ys) = index nel ys
+shiftedIndexId {nel} {xs=[]} {ys} = Refl
+shiftedIndexId {nel} {xs=x::xs} {ys} = shiftedIndexId {xs=xs}
+
+deleteAtConcatChariz : (xs : Vect (S n) a)
+	-> (ys : Vect (S m) a)
+	-> deleteAt k (xs++ys) ~=~ deleteAtConcat {n=S n} {m=m} k (xs++ys)
+deleteAtConcatChariz {k=FZ} (x::xs) ys = reconcatChariz $ xs++ys
+deleteAtConcatChariz {k=FS k} {n=Z} (x::[]) ys = Refl
+deleteAtConcatChariz {k=FS k} {n=S predn} (x::xs) ys = vectConsCong
+	x
+	(deleteAt k (xs++ys))
+	(deleteAtConcat k (xs++ys))
+	$ deleteAtConcatChariz {k=k} xs ys
+
+deletionDecapitatingAppended : (xs : Vect (S predn) a)
+	-> (y : a)
+	-> (ys : Vect predm a)
+	-> deleteAtConcat {n=S predn} {m=predm} (S predn `shift` FZ) (xs++y::ys) = xs++ys
+deletionDecapitatingAppended {predn=Z} (x::[]) y ys = Refl
+deletionDecapitatingAppended {predn=S prededn} (x::xs) y ys = cong {f=(x::)}
+	$ deletionDecapitatingAppended {predn=prededn} xs y ys
+
+rotationSappingHeadFromAppended_lemma : (xs : Vect (S predn) a)
+	-> (y : a)
+	-> (ys : Vect predm a)
+	-> index (S predn `shift` FZ) (xs++y::ys)
+		:: deleteAtConcat {n=S predn} {m=predm} (S predn `shift` FZ) (xs++y::ys)
+		= y :: xs++ys
+rotationSappingHeadFromAppended_lemma {predn} xs y ys = vecHeadtailsEq
+	(shiftedIndexId {nel=FZ} {m=S predn} {xs=xs} {ys=y::ys})
+	$ deletionDecapitatingAppended xs y ys
+
+-- Interesting this could be implemented giving a (=) & not a (~=~)
+rotationSappingHeadFromAppended : (xs : Vect (S predn) a)
+	-> (y : a)
+	-> (ys : Vect predm a)
+	-> vectPermTo (getWitness $ rotateAt $ S predn `shift` FZ) (xs ++ y::ys)
+		= y :: xs++ys
+rotationSappingHeadFromAppended {predn} {predm} {a} xs y ys
+	= trans ((getProof $ rotateAt $ S predn `shift` FZ) a (xs++y::ys))
+		$ trans (vectConsCong (index (S predn `shift` FZ) $ xs++y::ys)
+			( deleteAt (S predn `shift` FZ) (xs++y::ys) )
+			( deleteAtConcat {n=S predn} {m=predm}
+				(S predn `shift` FZ)
+				(xs++y::ys) )
+			$ deleteAtConcatChariz xs (y::ys))
+		$ rotationSappingHeadFromAppended_lemma xs y ys
+
+-- Can't make (a) from the (getProof) implicit.
+reverseConcatPerm : (n, m : _) -> ( sigma : Iso (Fin (n+m)) (Fin (n+m))
+	** (a : Type)
+		-> (xs : Vect n a)
+		-> (ys : Vect m a)
+		-> vectPermTo sigma (xs++ys) ~=~ ys++xs )
+reverseConcatPerm n Z = ( isoRefl ** pr )
+	where
+		pr : (a : Type)
+			-> (xs : Vect n a)
+			-> (ys : Vect Z a)
+			-> vectPermTo Isomorphism.isoRefl (xs++ys) ~=~ ys++xs
+		pr _ xs [] = trans vectPermToRefl $ nullAppendId xs
+reverseConcatPerm Z m = ( isoRefl ** pr )
+	where
+		pr : (a : Type)
+			-> (xs : Vect Z a)
+			-> (ys : Vect m a)
+			-> vectPermTo Isomorphism.isoRefl (xs++ys) ~=~ ys++xs
+		pr _ [] ys = trans vectPermToRefl $ nullAppendIdSym ys
+reverseConcatPerm (S predn) (S predm) = ( isoTrans
+		(getWitness $ rotateAt $ S predn `shift` FZ)
+		$ permThroughFS $ getWitness $ reverseConcatPerm predn (S predm)
+	** pr )
+	where
+		pr_lem1 : (a : Type)
+			-> (xs : Vect (S predn) a)
+			-> (y : a)
+			-> (ys : Vect predm a)
+			-> y::( vectPermTo {n=S predn + predm}
+					(getWitness $ reverseConcatPerm (S predn) predm)
+					(xs++ys) )
+				~=~ y::ys++xs
+		pr_lem1 a xs y ys = vectConsCong y
+			( vectPermTo {n=(S predn)+predm}
+				(getWitness $ reverseConcatPerm (S predn) predm)
+				(xs++ys) )
+			(ys++xs)
+			$ (getProof $ reverseConcatPerm (S predn) predm) a xs ys
+		pr : (a : Type)
+			-> (xs : Vect (S predn) a)
+			-> (ys : Vect (S predm) a)
+			-> vectPermTo (isoTrans
+					(getWitness $ rotateAt $ S predn `shift` FZ)
+					$ permThroughFS $ getWitness
+						$ reverseConcatPerm predn (S predm))
+				(xs++ys)
+				~=~ ys++xs
+		pr a xs (y::ys) = trans ?pr_lem2 $ pr_lem1 a xs y ys
+		-- pr a xs (y::ys) = ?reverseConcatPerm'
+		{-
+		pr a xs (y::ys) = trans vectPermToTrans
+			$ trans (cong {f=vectPermTo
+					$ getWitness
+					$ reverseConcatPerm (S predn) predm}
+				$ rotationSappingHeadFromAppended xs y ys)
+			-- The type error is the same if these implicits are removed.
+			$ trans (permThroughFSChariz {x=y} {sigma=getWitness
+				$ reverseConcatPerm (S predn) predm}
+				{xs=xs++ys})
+			$ pr_lem1 a xs y ys
+		-}
+		{-
+		pr a xs (y::ys) = trans vectPermToTrans
+			{-
+			$ trans (cong {f=vectPermTo
+					$ getWitness
+					$ reverseConcatPerm (S predn) predm}
+				$ rotationSappingHeadFromAppended xs y ys)
+			-}
+			$ trans ?pr_lem2
+			-- The type error is the same if these implicits are removed.
+			$ trans (permThroughFSChariz {x=y} {sigma=getWitness
+				$ reverseConcatPerm (S predn) predm}
+				{xs=xs++ys})
+			$ pr_lem1 a xs y ys
+		-}
+-}
+
+
 
 replaceAtIndexForm1 : (i=j) -> index i $ replaceAt j a v = a
 replaceAtIndexForm1 {j} pr {v=[]} = FinZElim j
@@ -500,20 +1056,6 @@ multIdRightNeutral a = vecIndexwiseEq $ \i =>
 			-- = index i a <:> basis j
 		$ dotBasisRIsIndex $ index i a
 
-{-
-When checking type of ZZModuleSpan.rewriteMultInv:
-When checking an application of function Control.Algebra.VectorSpace.<#>:
-        Can't resolve type class Group r
-
----
-
-rewriteMultInv : (VerifiedRingWithUnity r, VerifiedModule r a) -> (s : r) -> (x : a) -> (inverse s) <#> x = s <#> (inverse x)
--}
-
-rewriteMultInvVect : VerifiedRingWithUnity r => (s : r) -> (x : Vect _ r) -> (inverse s) <#> x = s <#> (inverse x)
-
-rewriteMultInvMat : VerifiedRingWithUnity r => (s : r) -> (x : Matrix _ _ r) -> (inverse s) <#> x = s <#> (inverse x)
-
 rewriteAssociativityUnderEquality : {f, g : a -> a -> a} -> ( (x : a) -> (y : a) -> f x y = g x y) -> (l `f` (c `f` r) = (l `f` c) `f` r) -> (l `g` (c `g` r) = (l `g` c) `g` r)
 rewriteAssociativityUnderEquality {f} {g} {l} {c} {r} fneq prf = trans (sym stepleft) $ trans prf stepright
 	where
@@ -593,18 +1135,763 @@ matTimesVerMonoid {r} {n} = matTimesVerMonoid'
 Associative property for matrix multiplication
 -}
 
+{-
+-- A hassle, but may be possible.
+-- monoidrec; monoidNeutralIsNeutralR/monoidNeutralIsNeutralR_Vect; recursion
+monoidsumNeutralIsNeutral1D : VerifiedRingWithUnity a =>
+	monoidsum $ the (Vect n a) Algebra.neutral = Algebra.neutral
+monoidsumNeutralIsNeutral1D {n=Z} = Refl
+monoidsumNeutralIsNeutral1D {n=S predn} = ?monoidsumNeutralIsNeutral1D_rhs
+
+monoidsumNeutralIsNeutral2D : VerifiedRingWithUnity a =>
+	monoidsum {t=Vect n} $ the (Matrix n m a) Algebra.neutral = Algebra.neutral
+monoidsumNeutralIsNeutral2D {n=Z} = Refl
+monoidsumNeutralIsNeutral2D {n=S predn} = ?monoidsumNeutralIsNeutral2D_rhs
+-}
+
+monoidsumNeutralIsNeutral1D : monoidsum $ the (Vect n ZZ) Algebra.neutral = Algebra.neutral
+monoidsumNeutralIsNeutral1D {n=Z} = Refl
+monoidsumNeutralIsNeutral1D {n=S predn} = trans monoidrec1D
+	$ trans (monoidNeutralIsNeutralR _)
+	$ monoidsumNeutralIsNeutral1D
+
+monoidsumNeutralIsNeutral2D : monoidsum {t=Vect n} $ the (Matrix n m ZZ) Algebra.neutral
+	= Algebra.neutral
+monoidsumNeutralIsNeutral2D {n=Z} = Refl
+monoidsumNeutralIsNeutral2D {n=S predn} = trans monoidrec2D
+	$ trans (monoidNeutralIsNeutralR_Vect _)
+	$ monoidsumNeutralIsNeutral2D
+
+sumTransposeMapRelation : (xs : Matrix n m ZZ)
+	-> monoidsum $ transpose xs = map monoidsum xs
+sumTransposeMapRelation [] = zeroVecEq
+sumTransposeMapRelation ([]::xs) {m=Z} =
+	trans (cong {f=monoidsum} $ zeroVecEq {a=zipWith (::) [] $ transpose xs} {b=[]})
+	$ vecHeadtailsEq Refl $ vecIndexwiseEq
+	$ \i =>
+		trans indexReplicateChariz
+		$ sym $ trans indexMapChariz
+		$ cong {f=monoidsum} $ zeroVecEq {a=index i xs} {b=[]}
+sumTransposeMapRelation (x::xs) {m=S predm} =
+	trans (headtails $ monoidsum $ transpose $ x::xs)
+	$ vecHeadtailsEq
+		(trans (headOfSumIsSumOfHeads $ transpose $ x::xs)
+			$ cong {f=monoidsum}
+			$ trans (sym transposeNHead)
+			$ cong {f=head} $ transposeIsInvolution {xs=x::xs})
+		(trans (tailOfSumIsSumOfTails {vs=transpose $ x::xs})
+			$ trans (cong {f=monoidsum}
+				$ trans (sym transposeNTail)
+				$ cong {f=transpose . tail}
+				$ transposeIsInvolution {xs=x::xs})
+			$ sumTransposeMapRelation xs)
+
+-- generalized associativity law: (x+y)+(z+w)=(x+z)+(y+w);
+-- doubleSumInnerSwap
+orderOfSummationExchange : (xs : Matrix n m ZZ)
+	-> monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs
+orderOfSummationExchange [] {m} = trans monoidsumNeutralIsNeutral1D
+	$ sym $ trans (cong {f=monoidsum} $ monoidsumNeutralIsNeutral2D {n=m} {m=Z})
+	$ monoidsumNeutralIsNeutral1D {n=Z}
+orderOfSummationExchange ([]::xs) {m=Z} =
+	sym $ trans (assert_total $ orderOfSummationExchange $ transpose $ []::xs)
+	$ rewrite transposeIsInvolution {xs=[]::xs} in Refl
+	{-
+	-- Trying not to scare the totality checker by using the constant ([]), didn't help.
+	sym
+	$ trans (cong {f=monoidsum . monoidsum} $ zeroVecEq {a=transpose $ []::xs} {b=[]})
+	$ trans (assert_total $ orderOfSummationExchange $ the (Matrix 0 (S _) ZZ) [])
+	$ cong {f=monoidsum . monoidsum}
+	$ trans (zeroVecVecId $ transpose $ the (Matrix 0 (S _) ZZ) [])
+	$ sym $ zeroVecVecId ([]::xs)
+	-}
+{-
+Notation where terms are applied from the inside out to a matrix argument.
+Equality here denotes equality of results when applied to that arg; hence, it's extensional.
+
+Operations applied to the matrix argument to the function:
+-|--	identity
+-|	head operation
+|--	tail operation
+a|	head . a
+|a	tail . a
+|^f--, |^f	f . tail	<<f of tail of>>	e.g., |^[--] = [] . |-- = [|--]
+|^f	""
+^f-|, ^f|	f . head
+[f]	monoidsum . f
+<f>	map f	e.g., <|--> = map tail, <[-|--]> = map monoidsum,
+		|^<|--> = (map tail) . tail
+f*	transpose . f;	e.g. (-|--)* is the transpose of the matrix argument
+a b	\h => a h <+> b h	<<sum (of results)>>
+a :: b	\h => a h :: b h	<<cons (of results)>>	e.g., -|::|-- = -|--
+
+Extranotational operations:
+f . g	f . g (informal)
+f $ g	f . g
+
+Observations:
+|[--]	is nonsensical.
+|<f>	denotes	tail . (map f),
+while	(map f) . tail	is denoted	<f> . |-- = |^<f>
+and they are extensionally equal.
+map f $ |(-|) :: |^<|--> = map f $ <|--> . (-| :: |--) = <|^f--> . (-|::|--) = <|^f-->
+No uniform notation for	f . tail . g.
+
+Proof:
+
+-- Sect 1) Split the first column's sum off as one term.
+[[-|--]]	={headOfSumIsSumOfHeads; tailOfSumIsSumOfTails}=
+= [[<-|>] :: [<|-->]]	={monoidrec1D}=
+-- Sect 2) Split the topleft corner off from the first column.
+= [<-|>] [[<|-->]]	={monoidrec1D}=
+-- Sect 3) Recurse
+= (-|)| [|<-|>] [[<|-->]]	={orderOfSummationExchange (recursing)}=
+-- Sect 4) Split the first row's tail's sum off as one term
+= (-|)| [|<-|>] [[<|-->*]]	={sumTransposeMapRelation}=
+= (-|)| [|<-|>] [<[|--]>]	={headMapChariz}=
+= (-|)| [|<-|>] [[|(-|)] :: |<[|--]>]	={monoidrec1D}=
+-- Sect 5) Reorder terms to sum the 1st row head & tail directly & 1st col tail w/ leftovers.
+= (-|)| [|<-|>] [|(-|)] [|<[|--]>]	={doubleSumInnerSwap}=
+-- Sect 6) Merge the 1st row head & tail into the 1st row
+= (-|)| [|(-|)] [|<-|>] [|<[|--]>]	={monoidrec1D}=
+= [-|] [|<-|>] [|<[|--]>]
+-- Sect 7) Merge the 1st col tail & leftovers into the tail of the matrix.
+	={ tailMapChariz {f} {xs} = cong {f=tail . (map f)} $ headtails {v=xs} }=
+= [-|] [|^<-|>] [|<[|--]>]	={headOfSumIsSumOfHeads}=
+= [-|] [|--]| [|<[|--]>]	={tailMapChariz; functorComposition (composeUnderMap)}=
+= [-|] [|--]| [<[-|--]> . <|--> . |--]	={sumTransposeMapRelation}=
+= [-|] [|--]| [[(<|--> . |--)*]]	={orderOfSummationExchange (recursing)}=
+= [-|] [|--]| [[<|--> . |--]]	={tailOfSumIsSumOfTails}=
+= [-|] [|--]| [|[|--]]	={monoidrec1D}=
+-- Sect 8) Identify the sum of the head-sum and tail-sum w/ the double sum of the transpose.
+= [-|] [[|--]]	={orderOfSummationExchange (recursing)}=
+= [-|] [[(|--)*]]	={sumTransposeMapRelation}=
+= [-|] [|^<[--]>]	={monoidrec1D}=
+= [<[-|--]>]	={sumTransposeMapRelation}=
+= [[(-|--)*]]
+-}
+orderOfSummationExchange (x::xs) {m=S predm} =
+	-- (Sect 1)
+	-- [[-|--]]	={headOfSumIsSumOfHeads; tailOfSumIsSumOfTails}=
+	trans (cong {f=monoidsum} $ trans (headtails $ monoidsum $ x::xs)
+		$ vecHeadtailsEq
+			(headOfSumIsSumOfHeads $ x::xs)
+			(tailOfSumIsSumOfTails {vs=x::xs}))
+	-- = [[<-|>] :: [<|-->]]	={monoidrec1D}=
+	$ trans (monoidrec1D
+		{v=monoidsum $ map head $ x::xs} {vs=monoidsum $ map tail $ x::xs})
+	-- (Sect 2)
+	-- = [<-|>] [[<|-->]]	={monoidrec1D}=
+	$ trans (cong {f=(<+>(monoidsum $ monoidsum $ map Vect.tail $ x::xs))}
+		$ monoidrec1D {v=head x} {vs=map head xs})
+	-- (Sects 3-4)
+	-- = (-|)| [|<-|>] [[<|-->]]	={orderOfSummationExchange (recursing)}=
+	-- = (-|)| [|<-|>] [[<|-->*]]	={sumTransposeMapRelation}=
+	-- = (-|)| [|<-|>] [<[|--]>]
+	-- = (-|)| [|<-|>] [[|(-|)] :: |<[|--]>]	={monoidrec1D}=
+	$ trans (cong {f=((head x <+> (monoidsum $ map head xs))<+>)}
+		$ trans (orderOfSummationExchange $ map tail $ x::xs)
+		$ trans (cong {f=monoidsum}
+			$ sumTransposeMapRelation $ map Vect.tail $ x::xs)
+		$ monoidrec1D {v=monoidsum $ tail x} {vs=map monoidsum $ map tail xs})
+	-- (Sect 5)
+	-- = (-|)| [|<-|>] [|(-|)] [|<[|--]>]	={doubleSumInnerSwap}=
+	$ trans (doubleSumInnerSwap
+		(head x) (monoidsum $ map head xs)
+		(monoidsum $ tail x) (monoidsum $ map monoidsum $ map tail xs))
+	-- (Sect 6)
+	-- = (-|)| [|(-|)] [|<-|>] [|<[|--]>]	={monoidrec1D}=
+	$ trans (cong {f=(<+>((monoidsum $ map head xs)
+			<+>(monoidsum $ map monoidsum $ map tail xs)))}
+		$ sym $ trans (cong {f=monoidsum} $ headtails x)
+		$ monoidrec1D {v=head x} {vs=tail x})
+	-- ORDER OF STEPS DIFFERS FROM COMMENTS DUE TO NO NEED TO TRANSF. MIDDLE TERM TWICE
+	-- (Sect 7)
+	-- = [-|] [|<-|>] [|<[|--]>]
+	-- = [-|] [|^<-|>] [|<[|--]>]
+	-- = [-|] [|^<-|>] [<[-|--]> . |^<|-->]	={sumTransposeMapRelation}=
+	-- = [-|] [|^<-|>] [[(|^<|-->)*]]	={orderOfSummationExchange (recursing)}=
+	$ trans (cong {f=((monoidsum x) <+>) . ((monoidsum $ map head xs)<+>)}
+		$ sym $ trans (orderOfSummationExchange $ map tail xs)
+		$ cong {f=monoidsum} $ sumTransposeMapRelation $ map tail xs)
+	-- = [-|] [|^<-|>] [[|^<|-->]]	={monoidrec1D}=
+	-- = [-|] [[|^<-|>] :: [|^<|-->]]
+	--	={headOfSumIsSumOfHeads; tailOfSumIsSumOfTails}=
+	-- = [-|] [[|--]| :: |[|--]]
+	$ trans (cong {f=((monoidsum x)<+>)}
+		-- The implicits on this (monoidsum) are needed for (headtails).
+		$ sym $ trans (cong {f=monoidsum {t=Vect $ S predm} {a=ZZ}}
+			$ trans (headtails $ monoidsum xs)
+			$ vecHeadtailsEq
+				(headOfSumIsSumOfHeads xs) (tailOfSumIsSumOfTails {vs=xs}))
+		$ monoidrec1D {v=monoidsum $ map Vect.head xs} {vs=monoidsum $ map tail xs})
+	-- ORDER RESUMES FROM COMMENTS
+	-- (Sect 8)
+	-- = [-|] [[|--]]	={orderOfSummationExchange (recursing)}=
+	-- = [-|] [[(|--)*]]	={sumTransposeMapRelation}=
+	$ trans (cong {f=((monoidsum x)<+>)}
+		$ trans (orderOfSummationExchange xs)
+		$ cong {f=monoidsum} $ sumTransposeMapRelation xs)
+	-- = [-|] [|^<[--]>]	={monoidrec1D}=
+	$ trans (sym $ monoidrec1D {v=monoidsum x} {vs=map monoidsum xs})
+	-- = [<[-|--]>]	={sumTransposeMapRelation}=
+	$ cong {f=monoidsum} $ sym $ sumTransposeMapRelation $ x::xs
+	-- = [[(-|--)*]]	wwtbd.
+
+{-
+-- Reference: A proof script for (orderOfSummationExchange)'s inductive step.
+orderOfSummationExchange_rhs_3 = proof
+  intros
+  exact trans (cong {f=monoidsum} $ trans (headtails $ monoidsum $ x::xs) $ vecHeadtailsEq (headOfSumIsSumOfHeads $ x::xs) (tailOfSumIsSumOfTails {vs=x::xs})) $ _
+  exact trans (monoidrec1D {v=monoidsum $ map head $ x::xs} {vs=monoidsum $ map tail $ x::xs}) $ _
+  exact trans (cong {f=(<+>(monoidsum $ monoidsum $ map Vect.tail $ x::xs))} $ monoidrec1D {v=head x} {vs=map head xs}) $ _
+  exact trans (cong {f=((head x <+> (monoidsum $ map head xs))<+>)} $ trans (orderOfSummationExchange $ map tail $ x::xs) $ trans (cong {f=monoidsum} $ sumTransposeMapRelation $ map Vect.tail $ x::xs) $ monoidrec1D {v=monoidsum $ tail x} {vs=map monoidsum $ map tail xs}) $ _
+  exact trans (doubleSumInnerSwap (head x) (monoidsum $ map head $ xs) (monoidsum $ tail x) (monoidsum $ map monoidsum $ map tail $ xs)) $ _
+  exact trans (cong {f=(<+>((monoidsum $ map head xs)<+>(monoidsum $ map monoidsum $ map tail xs)))} $ sym $ trans (cong {f=monoidsum} $ headtails x) $ monoidrec1D {v=head x} {vs=tail x}) $ _
+  exact trans (cong {f=((monoidsum x) <+>) . ((monoidsum $ map head xs)<+>)} $ sym $ trans (orderOfSummationExchange $ map tail xs) $ cong {f=monoidsum} $ sumTransposeMapRelation $ map tail xs) $ _
+  -- Unusual implicits needed here for (headtails): monoidsum {t=Vect $ S predm} {a=ZZ}
+  exact trans (cong {f=((monoidsum x)<+>)} $ sym $ trans (cong {f=monoidsum {t=Vect $ S predm} {a=ZZ}} $ trans (headtails $ monoidsum xs) $ vecHeadtailsEq (headOfSumIsSumOfHeads xs) (tailOfSumIsSumOfTails {vs=xs})) $ monoidrec1D {v=monoidsum $ map head xs} {vs=monoidsum $ map tail xs}) $ _
+  exact trans (cong {f=((monoidsum x)<+>)} $ trans (orderOfSummationExchange xs) $ cong {f=monoidsum} $ sumTransposeMapRelation xs) $ _
+  exact trans (sym $ monoidrec1D {v=monoidsum x} {vs=map monoidsum xs}) $ _
+  exact cong {f=monoidsum} $ sym $ sumTransposeMapRelation $ x::xs
+-}
+
+-- Not needed in Gaussian elimination, but a nice corrollary.
+sumSumAsSumMapSum : (xs : Matrix n m ZZ)
+	-> monoidsum $ map monoidsum xs = monoidsum $ monoidsum xs
+sumSumAsSumMapSum xs = trans (cong {f=monoidsum} $ sym $ sumTransposeMapRelation xs)
+	$ sym $ orderOfSummationExchange xs
+
+zipWithTimesIsDistributiveL : (l, c, r : Vect n ZZ)
+	-> zipWith (<.>) l $ c<+>r = zipWith (<.>) l c <+> zipWith (<.>) l r
+zipWithTimesIsDistributiveL [] [] [] = Refl
+zipWithTimesIsDistributiveL (l::ls) (c::cs) (r::rs) = vecHeadtailsEq
+	(ringOpIsDistributiveL l c r)
+	$ zipWithTimesIsDistributiveL ls cs rs
+
+zipWithTimesIsRecDistributiveL : (l : Vect n ZZ)
+	-> (rs : Matrix m n ZZ)
+	-> zipWith (<.>) l $ monoidsum rs = monoidsum $ map (zipWith (<.>) l) rs
+zipWithTimesIsRecDistributiveL {n} l [] = vecIndexwiseEq
+	$ \i => trans (zipWithEntryChariz {i=i} {m=\x : ZZ => \y => x <.> y})
+		$ trans (cong {f=((index i l)<.>)} $ indexReplicateChariz {n=n})
+		$ trans (ringNeutralIsMultZeroR $ index i l)
+		$ sym indexReplicateChariz
+{-
+-- No matter how many implicit arguments you try and fill in, this rewrite is REPL-only.
+-- "Specifically: Type mismatch between neutral and Pos 0"
+zipWithTimesIsRecDistributiveL {n} l [] = vecIndexwiseEq
+	$ \i => trans (zipWithEntryChariz {i=i} {m=\x : ZZ => \y => x <.> y})
+		$ rewrite (indexReplicateChariz {k=i} {n=n} {a=Pos 0})
+		in ringNeutralIsMultZeroR $ index i l
+-}
+zipWithTimesIsRecDistributiveL l (r::rs) =
+	trans (cong {f=zipWith (<.>) l}
+		$ monoidrec2D)
+	$ trans (zipWithTimesIsDistributiveL l r $ monoidsum rs)
+	$ trans (cong {f=((zipWith (<.>) l r)<+>)} $ zipWithTimesIsRecDistributiveL l rs)
+	$ sym $ monoidrec2D
+
+vecMatVecRebracketing : {l : Vect n ZZ}
+	-> {c : Matrix n m ZZ}
+	-> {r : Vect m ZZ}
+	-> l <:> (c</>r) = (l<\>c) <:> r
+vecMatVecRebracketing {l} {c} {r} {n} {m} =
+	trans step1 $ trans step2 $ trans step3 $ trans step4 $ trans step5
+	$ sym $ trans step1s $ trans step2s $ step3s
+	where
+		-- (w/ timesVectMatAsLinearCombo)
+		-- sum_i $ l_i . (sum_j $ r_j <#> c*_j)_i
+		step1 : l <:> (c</>r)
+			= monoidsum $ zipWith (<.>) l
+				$ monoidsum $ zipWith (<#>) r $ transpose c
+		step1 = cong {f=(l<:>)}
+			$ trans (matVecMultIsVecTransposeMult r c)
+			$ timesVectMatAsLinearCombo r $ transpose c
+		-- distributivity
+		-- sum_i $ sum_j $ l_i . (r_j <#> c*_j)_i
+		step2 : monoidsum $ zipWith (<.>) l
+				$ monoidsum $ zipWith (<#>) r $ transpose c
+			= monoidsum $ monoidsum
+				$ map (zipWith (<.>) l) $ zipWith (<#>) r $ transpose c
+		step2 = cong {f=monoidsum} $ zipWithTimesIsRecDistributiveL l _
+		-- mapIndexwiseEq w/ (<#>), generalized to a (<:>) situation.
+		-- sum_i $ sum_j $ l_i . (r_j . c*_j_i)
+		step3 : (monoidsum {t=Vect n} {a=ZZ}) $ (monoidsum {t=Vect m} {a=Vect n ZZ})
+				$ map (zipWith (<.>) l) $ zipWith (<#>) r $ transpose c
+			=(monoidsum {t=Vect n} {a=ZZ}) $ (monoidsum {t=Vect m} {a=Vect n ZZ})
+				$ map (\j => map ( \i => index i l
+						<.> (index j r
+							<.> (indices j i $ transpose c)) )
+					$ fins n)
+				$ fins m
+		{-
+		Without the implicit args filled for each (monoidsum), there are not
+		enough helpful error msgs about missing implicits to find a solution.
+		-}
+		step3 = cong {f=(monoidsum {t=Vect n} {a=ZZ})
+				. (monoidsum {t=Vect m} {a=Vect n ZZ})}
+			$ vecIndexwiseEq
+			$ \jj => trans (indexMapChariz {f=zipWith (<.>) l})
+				$ trans (
+				trans (cong $ zipWithEntryChariz
+						{m=(<#>) {a=ZZ} {b=Vect n ZZ}})
+					$ vecIndexwiseEq
+					$ \ii => trans (zipWithEntryChariz {m=(<.>) {a=ZZ}})
+						$ trans (cong {f=((index ii l)<.>)}
+							$ indexMapChariz)
+						$ sym $ trans indexMapChariz
+						{-
+						$ rewrite indexFinsIsIndex {i=ii}
+						in rewrite indexFinsIsIndex {i=jj} in Refl
+						-- fails, so the following instead.
+						-}
+						$ trans (cong
+							-- Elaborating upon
+							-- {f=(<.>_) . (flip index l)}
+							{f=\ind => index ind l
+							<.>(index (index jj $ fins m) r
+								<.> (indices
+									(index jj $ fins m)
+									ind
+									$ transpose c))}
+							$ indexFinsIsIndex {i=ii}
+						) $ cong {f=((index ii l)<.>)}
+						$ trans (cong {f=(<.>(indices
+									(index jj $ fins m)
+									ii
+									$ transpose c))
+								. (flip index r)}
+							$ indexFinsIsIndex {i=jj})
+						$ cong {f=((index jj r)<.>)
+							. (index ii)
+							. (flip index $ transpose c)}
+							$ indexFinsIsIndex {i=jj}
+				)
+				$ sym indexMapChariz
+		{-
+		-- REPL-only; otherwise:
+		-- Type mismatch between
+		--         a = c (Type of trans _ _)
+		-- and
+		--         Nat (Expected type)
+
+		step3 = cong {f=monoidsum . monoidsum} $ the (
+				map (zipWith (<.>) l) $ zipWith (<#>) r $ transpose c
+				= map (\j => map ( \i => index i l
+						<.> (index j r
+							<.> (indices j i $ transpose c)) )
+					$ fins n)
+				$ fins m
+			) $ ?vecMatVecRebracketing_step3'
+
+		vecMatVecRebracketing_step3' = proof
+		  intros
+		  exact vecIndexwiseEq $ \jj => _
+		  exact trans indexMapChariz $ trans _ $ sym indexMapChariz
+		  compute
+		  rewrite sym $ indexFinsIsIndex {i=jj}
+		  exact trans (cong zipWithEntryChariz) $ _
+		  compute
+		  exact vecIndexwiseEq $ \ii => _
+		  exact trans zipWithEntryChariz $ trans _ $ sym indexMapChariz
+		  compute
+		  rewrite sym $ indexFinsIsIndex {i=ii}
+		  exact cong {f=((index ii l)<.>)} $ _
+		  exact indexMapChariz
+
+		-----
+
+		-- Attempt at diagnosing compile-time failure of script:
+
+		vecMatVecRebracketing_step3' = proof
+			intros
+			exact vecIndexwiseEq $ \jj => _
+			-- Good!
+			{-
+			Tricky debugging.
+
+			Symptoms:
+			* Does not accept REPL proof.
+			* Type mismatch error when trying to finish by using (exact) on a hole, after only
+			one previous line of (exact)s.
+			* Can't use intros after an (exact), though it looks like
+			there are missing implicit arguments (undeduced) to one of the expressions.
+
+			This could happen if the (exact) on the hole filled the goal of an implicit argument,
+			and there were more goals to fill to complete the proof. When using (intros), you
+			get the type of that goal in the message for the error for trying a lambda expr.
+			"Can't use lambda here: type is Type"
+			for the first hole, and if we continue and use a second hole, we get a type mis-
+			match which implies that hole is for the (xs) argument to (indexMapChariz).
+			---
+			-- att0 - bad:
+			exact trans indexMapChariz $ trans _ $ sym indexMapChariz
+			exact ?vmmS3
+			---
+			-- att1 - bad:
+			exact trans (indexMapChariz {k=jj}) $ _ -- 0_att1
+			exact sym $ trans (indexMapChariz {k=jj}) $ sym $ _ -- 0_att1
+			exact ?vmmS3 -- Type mismatch error. The function (f) is missing.
+			---
+			-- att2 - bad:
+			exact trans (indexMapChariz {k=jj}) $ _ -- 0_att2
+			exact sym $ trans (indexMapChariz {k=jj}) $ _ -- 0_att2
+			exact ?vmmS3 -- Type mismatch error. The function (f) is missing.
+			---
+			-- att3 - bad:
+			exact trans (indexMapChariz {k=jj}) $ _ -- 0_att3
+			exact ?vmmS3_1 -- This hole is for a Type.
+			exact ?vmmS3_2 -- This hole is for (xs). The Functor (m) for map missing.
+			---
+			-- att4 - lost cause:
+			exact trans (indexMapChariz {k=jj} {xs=zipWith (<#>) r $ transpose c}) $ _
+			exact ?vmmS3
+			-}
+			{-
+			-- These are the lines that can't be added yet but would complete the proof.
+			rewrite sym $ indexFinsIsIndex {i=jj}
+			exact trans (cong zipWithEntryChariz) $ _
+			compute
+			exact vecIndexwiseEq $ \ii => _
+			exact trans zipWithEntryChariz $ trans _ $ sym indexMapChariz
+			compute
+			rewrite sym $ indexFinsIsIndex {i=ii}
+			exact cong {f=((index ii l)<.>)} $ _
+			exact indexMapChariz
+			-}
+
+		-----
+
+		-- 1st attempt to include rewrites as-is:
+
+		-- "When checking an application of function trans:
+		--         rewrite did not change type f (index k xs) = b"
+		step3 = cong {f=monoidsum . monoidsum} $ vecIndexwiseEq
+			$ \jj => trans indexMapChariz
+				$ trans (rewrite indexFinsIsIndex {i=jj}
+					in trans (cong zipWithEntryChariz) $ vecIndexwiseEq
+					$ \ii => trans zipWithEntryChariz
+						$ trans (
+							rewrite indexFinsIsIndex {i=ii}
+							in cong {f=((index ii l)<.>)}
+							$ indexMapChariz
+						)
+						$ sym indexMapChariz
+				)
+				$ sym indexMapChariz
+
+		-----
+
+		-- This far and no further -- attempt to patch enough implicit args:
+		-- rewrite did not change type
+		-- 	zipWith (...) l (index jj (zipWith ...)) = b
+		step3 = cong {f=monoidsum . monoidsum} $ vecIndexwiseEq
+			$ \jj => trans (indexMapChariz
+					{f=zipWith (<.>) l}
+					{k=jj}
+					{xs=zipWith (<#>) r $ transpose c})
+				$ trans (rewrite indexFinsIsIndex {i=jj}
+					in trans {b=zipWith (<.>) l $ (index jj r)
+							<#> (index jj $ transpose c)}
+						(cong {f=zipWith (<.>) l}
+							$ zipWithEntryChariz
+							{i=jj}
+							{x=r}
+							{y=transpose c})
+					$ vecIndexwiseEq
+					$ \ii => trans (zipWithEntryChariz {x=l})
+						$ trans (
+							rewrite indexFinsIsIndex {i=ii}
+							in the (index ii l <.>
+									(index ii
+									$ (index jj r)
+									<#>
+									(index jj
+									$ transpose c))
+								= index ii l <.>
+									(index jj r
+									<.>
+									(indices jj ii
+									$ transpose c))
+							)
+							$ cong {f=((index ii l)<.>)}
+							$ indexMapChariz
+								{k=ii}
+								{f=((index jj r)<.>)}
+								{xs=index jj $ transpose c}
+						)
+						$ sym $ indexMapChariz {xs=fins n}
+				)
+				$ sym $ indexMapChariz {xs=fins m}
+
+		-----
+
+		-- proof script w/ RWs pushed all the way to center of string of equations.
+		-- REPL-only
+		vecMatVecRebracketing_step3' = proof
+		  intros
+		  exact vecIndexwiseEq $ \jj => _
+		  exact trans indexMapChariz $ trans _ $ sym indexMapChariz
+		  exact trans (cong zipWithEntryChariz) $ _
+		  exact vecIndexwiseEq $ \ii => _
+		  exact trans zipWithEntryChariz $ _
+		  exact trans (cong {f=((index ii l)<.>)} $ indexMapChariz) $ _
+		  exact sym $ _
+		  exact trans indexMapChariz $ _
+		  compute
+		  exact rewrite indexFinsIsIndex {i=ii} in rewrite indexFinsIsIndex {i=jj} in Refl
+
+		-}
+		-- 1) transposeIndicesChariz
+		-- sum_i $ sum_j $ l_i . (r_j . c_i_j)
+		-- 2) associativity of multiplication
+		-- sum_i $ sum_j $ (l_i . r_j) . c_i_j
+		-- 3) commutativity of multiplication
+		-- sum_i $ sum_j $ (r_j . l_i) . c_i_j
+		-- 4) associativity multiplication
+		-- sum_i $ sum_j $ r_j . (l_i . c_i_j)
+		step4 : monoidsum $ monoidsum
+				$ map (\j => map ( \i => index i l
+						<.> (index j r
+							<.> (indices j i $ transpose c)) )
+					$ fins n)
+				$ fins m
+			= monoidsum $ monoidsum
+				$ map (\j => map ( \i => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins n)
+				$ fins m
+		step4 = cong {f=(monoidsum {t=Vect n} {a=ZZ})
+				. (monoidsum {t=Vect m} {a=Vect n ZZ})}
+			--	UNPACK LAYERS (map, map, product) LEFT TO RIGHT	--
+			$ vecIndexwiseEq
+			-- \...	From LHS to RHS, apply map over (fin m) at index.
+			$ \jj => trans indexMapChariz
+				-- Neither of (ii, jj) are bound in this {f}'s context.
+				-- Its expression follows the LHS of the goal.
+				$ trans (cong {f=\jjj => flip map (fins n)
+						$ \iii => index iii l <.>
+							(index jjj r <.>
+								(indices jjj iii
+									$ transpose c))}
+					$ indexFinsIsIndex {i=jj})
+				$ trans (vecIndexwiseEq
+				-- \...	From LHS to RHS, apply map over (fin n) at index.
+				$ \ii => trans indexMapChariz
+					-- (jj) but not (ii) are bound in this {f}'s context.
+					-- Its expression follows the LHS of the goal.
+					$ trans (cong {f=\iii => index iii l <.>
+							(index jj r <.>
+								(indices jj iii
+									$ transpose c))}
+						$ indexFinsIsIndex {i=ii})
+					--	BEGIN ALGEBRA	--
+					-- l_i <.> (r_j <.> c*_j_i)
+					-- = l_i <.> (r_j <.> c_i_j)
+					$ trans (cong {f=((index ii l)<.>)
+							. ((index jj r)<.>)}
+						$ transposeIndicesChariz ii jj {xs=c})
+					-- = (l_i <.> r_j) <.> c_i_j
+					$ trans (ringOpIsAssociative
+						(index ii l) (index jj r) $ indices ii jj c)
+					-- = (r_j <.> l_i) <.> c_i_j
+					$ trans (cong {f=(<.>(indices ii jj c))}
+						$ ringOpIsCommutative_ZZ
+							(index ii l) (index jj r))
+					-- = r_j <.> (l_i <.> c_i_j)
+					$ trans (sym $ ringOpIsAssociative
+						(index jj r) (index ii l) $ indices ii jj c)
+					--	END ALGEBRA	--
+					--	PACK UP LAYERS (product, map, map) LTR	--
+					-- From RHS to LHS, apply map over (fin n) at index.
+					$ sym $ trans (indexMapChariz {k=ii})
+					-- (jj) but not (ii) are bound in this {f}'s context.
+					-- Its expression follows the RHS of the goal.
+					$ cong {f=\iii => index jj r <.>
+						(index iii l <.> indices iii jj c)}
+					$ indexFinsIsIndex {i=ii}
+				)
+				-- From RHS to LHS, apply map over (fin m) at index.
+				$ sym $ trans (indexMapChariz {k=jj})
+				-- Neither of (ii, jj) are bound in this {f}'s context.
+				-- Its expression follows the RHS of the goal.
+				$ cong {f=\jjj => flip map (fins n)
+					$ \iii => index jjj r <.>
+						(index iii l <.> indices iii jjj c)}
+				$ indexFinsIsIndex {i=jj}
+		-- Exchanging the order of summation.
+		-- generalized associativity law: (x+y)+(z+w)=(x+z)+(y+w);
+		-- 	monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs
+		-- sum_j $ sum_i $ r_j . (l_i . c_i_j)
+		step5 : monoidsum $ monoidsum
+				$ map (\j => map ( \i => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins n)
+				$ fins m
+			= monoidsum $ monoidsum
+				$ map (\i => map ( \j => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins m)
+				$ fins n
+		step5 = trans (orderOfSummationExchange
+				$ map (\j => map ( \i => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins n)
+				$ fins m)
+			$ cong {f=(monoidsum {t=Vect m} {a=ZZ})
+				. (monoidsum {t=Vect n} {a=Vect m ZZ})}
+			$ vecIndexwiseEq $ \ii => vecIndexwiseEq $ \jj =>
+			trans (transposeIndicesChariz jj ii
+				{xs=map (\j => map ( \i => index j r
+							<.> (index i l <.> indices i j c) )
+						$ fins n)
+					$ fins m})
+			$ trans (cong {f=index ii} $ indexMapChariz {xs=fins m} {k=jj}
+				{f=\j => map ( \i => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins n})
+			$ trans (indexMapChariz {xs=fins n} {k=ii}
+				{f=\i => index (index jj $ fins m) r
+					<.> (index i l
+						<.> indices i (index jj $ fins m) c)})
+			$ sym
+			$ trans (cong {f=index jj} $ indexMapChariz {xs=fins n} {k=ii}
+				{f=\i => map ( \j => index j r
+						<.> (index i l <.> indices i j c) )
+					$ fins m})
+			$ indexMapChariz {xs=fins m} {k=jj}
+				{f=\j => index j r
+					<.> (index (index ii $ fins n) l
+						<.> indices (index ii $ fins n) j c)}
+		{-
+		vmv_step5_pr = proof
+		  intros
+		  exact trans (orderOfSummationExchange _) $ _
+		  exact cong {f=(monoidsum {t=Vect m} {a=ZZ}) . (monoidsum {t=Vect n} {a=Vect m ZZ})} $ _
+		  exact vecIndexwiseEq $ \ii => vecIndexwiseEq $ \jj => _
+		  exact trans (transposeIndicesChariz jj ii) $ _
+		  exact trans (cong {f=index ii} indexMapChariz) $ _
+		  exact trans indexMapChariz $ _
+		  exact sym $ _
+		  exact trans (cong {f=index jj} indexMapChariz) $ _
+		  exact trans indexMapChariz $ _
+		  compute
+		  exact Refl
+		-}
+		-- ** SYM **
+		-- (w/ timesVectMatAsLinearCombo)
+		-- sum_j $ r_j . (sum_i $ l_i <#> c_i)_j
+		step1s : (l<\>c)<:>r
+			= monoidsum $ zipWith (<.>) r $ monoidsum $ zipWith (<#>) l c
+		step1s = trans (dotProductCommutative _ r)
+			$ cong {f=(r<:>)} $ timesVectMatAsLinearCombo l c
+		-- distributivity
+		-- sum_j $ sum_i $ r_j . (l_i <#> c_i)_j
+		step2s : monoidsum $ zipWith (<.>) r
+				$ monoidsum $ zipWith (<#>) l c
+			= monoidsum $ monoidsum
+				$ map (zipWith (<.>) r) $ zipWith (<#>) l c
+		step2s = cong {f=monoidsum} $ zipWithTimesIsRecDistributiveL r _
+		-- mapIndexwiseEq w/ (<#>), generalized to a (<:>) situation.
+		-- sum_j $ sum_i $ r_j . (l_i . c_i_j)
+		step3s : monoidsum $ monoidsum $ map (zipWith (<.>) r) $ zipWith (<#>) l c
+			= monoidsum $ monoidsum
+				$ map (\i => map ( \j => index j r
+							<.> (index i l <.> indices i j c) )
+					$ fins m)
+				$ fins n
+		-- Takes the implementation of (step3) and exchanges the roles of
+		-- n and m; l and r; ii and jj; (transpose c) and (c).
+		{-
+		Without the implicit args filled for each (monoidsum), there are not
+		enough helpful error msgs about missing implicits to find a solution.
+		-}
+		step3s = cong {f=(monoidsum {t=Vect m} {a=ZZ})
+				. (monoidsum {t=Vect n} {a=Vect m ZZ})}
+			$ vecIndexwiseEq
+			$ \ii => trans (indexMapChariz {f=zipWith (<.>) r})
+				$ trans (
+				trans (cong $ zipWithEntryChariz
+						{m=(<#>) {a=ZZ} {b=Vect m ZZ}})
+					$ vecIndexwiseEq
+					$ \jj => trans (zipWithEntryChariz {m=(<.>) {a=ZZ}})
+						$ trans (cong {f=((index jj r)<.>)}
+							$ indexMapChariz)
+						$ sym $ trans indexMapChariz
+						{-
+						$ rewrite indexFinsIsIndex {i=jj}
+						in rewrite indexFinsIsIndex {i=ii} in Refl
+						-- fails, so the following instead.
+						-}
+						$ trans (cong
+							-- Elaborating upon
+							-- {f=(<.>_) . (flip index r)}
+							{f=\ind => index ind r
+							<.>(index (index ii $ fins n) l
+								<.> (indices
+									(index ii $ fins n)
+									ind
+									c))}
+							$ indexFinsIsIndex {i=jj}
+						) $ cong {f=((index jj r)<.>)}
+						$ trans (cong {f=(<.>(indices
+									(index ii $ fins n)
+									jj
+									c))
+								. (flip index l)}
+							$ indexFinsIsIndex {i=ii})
+						$ cong {f=((index ii l)<.>)
+							. (index jj)
+							. (flip index c)}
+							$ indexFinsIsIndex {i=ii}
+				)
+				$ sym indexMapChariz
+
 -- but probably (VerifiedCommutativeRing a)
-timesMatMatIsAssociative : VerifiedRing a => {l : Matrix _ _ a} -> {c : Matrix _ _ a} -> {r : Matrix _ _ a} -> l <> (c <> r) = (l <> c) <> r
+timesMatMatIsAssociative : {l : Matrix _ _ ZZ} -> {c : Matrix _ _ ZZ} -> {r : Matrix _ _ ZZ}
+	-> l <> (c <> r) = (l <> c) <> r
 timesMatMatIsAssociative = vecIndexwiseEq
 	$ \i => vecIndexwiseEq
 		$ \j => trans matMultIndicesChariz $ trans indicesAssoc $ sym $ matMultIndicesChariz
 	where
-		indicesAssoc : VerifiedRing a => {l : Matrix _ _ a}
-			-> {c : Matrix _ _ a}
-			-> {r : Matrix _ _ a}
+		indicesAssoc : {l : Matrix _ _ ZZ}
+			-> {c : Matrix _ _ ZZ}
+			-> {r : Matrix _ _ ZZ}
 			-> (index i l) <:> (getCol j $ c<>r)
 				= (index i $ l<>c) <:> (getCol j r)
-		indicesAssoc = ?indicesAssoc_pr
+		indicesAssoc {l} {c} {r} {i} {j} =
+			{-
+			-- Lemma: getCol j $ c<>r = c</>(getCol j r)
+			-- Both proofs require commutativity;
+			-- (dotProductCommutative) or (matrixTransposeAntiendoMatrixMult).
+			--
+			-----
+			-- Proof 1:
+			-}
+			trans ( cong {f=((index i l)<:>)} $ vecIndexwiseEq
+				$ \ind => trans (cong {f=index ind}
+						$ sym transposeIndexChariz)
+					$ trans (transposeIndicesChariz ind j)
+					$ trans matMultIndicesChariz
+					-- index ind c <:> getCol j r
+					$ trans (dotProductCommutative _ _)
+					$ sym $ indexMapChariz {f=((getCol j r)<:>)} )
+			{-
+			-----
+			-- Proof 2:
+
+			trans ( cong {f=((index i l)<:>)}
+				$ trans (sym $ transposeIndexChariz)
+				$ trans (cong $ matrixTransposeAntiendoMatrixMult c r)
+				$ trans ( indexMapChariz {f=(<\>(transpose c))}
+						{k=j} {xs=transpose r} )
+				$ trans (sym $ matVecMultIsVecTransposeMult
+					(index j $ transpose r) c)
+				$ cong {f=(c</>)} $ transposeIndexChariz )
+			-}
+			$ trans (vecMatVecRebracketing {l=index i l} {c=c} {r=getCol j r})
+			$ cong {f=(<:>(getCol j r))} $ sym $ indexMapChariz {f=(<\>c)} {xs=l}
 
 
 
@@ -675,10 +1962,13 @@ zippyScale vs xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
 
 -- Inherited properties from (<>) equality proven in Data.Matrix.LinearCombinations
 zippyScaleIsAssociative : l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
-{-
-zippyScaleIsAssociative = ?zippyScaleIsAssociative'
--- zippyScaleIsAssociative = rewriteAssociativityUnderEquality timesMatMatAsMultipleLinearCombos
--}
+zippyScaleIsAssociative {l} {c} {r} =
+	trans (sym $ timesMatMatAsMultipleLinearCombos l $ c `zippyScale` r)
+	$ trans (cong {f=(l<>)} $ sym $ timesMatMatAsMultipleLinearCombos c r)
+	$ trans timesMatMatIsAssociative
+	$ trans (cong {f=(<>r)} $ timesMatMatAsMultipleLinearCombos l c)
+	$ timesMatMatAsMultipleLinearCombos (l `zippyScale` c) r
+
 zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale` (c `zippyScale` r) = (l `zippyScale` c) `zippyScale` r
 -- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
 zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
@@ -918,31 +2208,7 @@ updateAtEquality {ls=[]} updi f fnpreq = FinZElim updi
 updateAtEquality {ls=l::ls} {rs} FZ f fnpreq = vecHeadtailsEq {xs=tail $ (l::ls) `zippyScale` rs} ( trans (sym $ timesVectMatAsLinearCombo (f _ l) rs) $ trans (fnpreq l) $ cong {f=f _} $ timesVectMatAsLinearCombo l rs ) Refl
 updateAtEquality {ls=l::ls} (FS penupdi) f fnpreq = vecHeadtailsEq Refl $ updateAtEquality penupdi f fnpreq
 
--- Note the relationship to bilinearity of matrix multiplication
-vectMatLScalingCompatibility : {z : ZZ} -> {rs : Matrix k m ZZ} -> (z <#> la) <\> rs = z <#> (la <\> rs)
-vectMatLScalingCompatibility {z} {la} {rs} = ?vectMatLScalingCompatibility_rhs
 
-{-
--- Works in REPL, untested otherwise
-vectMatLScalingCompatibility_rhs = proof
-  intros
-  claim vectmatLiftId1 (z <#> la) <\> rs = head $ (row $ z <#> la) <> rs
-  unfocus
-  claim moveScaleOutsideRow row (z <#> la) = z <#> (row la)
-  unfocus
-  claim chScaleOutsideTimes (row (z <#> la)) <> rs = z <#> ((row la) <> rs)
-  unfocus
-  exact trans vectmatLiftId1 $ cong {f=head} chScaleOutsideTimes
-  trivial
-  unfocus
-  exact trans (cong {f=(<> rs)} moveScaleOutsideRow) _
-  trivial
-  compute
-  claim scalMatMatCompat (scal : ZZ) -> {nu, ka, mu : Nat} -> (xs : Matrix nu ka ZZ) -> (ys : Matrix ka mu ZZ) -> (scal <#> xs) <> ys = scal <#> (xs <> ys)
-  unfocus
-  exact scalMatMatCompat z (row la) rs
-  exact ?timesScalarLeftCommutesWithTimesMatRight
--}
 
 spanRowScalelz : (z : ZZ) -> (updi : Fin n') -> spanslz xs ys -> spanslz xs (updateAt updi (z<#>) ys)
 spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scaleMain $ rewrite sym prvs in Refl)
@@ -953,6 +2219,11 @@ spanRowScalelz z updi (vs ** prvs) {xs} = (updateAt updi (z<#>) vs ** trans scal
 
 
 spanScalelz : (z : ZZ) -> spanslz xs ys -> spanslz xs (z<#>ys)
+spanScalelz z {ys} spXY = spanslztrans spXY
+	$ ( z<#>Id **
+	trans (sym $ timesMatMatAsMultipleLinearCombos (z<#>Id) ys)
+	$ trans (matMatLScalingCompatibility z Id ys)
+	$ cong {f=(z<#>)} $ multIdLeftNeutral ys )
 
 spanAdd : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <+> zs)
 spanAdd {xs} {ys} {zs} spXY spXZ = ((getWitness spXY)<+>(getWitness spXZ) **
@@ -970,7 +2241,7 @@ spanSub' = proof
   let spanAdd' = spanAdd {xs=xs} {ys=ys} {zs = inverse zs}
   refine spanAdd'
   exact prxy
-  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity {a=ZZ} (inverse zs) )) spanslzrefl
+  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( negScalarToScaledNegMat_zz (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity {a=ZZ} (inverse zs) )) spanslzrefl
 
 {-
 -- Works in REPL only
@@ -979,7 +2250,7 @@ spanSub' = proof
   refine spanAdd
   exact prxy
   exact spanslztrans (spanScalelz (inverse unity) prxz) _
-  exact replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( rewriteMultInvMat (unity {a=ZZ}) zs ) ( the ((<#>) (unity {a=ZZ}) (inverse zs) = (inverse zs)) ?moduleIdScalZZ )) spanslzrefl
+  exact replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( negScalarToScaledNegMat_zz (unity {a=ZZ}) zs ) ( the ((<#>) (unity {a=ZZ}) (inverse zs) = (inverse zs)) ?moduleIdScalZZ )) spanslzrefl
 -}
 
 {-
@@ -990,7 +2261,7 @@ spanSub' = proof
 spanSub : spanslz xs ys -> spanslz xs zs -> spanslz xs (ys <-> zs)
 spanSub {xs} {ys} {zs} prxy prxz
 	with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse unity)<#>zs} prxy (spanScalelz (inverse unity) prxz) )
-		| (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat unity zs)
+		| (vs ** pr) = (vs ** cong {f=spanslz xs} $ negScalarToScaledNegMat_zz unity zs)
 
 
 -- Replacement test code for analyzing the problem:
@@ -1001,7 +2272,7 @@ spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
 	with (?akdjna)
 	-- with ( spanAdd {xs=xs} {ys=ys} {zs = (inverse (the ZZ unity))<#>zs} prxy (spanScalelz (inverse (the ZZ unity)) prxz) )
 		| (vs ** pr) = ?ajdnjfka
-		-- | (vs ** pr) = (vs ** cong {f=spanslz xs} $ rewriteMultInvMat (the ZZ unity) pr)
+		-- | (vs ** pr) = (vs ** cong {f=spanslz xs} $ negScalarToScaledNegMat_zz (the ZZ unity) pr)
 -}
 
 
@@ -1045,9 +2316,109 @@ extendSpanningLZsByPreconcatTrivially : spanslz xs ys -> spanslz (zs++xs) ys
 extendSpanningLZsByPreconcatTrivially {zs=[]} prsp = prsp
 extendSpanningLZsByPreconcatTrivially {zs=z::zs} prsp = preserveSpanningLZByCons {z=z} $ extendSpanningLZsByPreconcatTrivially {zs=zs} prsp
 
--- Could be done by (spanslztrans) of above with a reversal permutation `spanslz`.
--- Equality of the (Fin) types and induced eq of the (Iso) types w/ (Auto)s suffices.
+-- Compare w/ proof of (multIdLeftNeutral) as a factor of (zippyScaleIdLeftNeutral).
+concatSpanslzFlipConcat : {xs : Matrix n k ZZ} -> {ys : Matrix m k ZZ}
+	-> spanslz (xs++ys) (ys++xs)
+concatSpanslzFlipConcat {xs} {ys} {n} {m} {k} =
+	( (map ((Data.Matrix.Algebraic.basis).(shift n)) $ fins m)
+		++(map ((Data.Matrix.Algebraic.basis).(weakenN m)) $ fins n)
+	** trans (sym $ timesMatMatAsMultipleLinearCombos
+			( (map ((Data.Matrix.Algebraic.basis).(shift n)) $ fins m)
+				++(map ((Data.Matrix.Algebraic.basis).(weakenN m)) $ fins n) )
+			(xs++ys))
+		$ vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+			trans (matMultIndicesChariz {i=i} {j=j}
+				{l=(map ((Data.Matrix.Algebraic.basis).(shift n)) $ fins m)
+					++(map ((Data.Matrix.Algebraic.basis).(weakenN m)) $ fins n)}
+				{r=xs++ys})
+			$ either
+				(\iAsFinM => withweaken i j iAsFinM)
+				(\iAsFinN => withshift i j iAsFinN)
+				$ splitFinAtConcat i
+	)
+	where
+		withweaken i j iAsFinM = rewrite getProof iAsFinM
+			in rewrite indexConcatAsIndexAppendee
+				{xs=ys} {ys=xs} (getWitness iAsFinM)
+			in rewrite indexConcatAsIndexAppendee
+				{xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n))
+					$ fins m}
+				{ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m))
+					$ fins n}
+				(getWitness iAsFinM)
+			in trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz)
+			$ trans (cong {f=(<:>(getCol j $ xs++ys))
+					.(Data.Matrix.Algebraic.basis {a=ZZ})
+					.(shift n)}
+				$ indexFinsIsIndex)
+			$ trans (dotBasisLIsIndex {i=shift n $ getWitness iAsFinM}
+				$ getCol j $ xs++ys)
+			$ trans (cong $ sym $ transposeIndexChariz {k=j})
+			$ trans (transposeIndicesChariz (shift n $ getWitness iAsFinM) j)
+			$ cong {f=index j} $ indexConcatAsIndexAppended
+				{xs=xs} {ys=ys} (getWitness iAsFinM)
+		withshift i j iAsFinN = rewrite getProof iAsFinN
+			in rewrite indexConcatAsIndexAppended
+				{xs=ys} {ys=xs} (getWitness iAsFinN)
+			in rewrite indexConcatAsIndexAppended 
+				{xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n))
+					$ fins m}
+				{ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m))
+					$ fins n}
+				(getWitness iAsFinN)
+			in trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz)
+			$ trans (cong {f=(<:>(getCol j $ xs++ys))
+					.(Data.Matrix.Algebraic.basis {a=ZZ})
+					.(weakenN m)}
+				$ indexFinsIsIndex)
+			$ trans (dotBasisLIsIndex {i=weakenN m $ getWitness iAsFinN}
+				$ getCol j $ xs++ys)
+			$ trans (cong $ sym $ transposeIndexChariz {k=j})
+			$ trans (transposeIndicesChariz (weakenN m $ getWitness iAsFinN) j)
+			$ cong {f=index j} $ indexConcatAsIndexAppendee
+				{xs=xs} {ys=ys} (getWitness iAsFinN)
+
+{-
+-- REPL-only
+
+concatSpanslzFlipConcat {xs} {ys} {n} {m} {k} =
+	(... **
+			...
+			$ either
+				(\iAsFinM => ?concatSpanslzFlipConcat_withweaken)
+				(\iAsFinN => ?concatSpanslzFlipConcat_withshift)
+				$ splitFinAtConcat i
+	)
+
+concatSpanslzFlipConcat_withweaken = proof
+  intros
+  rewrite sym $ getProof iAsFinM
+  rewrite sym $ indexConcatAsIndexAppendee {xs=ys} {ys=xs} (getWitness iAsFinM)
+  rewrite sym $ indexConcatAsIndexAppendee {xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n)) $ fins m} {ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m)) $ fins n} (getWitness iAsFinM)
+  exact trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz) $ _
+  exact trans (cong {f=(<:>(getCol j $ xs++ys)).(Data.Matrix.Algebraic.basis {a=ZZ}).(shift n)} $ indexFinsIsIndex) $ _
+  exact trans (dotBasisLIsIndex {i=shift n $ getWitness iAsFinM} $ getCol j $ xs++ys) $ _
+  exact trans (cong $ sym $ transposeIndexChariz {k=j}) $ _
+  exact trans (transposeIndicesChariz (shift n $ getWitness iAsFinM) j) $ _
+  exact cong {f=index j} $ indexConcatAsIndexAppended {xs=xs} {ys=ys} (getWitness iAsFinM)
+
+concatSpanslzFlipConcat_withshift = proof
+  intros
+  rewrite sym $ getProof iAsFinN
+  rewrite sym $ indexConcatAsIndexAppended {xs=ys} {ys=xs} (getWitness iAsFinN)
+  rewrite sym $ indexConcatAsIndexAppended  {xs=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(shift n)) $ fins m} {ys=map ((Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m)) $ fins n} (getWitness iAsFinN)
+  exact trans (cong {f=(<:>(getCol j $ xs++ys))} indexMapChariz) $ _
+  exact trans (cong {f=(<:>(getCol j $ xs++ys)).(Data.Matrix.Algebraic.basis {a=ZZ}).(weakenN m)} $ indexFinsIsIndex) $ _
+  exact trans (dotBasisLIsIndex {i=weakenN m $ getWitness iAsFinN} $ getCol j $ xs++ys) $ _
+  exact trans (cong $ sym $ transposeIndexChariz {k=j}) $ _
+  exact trans (transposeIndicesChariz (weakenN m $ getWitness iAsFinN) j) $ _
+  exact cong {f=index j} $ indexConcatAsIndexAppendee {xs=xs} {ys=ys} (getWitness iAsFinN)
+-}
+
 extendSpanningLZsByPostconcatTrivially : spanslz xs ys -> spanslz (xs++zs) ys
+extendSpanningLZsByPostconcatTrivially {xs} {ys} {zs} spXY = spanslztrans
+	concatSpanslzFlipConcat
+	$ extendSpanningLZsByPreconcatTrivially spXY
 
 concatSpansRellz : spanslz xs zs -> spanslz ys ws -> spanslz (xs++ys) (zs++ws)
 concatSpansRellz spXZ spYW = mergeSpannedLZs (extendSpanningLZsByPostconcatTrivially spXZ) (extendSpanningLZsByPreconcatTrivially spYW)
@@ -1149,220 +2520,35 @@ Implication of bispannability: Transformations of this form preserve the span of
 
 
 
-permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n)) -> spanslz (vectPermTo sigma xs) xs
+-- Compare w/ proof of (multIdLeftNeutral).
+permMatrixId : (sigma : Iso (Fin n) (Fin n))
+	-> {xs : Matrix n m ZZ}
+	-> (vectPermTo sigma Id)<>xs = vectPermTo sigma xs
+permMatrixId sigma {xs} = vecIndexwiseEq $ \i => vecIndexwiseEq $ \j =>
+	trans matMultIndicesChariz
+	$ trans (cong {f=(<:>(getCol j xs))}
+		$ trans vectPermToIndexChariz
+		$ idMatIndexChariz)
+	$ trans (dotBasisLIsIndex $ getCol j xs)
+	$ trans (cong $ sym $ transposeIndexChariz {k=j})
+	$ trans (transposeIndicesChariz (runIso sigma i) j)
+	$ cong $ sym $ vectPermToIndexChariz
+
+permPreservesSpanslz : (sigma : Iso (Fin n) (Fin n))
+	-> {xs : Matrix n m ZZ}
+	-> spanslz (vectPermTo sigma xs) xs
+permPreservesSpanslz sigma = (vectPermTo (isoSym sigma) Id **
+	trans (sym $ timesMatMatAsMultipleLinearCombos _ _)
+	$ trans (permMatrixId (isoSym sigma))
+	$ trans (sym vectPermToTrans)
+	$ vectPermToSym2
+	)
 
 permPreservesSpannedbylz : (sigma : Iso (Fin n) (Fin n)) -> spanslz xs (vectPermTo sigma xs)
+permPreservesSpannedbylz sigma = (vectPermTo sigma Id **
+	trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ permMatrixId sigma)
 
-{-
--- Can't implement because of problems in expanding the nested (with)s of (decEq)s while proving the last characteristic property of the permutation.
 
--- {mel : _} leads to inability to apply the function obtained: "No such variable mel".
-swapFZPerm : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (runIso sigma FZ = nel, runIso sigma nel = FZ, (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> runIso sigma mel = mel) )
-swapFZPerm {predn} nel = (MkIso swapTo swapTo swapToTo swapToTo ** (Refl, Refl, sigpr))
-	where
-		{-
-		"
-		When checking left hand side of with in with block in ZZModuleSpan.swapFZPerm, sigpr:
-		Can't match on with block in ZZModuleSpan.swapFZPerm, sigpr predn
-			nel
-			mel
-			(No notFZ)
-			notFZ
-			notNel
-		"
-		swapTo : Fin (S predn) -> Fin (S predn)
-		swapTo mel with (decEq mel FZ)
-			| Yes isFZ = nel
-			| No notFZ with (decEq mel nel)
-				| Yes isNel = FZ
-				| No norNel = mel
-		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
-		swapToTo mel with (decEq mel FZ)
-			| Yes isFZ = ?swapToTo_rhs_1
-			| No notFZ with (decEq mel nel)
-				| Yes isNel = ?swapToTo_rhs_2
-				| No norNel = ?swapToTo_rhs_3 -- Should be Refl
-		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
-		sigpr mel notFZ notNel with (decEq mel FZ)
-			| Yes isFZ = void $ notFZ isFZ
-			| No notFZ with (decEq mel nel)
-				| Yes isNel = void $ notNel isNel
-				| No norNel = Refl
-		-}
-		{-
-		-- "Can't match on with block ...
-		swapTo : Fin (S predn) -> Fin (S predn)
-		swapTo mel with (decEq mel FZ, decEq mel nel)
-			| (Yes isFZ, _) = nel
-			| (No notFZ, Yes isNel) = FZ
-			| (No notFZ, No notNel) = mel
-		swapToTo : (mel : _) -> swapTo $ swapTo mel = mel
-		swapToTo mel with (decEq mel FZ, decEq mel nel)
-			| (Yes isFZ, _) = ?swapToTo_rhs_1
-			| (No notFZ, Yes isNel) = ?swapToTo_rhs_3
-			| (No notFZ, No notNel) = Refl
-		sigpr : (mel : _) -> Not (mel=FZ) -> Not (mel=nel) -> swapTo mel = mel
-		sigpr mel notFZ notNel with (decEq mel FZ, decEq mel nel)
-			| (Yes isFZ, _) = void $ notFZ isFZ
-			-- "Can't match on with block in ..."
-			-- but "is a valid case"
-			| (No notFZ, Yes isNel) = void $ notNel isNel
-			| (No notFZ, No notNel) = Refl
-		-}
-
--- Abbreviation
-swapIndexFZ : (nel : Fin (S predn)) -> Vect (S predn) a -> Vect (S predn) a
-swapIndexFZ nel = vectPermTo $ getWitness $ swapFZPerm nel
--}
-
-rotateAt : (nel : Fin (S predn)) -> (sigma : Iso (Fin (S predn)) (Fin (S predn)) ** (xs : Vect (S predn) a) -> vectPermTo sigma xs = index nel xs :: deleteAt nel xs)
-rotateAt {predn} {a} nel = ( sigma
-		** \xs => vecIndexwiseEq
-			$ \i => trans (vectPermToIndexChariz {xs=xs} {sigma=sigma} {i=i})
-				$ (getProof $ rotateTo nel i) $ xs )
-	where
-		{-
-		Can't put (predn) directly into the types of (rotateTo) and (rotateFrom)
-		where (v)s are, because then (rotateFromTo) can't be implemented due
-		to conflicting reasonable dependent pattern matches, and it's harder
-		to implement (rotateToFrom) for the same reason.
-
-		See commit b1e0ad4bca for documentation of the problems.
-
-		Although we also forgot to do the (deleteTo (FS e) k@FZ/(FS k')) match,
-		so maybe (rotateFromTo) could have been implemented and that type error
-		just added noise.
-		-}
-		deleteTo : ( el : Fin (S v) )
-			-> ( preli : Fin v )
-			-> ( j : Fin (S v) **
-				(xs : Vect (S v) a) ->
-				(index j xs = index preli $ deleteAt el xs) )
-		deleteTo {v=Z} a b = FinZElim b
-		deleteTo FZ preli = ( FS preli ** prfn )
-			where
-				prfn (x::xs) = Refl
-		deleteTo (FS e) FZ = ( FZ ** prfn )
-			where
-				prfn (x::xs) = Refl
-		deleteTo {v=S v'} (FS e) (FS k) = ( FS $ getWitness $ deleteTo e k ** prfn )
-			where
-				prfn (x::xs) = (getProof $ deleteTo e k) xs
-		deleteToSkipsFocus : ( el : Fin (S v) )
-			-> ( preli : Fin v )
-			-> ( el = getWitness $ deleteTo el preli )
-			-> Void
-		deleteToSkipsFocus {v=Z} _ b = FinZElim b
-		deleteToSkipsFocus {v=S v'} FZ preli = FZNotFS
-		deleteToSkipsFocus {v=S v'} (FS e) FZ = FZNotFS . sym
-		deleteToSkipsFocus {v=S v'} (FS e) (FS k) = (deleteToSkipsFocus e k) . FSinjective
-		rotateTo : ( el : Fin (S v) )
-			-> ( i : Fin (S v) )
-			-> ( j : Fin (S v) **
-				(xs : Vect (S v) a) ->
-				(index j xs = index i $ index el xs :: deleteAt el xs) )
-		rotateTo FZ FZ = ( FZ ** \xs => Refl )
-		rotateTo FZ (FS k) = ( FS k ** prfn )
-			where
-				prfn (x::xs) = Refl
-		rotateTo (FS e) FZ = ( FS e ** \xs => Refl )
-		rotateTo (FS e) (FS k) = deleteTo (FS e) k
-		deleteFrom : (el : Fin (S v))
-			-> (i : Fin (S v))
-			-> Either (Fin v) (el=i)
-		deleteFrom FZ FZ = Right Refl
-		deleteFrom FZ (FS k) = Left k
-		deleteFrom {v=Z} (FS e) _ = FinZElim e
-		deleteFrom {v=S predv} (FS e) FZ = Left FZ
-		deleteFrom {v=S predv} (FS e) (FS k) = either (Left . FS) (Right . (cong {f=FS})) $ deleteFrom e k
-		rotateFrom : Fin (S v)
-			-> Fin (S v)
-			-> Fin (S v)
-		rotateFrom FZ FZ = FZ
-		rotateFrom FZ (FS k) = FS k
-		rotateFrom (FS e) i with (decEq (FS e) i)
-			| Yes pr = FZ
-			| No prneg = FS $ runIso eitherBotRight
-				$ map prneg
-				$ deleteFrom (FS e) i
-		deleteFromFormula : (el : Fin (S v))
-			-> (i : Fin (S v))
-			-> Either (i' : Fin v ** deleteFrom el i = Left i') (el = i)
-		deleteFromFormula el i with (deleteFrom el i)
-			| Left i' = Left (i' ** Refl)
-			| Right pr = Right pr
-		deleteToFrom : (el : Fin (S v))
-			-> (i : Fin (S v))
-			-> (prneq : Not (el = i))
-			-> getWitness
-				$ deleteTo el
-				$ runIso Isomorphism.eitherBotRight
-				$ map prneq
-				$ deleteFrom el i = i
-		deleteToFrom FZ FZ prneq = void $ prneq Refl
-		deleteToFrom {v=Z} FZ (FS k) _ = FinZElim k
-		deleteToFrom {v=S predv} FZ (FS k) _ = Refl
-		deleteToFrom {v=Z} (FS e) _ _ = FinZElim e
-		deleteToFrom {v=S predv} (FS e) FZ _ = Refl
-		{-
-		-- Left with goal (FS $ getWitness $ deleteTo e k' = FS k)
-		-- Perhaps we can write an Either over each case of (deleteTo) & (deleteFrom)
-		-- of the equations of the function's value to the formula for that case,
-		-- letting us rewrite not to (k') but to a formula for (deleteFrom e k).
-		deleteToFrom {v=S predv} (FS e) (FS k) prneq
-			with (deleteFrom e k)
-				| Left k' = ?deleteToFrom_rhs_4
-				| Right pr = void $ prneq $ cong {f=FS} pr
-		-}
-		deleteToFrom {v=S predv} (FS e) (FS k) prneq
-			with (deleteFromFormula e k)
-				| Left (k' ** pr) = rewrite pr in cong {f=FS}
-					$ trans (cong {f=\x => getWitness
-							$ deleteTo e
-							$ runIso Isomorphism.eitherBotRight
-							$ map (prneq . (cong {f=FS})) x}
-							$ sym pr)
-					$ deleteToFrom e k (prneq . (cong {f=FS}))
-				| Right pr = void $ prneq $ cong {f=FS} pr
-		rotateToFrom : ( el : Fin (S v) )
-			-> ( i : Fin (S v) )
-			-> getWitness $ rotateTo el $ rotateFrom el i = i
-		rotateToFrom FZ FZ = Refl
-		rotateToFrom FZ (FS k) = Refl
-		rotateToFrom {v=Z} (FS e) _ = FinZElim e
-		rotateToFrom {v=S v'} (FS e) FZ = Refl
-		rotateToFrom (FS e) (FS k) with (decEq (FS e) (FS k))
-			| Yes pr = pr
-			| No prneg = deleteToFrom (FS e) (FS k) prneg
-		deleteFromTo : (el : Fin (S v))
-			-> (i : Fin v)
-			-> deleteFrom el $ getWitness $ deleteTo el i = Left i
-		deleteFromTo {v=Z} _ i = FinZElim i
-		deleteFromTo {v=S v'} FZ k = Refl
-		deleteFromTo {v=S v'} (FS e) FZ = Refl
-		deleteFromTo {v=S v'} (FS e) (FS k') = rewrite deleteFromTo e k' in Refl
-		-- This implementation typechecks too
-		-- deleteFromTo {v=S v'} (FS e) (FS k') = cong {f=either (Left . FS) (Right . (cong {f=FS {k=S v'}}))} $ deleteFromTo e k'
-		rotateFromTo : ( el : Fin (S v) )
-			-> ( i : Fin (S v) )
-			-> rotateFrom el $ getWitness $ rotateTo el i = i
-		rotateFromTo FZ FZ = Refl
-		rotateFromTo FZ (FS k) = Refl
-		rotateFromTo {v=Z} (FS e) _ = FinZElim e
-		rotateFromTo {v=S v'} (FS e) FZ with (decEq e e)
-			| No prneg = void $ prneg Refl
-			| Yes pr = Refl
-		rotateFromTo {v=S v'} (FS e) (FS FZ) = Refl
-		rotateFromTo {v=S v'} (FS e) (FS (FS k')) with (decEq (FS e) $ getWitness $ deleteTo (FS e) (FS k'))
-			| Yes pr = void $ deleteToSkipsFocus (FS e) (FS k') pr
-			| No prneg = cong {f=\x => FS $ runIso eitherBotRight $ map prneg x}
-				$ deleteFromTo (FS e) (FS k')
-		sigma : Iso (Fin (S predn)) (Fin (S predn))
-		sigma = MkIso
-			(\i => getWitness $ rotateTo nel i)
-			(\i => rotateFrom nel i)
-			(\i => rotateToFrom nel i)
-			(\i => rotateFromTo nel i)
 
 headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ}
 	-> ((xx : Vect m ZZ)
@@ -1374,11 +2560,11 @@ headOpPreservesSpanslzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ 
 headOpPreservesSpanslzImpliesUpdateAtDoes {f} transfpr nel xs =
 	spanslztrans ( permPreservesSpannedbylz $ getWitness $ rotateAt nel )
 	$ spanslztrans ( spanslzreflFromEq
-		$ trans ((getProof $ rotateAt nel)
+		$ trans ((getProof $ rotateAt nel) _
 			$ updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
 		$ vecHeadtailsEq indexUpdateAtChariz updateDeleteAtChariz )
 	$ spanslztrans ( transfpr (index nel xs) (deleteAt nel xs) )
-	$ spanslztrans ( spanslzreflFromEq $ sym $ (getProof $ rotateAt nel) $ xs )
+	$ spanslztrans ( spanslzreflFromEq $ sym $ (getProof $ rotateAt nel) _ $ xs )
 	$ permPreservesSpanslz $ getWitness $ rotateAt nel
 
 headOpPreservesSpannedbylzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m ZZ -> Vect m ZZ}
@@ -1390,10 +2576,10 @@ headOpPreservesSpannedbylzImpliesUpdateAtDoes : {f : Vect m ZZ -> Matrix predn m
 	-> spanslz xs (updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
 headOpPreservesSpannedbylzImpliesUpdateAtDoes {f} transfpr nel xs =
 	spanslztrans ( permPreservesSpannedbylz $ getWitness $ rotateAt nel )
-	$ spanslztrans ( spanslzreflFromEq $ (getProof $ rotateAt nel) $ xs )
+	$ spanslztrans ( spanslzreflFromEq $ (getProof $ rotateAt nel) _ $ xs )
 	$ spanslztrans ( transfpr (index nel xs) (deleteAt nel xs) )
 	$ spanslztrans ( spanslzreflFromEq $ sym
-			$ trans ((getProof $ rotateAt nel)
+			$ trans ((getProof $ rotateAt nel) _
 				$ updateAt nel (\xx => f xx (deleteRow nel xs)) xs)
 			$ vecHeadtailsEq indexUpdateAtChariz updateDeleteAtChariz )
 	$ permPreservesSpanslz $ getWitness $ rotateAt nel

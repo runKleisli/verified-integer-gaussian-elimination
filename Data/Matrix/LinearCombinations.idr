@@ -75,6 +75,14 @@ doubleSumInnerSwap a b c d = trans (sym $ semigroupOpIsAssociative a b (c<+>d))
 		$ sym $ semigroupOpIsAssociative c b d)
 	$ semigroupOpIsAssociative a c (b<+>d)
 
+doubleSumInnerSwap_Vect : VerifiedRingWithUnity t => (a, b, c, d : Vect n t)
+	-> (a<+>b)<+>(c<+>d) = (a<+>c)<+>(b<+>d)
+doubleSumInnerSwap_Vect a b c d = trans (sym $ semigroupOpIsAssociative_Vect a b (c<+>d))
+	$ trans ( cong {f=(a<+>)} $ trans (semigroupOpIsAssociative_Vect b c d)
+		$ trans (cong {f=(<+>d)} $ abelianGroupOpIsCommutative_Vect b c)
+		$ sym $ semigroupOpIsAssociative_Vect c b d)
+	$ semigroupOpIsAssociative_Vect a c (b<+>d)
+
 
 
 lemma_VectAddHead : (v, w : Vect (S n) ZZ) -> head(v<+>w) = (head v)<+>(head w)
@@ -536,6 +544,8 @@ timesMatMatAsMultipleLinearCombos' = proof
 * Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
 * Prove transposition is an antiendomorphism of multiplication and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
 * Some Algebra.neutral is a zero element proofs.
+* Prove scalar multiplication of the left factor in a vector- or matrix-matrix product
+is the same as multiplying the product by the same scalar. (Note rel. to bilinearity)
 -}
 
 
@@ -726,6 +736,11 @@ neutralVectIsVectTimesZero xs {mu=S predmu} = trans timesVectMatAsHeadTail_ByTra
 		(neutralVectIsDotProductZero_L $ map head xs)
 		$ neutralVectIsVectTimesZero $ map tail xs
 
+emptyVectIsTimesVectZero : (x : Matrix nu Z ZZ) -> x</>[] = Algebra.neutral
+emptyVectIsTimesVectZero [] = Refl
+emptyVectIsTimesVectZero (x::xs) = vecHeadtailsEq (neutralVectIsDotProductZero_L x)
+	$ emptyVectIsTimesVectZero xs
+
 neutralMatIsMultZeroL : (x : Matrix nu mu ZZ) -> Algebra.neutral <> x = Algebra.neutral
 neutralMatIsMultZeroL x = vecIndexwiseEq $ \i => trans indexMapChariz $ trans (cong {f=(<\>x)} indexReplicateChariz) $ trans (neutralVectIsVectTimesZero x) $ sym $ indexReplicateChariz
 
@@ -749,3 +764,183 @@ timesPreservesLeadingZeroExtensionR {xs} {ys} = vecIndexwiseEq $ \i => vecIndexw
 			$ trans (cong {f=((index i xs)<:>)} leadingElemExtensionColFSId)
 			$ trans (sym $ matMultIndicesChariz)
 			$ sym $ cong {f=index $ FS prelj} $ indexMapChariz {f=((Pos 0)::)}
+
+
+
+{-
+-- Type mismatch due to instance mismatch b-n
+--   (<.>) {{(@@constructor of Classes.Verified.VerifiedRing#Ring a) constrarg}}
+-- and
+--   (<.>) {{(@@constructor of Control.Algebra.RingWithUnity#Ring a) constrarg1}}
+-- Also tried (VerifiedRingWithUnity a =>)
+scaledNeutralIsNeutral : (VerifiedRing a, RingWithUnity a) =>
+	{m : Nat}
+	-> (z : a)
+	-> z<#>(the (Vect m a) Algebra.neutral) = Algebra.neutral
+scaledNeutralIsNeutral _ {m=Z} = Refl
+scaledNeutralIsNeutral z {m=S predm} = vecHeadtailsEq (ringNeutralIsMultZeroR z)
+	$ scaledNeutralIsNeutral z {m=predm}
+-}
+
+scaledNeutralIsNeutral_zz : {m : Nat}
+	-> (z : ZZ)
+	-> z<#>(the (Vect m ZZ) Algebra.neutral) = Algebra.neutral
+scaledNeutralIsNeutral_zz _ {m=Z} = Refl
+scaledNeutralIsNeutral_zz z {m=S predm} = vecHeadtailsEq (ringNeutralIsMultZeroR z)
+	$ scaledNeutralIsNeutral_zz z {m=predm}
+
+vectVectLScalingCompatibility : {z : ZZ} -> (z<#>l)<:>r = z<.>(l<:>r)
+vectVectLScalingCompatibility {z} {l=[]} {r=[]} = sym $ ringNeutralIsMultZeroR z
+vectVectLScalingCompatibility {z} {l=l::ls} {r=r::rs} =
+	trans (dotproductRewrite {v=z<#>(l::ls)} {w=r::rs})
+	$ trans (cong {f=monoidsum} $ vecHeadtailsEq (sym $ ringOpIsAssociative z l r) Refl)
+	$ trans monoidrec1D
+	$ trans (cong {f=((z<.>(l<.>r))<+>)}
+		$ trans (sym $ dotproductRewrite {v=z<#>ls} {w=rs})
+		$ (vectVectLScalingCompatibility {z=z} {l=ls} {r=rs}))
+	$ trans (sym $ ringOpIsDistributiveL z (l<.>r) (ls<:>rs))
+	-- z<.>(l<.>r <+> ls<:>rs)
+	$ cong {f=(z<.>)}
+	$ trans (cong {f=((l<.>r)<+>)} $ dotproductRewrite {v=ls} {w=rs})
+	-- (l<.>r)<+>(monoidsum $ zipWith (<.>) ls rs)
+	$ trans (sym monoidrec1D)
+	$ sym $ dotproductRewrite {v=l::ls} {w=r::rs}
+
+-- Note the relationship to bilinearity of matrix multiplication
+vectMatLScalingCompatibility : {z : ZZ} -> {rs : Matrix k m ZZ} -> (z <#> la) <\> rs = z <#> (la <\> rs)
+vectMatLScalingCompatibility {z} {la=[]} {rs=[]} =
+	trans zippyLemA
+	$ sym $ trans (cong {f=(z<#>)} zippyLemA)
+	$ scaledNeutralIsNeutral_zz z
+vectMatLScalingCompatibility {z} {la=l::la} {rs=r::rs} {m=Z} = zeroVecEq
+-- vectMatLScalingCompatibility {z} {la=l::la} {rs=r::rs} {m=S predm} = ?vMLSC_rhs_2
+vectMatLScalingCompatibility {z} {la=l::la} {rs=r::rs} {m=S predm} =
+	trans (timesVectMatAsHeadTail_ByTransposeElimination
+		{scals=z<#>(l::la)} {vects=r::rs})
+	$ trans ( vecHeadtailsEq
+			(vectVectLScalingCompatibility {z=z} {l=l::la} {r=map head $ r::rs})
+			$ vectMatLScalingCompatibility {z=z}
+				{la=l::la} {rs=map tail $ r::rs} )
+	$ sym $ cong {f=(z<#>)} $ timesVectMatAsHeadTail_ByTransposeElimination
+		{scals=l::la} {vects=r::rs}
+
+matMatLScalingCompatibility :
+	(scal : ZZ)
+	-> (xs : Matrix n k ZZ)
+	-> (ys : Matrix k m ZZ)
+	-> (scal <#> xs) <> ys = scal <#> (xs <> ys)
+matMatLScalingCompatibility _ [] _ = zeroVecEq
+matMatLScalingCompatibility scal (x::xs) ys = vecHeadtailsEq
+	vectMatLScalingCompatibility
+	$ matMatLScalingCompatibility scal xs ys
+
+
+
+{-
+Type mismatch between
+
+	(<.>) {{(@@constructor of Classes.Verified.VerifiedRing#Ring a)
+		(@@constructor of Classes.Verified.VerifiedRingWithUnity#VerifiedRing a)}}
+		neutral
+		x =
+	neutral (Type of ringNeutralIsMultZeroL x)
+
+and
+
+	(<.>) {{(@@constructor of Control.Algebra.RingWithUnity#Ring a)
+		(@@constructor of Classes.Verified.VerifiedRingWithUnity#RingWithUnity a)}}
+		neutral
+		x =
+	neutral (Expected type)
+
+---
+
+neutralScalarIsScalarMultNeutral_Vect : VerifiedRingWithUnity a => (xs : Vect n a)
+	-> (the a Algebra.neutral)<#>xs = Algebra.neutral
+neutralScalarIsScalarMultNeutral_Vect [] = Refl
+neutralScalarIsScalarMultNeutral_Vect (x::xs) = vecHeadtailsEq
+	(ringNeutralIsMultZeroL x)
+	$ neutralScalarIsScalarMultNeutral_Vect xs
+-}
+
+neutralScalarIsScalarMultNeutral_zzVect : (xs : Vect n ZZ)
+	-> (the ZZ Algebra.neutral)<#>xs = Algebra.neutral
+neutralScalarIsScalarMultNeutral_zzVect [] = Refl
+neutralScalarIsScalarMultNeutral_zzVect (x::xs) = vecHeadtailsEq
+	(ringNeutralIsMultZeroL x)
+	$ neutralScalarIsScalarMultNeutral_zzVect xs
+
+-- Can prove for arbitrary module by showing the LHS is its own double by distributivity
+-- groupElemOwnDoubleImpliesNeut
+neutralScalarIsScalarMultNeutral_zzMat : (xs : Matrix n m ZZ)
+	-> (the ZZ Algebra.neutral)<#>xs = Algebra.neutral
+neutralScalarIsScalarMultNeutral_zzMat [] = Refl
+neutralScalarIsScalarMultNeutral_zzMat (x::xs) = vecHeadtailsEq
+	(neutralScalarIsScalarMultNeutral_zzVect x)
+	$ neutralScalarIsScalarMultNeutral_zzMat xs
+
+vectTimesNegOneIsNeg_zz : (xs : Vect n ZZ)
+	-> (Algebra.inverse $ the ZZ $ Algebra.unity) <#> xs = Algebra.inverse xs
+vectTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR_Vect _ _ xs
+	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
+		$ sym $ moduleScalarUnityIsUnity_Vect xs)
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Vect
+		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
+	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
+	$ trans (neutralScalarIsScalarMultNeutral_zzVect xs)
+	$ sym $ groupInverseIsInverseR_Vect xs
+
+matTimesNegOneIsNeg_zz : (xs : Matrix n m ZZ)
+	-> (Algebra.inverse $ the ZZ $ Algebra.unity) <#> xs = Algebra.inverse xs
+matTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR _ _ xs
+	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
+		$ sym $ moduleScalarUnityIsUnity {a=ZZ} xs)
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition
+		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
+	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
+	$ trans (neutralScalarIsScalarMultNeutral_zzMat xs)
+	$ sym $ groupInverseIsInverseR xs
+
+{-
+When checking type of ZZModuleSpan.negScalarToScaledNeg:
+When checking an application of function Control.Algebra.VectorSpace.<#>:
+        Can't resolve type class Group r
+
+---
+
+negScalarToScaledNeg : (VerifiedRingWithUnity r, VerifiedModule r a) -> (s : r) -> (x : a) -> (inverse s) <#> x = s <#> (inverse x)
+
+-----
+
+We require generalizations to other rings for:
+
+	neutralScalarIsScalarMultNeutral_zzVect
+	neutralScalarIsScalarMultNeutral_zzMat
+
+	vectTimesNegOneIsNeg_zz
+	matTimesNegOneIsNeg_zz
+
+---
+
+negScalarToScaledNegVect : VerifiedRingWithUnity r => (s : r) -> (x : Vect _ r) -> (inverse s) <#> x = s <#> (inverse x)
+
+negScalarToScaledNegMat : VerifiedRingWithUnity r => (s : r) -> (x : Matrix _ _ r) -> (inverse s) <#> x = s <#> (inverse x)
+-}
+
+negScalarToScaledNegVect_zz : (s : ZZ)
+	-> (x : Vect _ ZZ)
+	-> (inverse s) <#> x = s <#> (inverse x)
+negScalarToScaledNegVect_zz s x =
+	trans (cong {f=(<#>x)}
+		$ trans (negativeIsNegOneTimesRight s) $ ringOpIsCommutative_ZZ _ s)
+	$ trans (sym $ moduleScalarMultiplyComposition_Vect s _ x)
+	$ cong {f=(s<#>)} $ vectTimesNegOneIsNeg_zz x
+
+negScalarToScaledNegMat_zz : (s : ZZ)
+	-> (x : Matrix _ _ ZZ)
+	-> (inverse s) <#> x = s <#> (inverse x)
+negScalarToScaledNegMat_zz s x =
+	trans (cong {f=(<#>x)}
+		$ trans (negativeIsNegOneTimesRight s) $ ringOpIsCommutative_ZZ _ s)
+	$ trans (sym $ moduleScalarMultiplyComposition_Mat s _ x)
+	$ cong {f=(s<#>)} $ matTimesNegOneIsNeg_zz x
