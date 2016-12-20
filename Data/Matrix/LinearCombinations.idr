@@ -539,10 +539,10 @@ timesMatMatAsMultipleLinearCombos' = proof
 
 
 {-
-* Prove the dot product is a bilinear map from (ZZ)-(Vect)s to (ZZ).
-* Prove ZZ matrices form a ring (should work for any ring).
+* Prove the dot product is a bilinear map from (ZZ)-(Vect)s to (ZZ) (or at least, up to symmetry in the arguments).
+* Prove ZZ matrices form an algebra. Should work for ring. Proof it's a ring follows from associativity of matrix multiplication for a commutative ground ring.
 * Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
-* Prove transposition is an antiendomorphism of multiplication and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
+* Prove transposition is an antiendomorphism of multiplication for ZZ matrices, and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
 * Some Algebra.neutral is a zero element proofs.
 * Prove scalar multiplication of the left factor in a vector- or matrix-matrix product
 is the same as multiplying the product by the same scalar. (Note rel. to bilinearity)
