@@ -210,3 +210,42 @@ Proved:
 Declared:
 * `zzVecNeutralIsNeutralL`/...`R` — the zero vector is an identity for vector addition. Overlaps w/ `monoidNeutralIsNeutralL_Vect` in Data.Matrix.AlgebraicVerified.
 * `zzVecScalarUnityIsUnity` — scalar multiplication of a `Vect _ ZZ` by `1` yields the original vector. Overlaps w/ `moduleScalarUnityIsUnity_Vect` in Data.Matrix.AlgebraicVerified.
+
+## Data.Vect.Structural
+
+A library of properties to do w/ `Vect`s as a structure and functions to/from them, including characterizations of those operations' effects structurally.
+
+* Theorem `vecHeadtailsEq` for proving equality of `Vect`s by proving equality of their heads and tails. Often used after `headtails`.
+* Theorem `vecIndexwiseEq` for proving equality of `Vect`s by proving indexwise equality of their entries.
+
+* Theorems characterizing `Vect`s of degenerate qualities.
+* Theorems characterizing the index or head of a `Vect` created with a certain operation.
+* The theorem `weakenedInd` about comparing an index of a list to an index of its `init`.
+* The theorem `extensionalEqToMapEq` extending an extensional equality between functions to one between their `map`s over `Vect`s.
+* `composeUnderMap` w/c proves preservation of function composition for `Vect _`, what would be `functorComposition` in a `VerifiedFunctor` instance.
+
+* Compatibility between the operations of the ring (a) and of (Vect n a) as a module under (index).
+
+* `foldrImplRec` — The recursive equation for (foldr) over (Vect)s. Converts a right fold into a left fold.
+* `monoidrec : Monoid a => (v : a) -> (vs : Vect n a) -> sum' (v::vs) = v <+> sum' vs` — The recursive equation for sums in (Monoid)s over a (Vect _). Converts a right fold into a left fold.
+	* See `monoidrec1D`/...`2D` elsewhere.
+
+## Data.Matrix.Structural
+
+A library of properties to do w/ `Matrix`s as a structure and functions to/from them, including characterizations of those operations' effects structurally.
+
+* `transposeIsInvolution : transpose $ transpose xs = xs`
+* `transposeIndicesChariz : {xs : Matrix n m a} -> (i : Fin n) -> (j : Fin m) -> indices j i $ transpose xs = indices i j xs`
+* `transposeIndexChariz : {xs : Matrix n m a} -> index k $ transpose xs = getCol k xs`
+	* `transposeNHead: head $ transpose xs = map head xs`
+* `transposeNTail : transpose $ tail $ transpose xs = map tail xs`
+	* See also: `transposeNTail2` elsewhere
+
+* `vecMatMultIsTransposeVecMult`/`matVecIsVecTransposeMult` — The special cases of the transpose being an anti-endomorphism of matrix multiplication for vector-matrix and matrix-vector multiplication.
+* `headVecMatMultChariz` — a vector-matrix product as mapped dot product lemma.
+
+* `matMultIndicesChariz : Ring a => {l : Matrix _ _ a} -> {r : Matrix _ _ a} -> indices i j (l<>r) = (index i l)<:>(getCol j r)` — the entrywise expression of a matrix product.
+
+* `leadingElemExtensionAsZipWithCons : map (r::) xs = Vect.zipWith Vect.(::) (replicate _ r) xs`
+	* `leadingElemExtensionFirstColReplicate`/`leadingElemExtensionColFSId` — the columns of `map (r::) xs`. Special cases of `map` being a `VerifiedFunctor`.
+* `nullcolExtensionEq` — If the first column of `xs` is the zero vector, then `xs` is the appension of `0` to each of its rows' `tail`s.
