@@ -102,7 +102,7 @@ Foundational - algebraic:
 * `monoidsumNeutralIsNeutral1D`/...`2D` — The sum over the zero vector is zero, the sum over the zero matrix is the zero vector.
 * `sumTransposeMapRelation : (xs : Matrix n m ZZ) -> monoidsum $ transpose xs = map monoidsum xs` — view summing the transpose's row vectors together pointwise as replacing each of the original matrix's rows with their sum.
 * ```orderOfSummationExchange : (xs : Matrix n m ZZ)
-	-> monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs``` — exchanging/interchanging the order of summation / of two iterated sums / of a double sum. Statement for iterated sums of the generalized associativity law (_x_ \+ _y_) \+ (_z_ \+ _w_)=(_x_ \+ _z_) \+ (_y_ \+ _w_).
+	-> monoidsum $ monoidsum xs = monoidsum $ monoidsum $ transpose xs``` — exchanging/interchanging the order of summation / of two iterated sums / of a double sum. Statement for iterated sums of the generalized associativity-commutativity law (_x_ \+ _y_) \+ (_z_ \+ _w_)=(_x_ \+ _z_) \+ (_y_ \+ _w_). See: `doubleSumInnerSwap`.
 	* ```sumSumAsSumMapSum : (xs : Matrix n m ZZ)
 	-> monoidsum $ map monoidsum xs = monoidsum $ monoidsum xs``` — equivalent to the above.
 
@@ -165,8 +165,34 @@ runIso (MkIso to _ _ _) = to```
 ## Data.Matrix.LinearCombinations
 
 Most significant contents:
-* Proof, from some unproved basic facts, of definition of vector-matrix multiplication as a linear combination where the vectors under combination are rows of the matrix and the scalar weights are the entries of the same index to the vector under multiplication. `timesVectMatAsLinearCombo : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )`.
+* Proof of definition of vector-matrix multiplication as a linear combination where the vectors under combination are rows of the matrix and the scalar weights are the entries of the same index to the vector under multiplication. `timesVectMatAsLinearCombo : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )`.
 * Proof from the above that the definition of matrix multiplication reduces to independent linear combinations of the row vectors of the righthand matrix. `timesMatMatAsMultipleLinearCombos : (vs : Matrix (S n') n ZZ) -> (xs : Matrix n w ZZ) -> vs <> xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs`.
+* Material characterizing iterated summation `monoidsum`, such as `monoidrec1D`/...`2D`, `headOfSumIsSumOfHeads`, `tailOfSumIsSumOfTails`, `dotproductRewrite`.
+* `transposeNTail2`, which helps characterize the transpose.
+* Algebraic identities proved about matrices and vectors.
+	* The dot product is a bilinear map from (ZZ)-(Vect)s to (ZZ) (or at least, proof up to left-right symmetry).
+		* Scalar multiplication of the left factor in a vector- or matrix-matrix product is the same as multiplying the product by the same scalar. (Note rel. to bilinearity)
+	* ZZ matrices form an algebra. Uses `moduleScalarUnityIsUnity`. See also: `multIdLeftNeutral`, `multIdRightNeutral`, `timesMatMatIsAssociative` in ZZModuleSpan.
+	* Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
+	* Transposition is an antiendomorphism of multiplication for a commutative ground ring and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
+	* Some Algebra.neutral is a zero element / scalar zero proofs.
+		* `dotCancelsHeadWithLeadingZeroL : (x, y : Vect n ZZ) -> (Algebra.neutral::x)<:>(r::y) = x<:>y`/...`R` — a consequence
+		* `matMultCancelsHeadWithZeroColExtensionL : (map ((Pos 0)::) xs)<>(z::ys) = xs<>ys` — a consequence
+		* `timesPreservesLeadingZeroExtensionR : xs<>(map ((Pos 0)::) ys) = map ((Pos 0)::) $ xs<>ys` — a consequence
+	* `dotProductCommutative : (x, y : Vect n ZZ) -> x<:>y = y<:>x`
+	* The behavior & compatibility of the inverse w/ scalar multiplication of `Vect`s or `Matrix`s.
+
+Additional algebraic:
+* `doubleSumInnerSwap : VerifiedAbelianGroup t => (a, b, c, d : t) -> (a<+>b)<+>(c<+>d) = (a<+>c)<+>(b<+>d)` — a generalized associativity-commutativity law.
+** `doubleSumInnerSwap_Vect`
+
+Structural:
+* `lemma_VectAddEntrywise : .{n : Nat} -> (ni : Fin n) -> (v, w : Vect n ZZ) -> index ni (v<+>w) = (index ni v)<+>(index ni w)`
+	* `lemma_VectAddHead : (v, w : Vect (S n) ZZ) -> head(v<+>w) = (head v)<+>(head w)`
+	* `lemma_VectAddTail`
+	* `matrixAddEntrywise`, `matrixAddHead`, `matrixAddMapHead`, `matrixAddTail`, `matrixAddMapTail`
+
+Misc foundational
 
 ## FinOrdering
 
@@ -223,12 +249,13 @@ A library of properties to do w/ `Vect`s as a structure and functions to/from th
 * The theorem `weakenedInd` about comparing an index of a list to an index of its `init`.
 * The theorem `extensionalEqToMapEq` extending an extensional equality between functions to one between their `map`s over `Vect`s.
 * `composeUnderMap` w/c proves preservation of function composition for `Vect _`, what would be `functorComposition` in a `VerifiedFunctor` instance.
+* `updateDeleteAtChariz : deleteAt i $ updateAt i f xs = deleteAt i xs`
 
 * Compatibility between the operations of the ring (a) and of (Vect n a) as a module under (index).
 
-* `foldrImplRec` — The recursive equation for (foldr) over (Vect)s. Converts a right fold into a left fold.
+* `foldrImplRec` — The recursive equation for `foldr` over `Vect`s. Converts a right fold into a left fold.
 * `monoidrec : Monoid a => (v : a) -> (vs : Vect n a) -> sum' (v::vs) = v <+> sum' vs` — The recursive equation for sums in (Monoid)s over a (Vect _). Converts a right fold into a left fold.
-	* See `monoidrec1D`/...`2D` elsewhere.
+	* See `monoidrec1D`/...`2D` in Data.Matrix.LinearCombinations.
 
 ## Data.Matrix.Structural
 
@@ -239,9 +266,9 @@ A library of properties to do w/ `Matrix`s as a structure and functions to/from 
 * `transposeIndexChariz : {xs : Matrix n m a} -> index k $ transpose xs = getCol k xs`
 	* `transposeNHead: head $ transpose xs = map head xs`
 * `transposeNTail : transpose $ tail $ transpose xs = map tail xs`
-	* See also: `transposeNTail2` elsewhere
+	* See also: `transposeNTail2` in Data.Matrix.LinearCombinations
 
-* `vecMatMultIsTransposeVecMult`/`matVecIsVecTransposeMult` — The special cases of the transpose being an anti-endomorphism of matrix multiplication for vector-matrix and matrix-vector multiplication.
+* `vecMatMultIsTransposeVecMult`/`matVecIsVecTransposeMult` — The special cases of the transpose being an antiendomorphism of matrix multiplication for vector-matrix and matrix-vector multiplication.
 * `headVecMatMultChariz` — a vector-matrix product as mapped dot product lemma.
 
 * `matMultIndicesChariz : Ring a => {l : Matrix _ _ a} -> {r : Matrix _ _ a} -> indices i j (l<>r) = (index i l)<:>(getCol j r)` — the entrywise expression of a matrix product.
