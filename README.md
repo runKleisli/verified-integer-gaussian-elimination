@@ -1,5 +1,7 @@
 # verified-integer-gaussian-elimination
 
+Written in Idris 0.9.20
+
 Idris package looking to define, implement, and verify naiive Gaussian elimination over the integers in some system of linear algebra.
 
 Ignore these files:
@@ -9,6 +11,8 @@ Ignore these files:
 * IntegerOrdering.idr
 
 These show what other kind of theorems are needed, but about the wrong objects to be correct or to fit the system of linear algebra used in this package.
+
+__All proofs mentioned below are up to Issue #24 on GitHub being solved__
 
 ## ZZGaussianElimination
 
@@ -23,8 +27,6 @@ Contents:
 * `foldAutoind2` - Same strength of result as `foldAutoind`, but applies where the predicate `p : (m : Nat) -> Fin (S m) -> (a m) -> Type` isn't naturally expressed or proved without affecting the type of the witnesses dealt with by this process.
 
 ## ZZModuleSpan
-
-__All proofs mentioned below are up to Issue #24 on GitHub being solved__
 
 Contents:
 
@@ -175,7 +177,7 @@ Contents:
 
 ## Control.Algebra.ZZVerifiedInstances
 
-Contents: Declaration for `instance VerifiedRingWithUnity ZZ`
+Contents: Typeclass instance `instance VerifiedRingWithUnity ZZ`
 
 ## Data.Matrix.AlgebraicVerified
 
@@ -196,3 +198,15 @@ Trivial identities about (unital) rings:
 * `groupElemOwnDoubleImpliesNeut` : Groups have a unique idempotent, the identity.
 * `ringNeutralIsMultZeroL`/...`R` : Ring additive identity is a multiplicative zero.
 * `ringNegationCommutesWithLeftMult`/...`RightMult` : _a_ \* (\- _b_) = \- (_a_ \* _b_) = (\- _a_) \* _b_.
+
+## Data.Matrix.ZZVerified
+
+Identities whose proof is particular to ZZ, mainly because of the limitations caused by Issue #24 on GitHub. Some duplicate functionality.
+
+Proved:
+* `zzVecNeutralIsVecPtwiseProdZeroL`/...`R` — the zero vector is a zero of the dot product `(<:>)`. Name is incorrect for the identity stated. Overlaps w/ `neutralVectIsDotProductZero_R`/...`L` respectively in Data.Matrix.LinearCombinations.
+* `zzVecNeutralIsVecMatMultZero`/...`MatVec`... — likewise of vector-matrix and matrix-vector multiplication. Overlaps w/ `neutralVectIsVectTimesZero`/`emptyVectIsTimesVectZero` in Data.Matrix.LinearCombinations respectively.
+
+Declared:
+* `zzVecNeutralIsNeutralL`/...`R` — the zero vector is an identity for vector addition. Overlaps w/ `monoidNeutralIsNeutralL_Vect` in Data.Matrix.AlgebraicVerified.
+* `zzVecScalarUnityIsUnity` — scalar multiplication of a `Vect _ ZZ` by `1` yields the original vector. Overlaps w/ `moduleScalarUnityIsUnity_Vect` in Data.Matrix.AlgebraicVerified.
