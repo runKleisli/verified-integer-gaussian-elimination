@@ -266,3 +266,15 @@ foldrImplRec f e go x (xx::xxs) = trans (foldrImplRec f e (go . (f x)) xx xxs) $
 
 monoidrec : Monoid a => (v : a) -> (vs : Vect n a) -> sum' (v::vs) = v <+> sum' vs
 monoidrec = foldrImplRec (<+>) Algebra.neutral id
+
+
+
+indexNeutralIsNeutral1D : Ring a => (k : Fin n) -> index k $ Algebra.neutral {a=Vect n a} = Algebra.neutral
+indexNeutralIsNeutral1D FZ = Refl
+indexNeutralIsNeutral1D (FS k) = indexNeutralIsNeutral1D k
+
+
+
+uniformValImpliesReplicate : (a : ty) -> (x : Vect n ty) -> ((i : _) -> index i x = a) -> x = replicate n a
+uniformValImpliesReplicate a [] fn = Refl
+uniformValImpliesReplicate a (x::xs) fn = vecHeadtailsEq (fn FZ) $ uniformValImpliesReplicate a xs (\i => fn $ FS i)

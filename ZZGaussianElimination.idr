@@ -35,6 +35,18 @@ Trivial lemmas and plumbing
 
 
 
+bileibniz : (f : a -> b -> c) -> (x1=x2) -> (y1=y2) -> f x1 y1 = f x2 y2
+bileibniz f {x1} {x2} {y1} {y2} xeq yeq = rewrite (cong {f=f} xeq) in cong {f=f x2} yeq
+
+
+
+zzZOrOrPosNeg : (z : ZZ) -> Either (z=Pos 0) $ Either (k : _ ** z = Pos (S k)) $ (k : _ ** z = NegS k)
+zzZOrOrPosNeg (Pos Z) = Left Refl
+zzZOrOrPosNeg (Pos (S k)) = Right (Left (k ** Refl))
+zzZOrOrPosNeg (NegS k) = Right (Right (k ** Refl))
+
+
+
 total
 FinSZAreFZ : (x : Fin 1) -> x=FZ
 FinSZAreFZ FZ = Refl
@@ -375,7 +387,7 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 		ty nel with (leadingNonzeroCalc $ index nel xs)
 			| Right someNonZness with someNonZness
 				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
 
 
 
@@ -482,7 +494,7 @@ divisorByDistrib z (xx::xxs) {n=S predn} fn = ( dxx<+>dxxs ** divisorByDistrib' 
 		which is not at all what's wrong, and is an unhelpful error message.
 		-}
 		divisorByDistrib' : (dxx<+>dxxs)<.>z = LinearCombinations.monoidsum (xx::xxs)
-		divisorByDistrib' = ?divisorByDistrib_pr
+		divisorByDistrib' = trans (ringOpIsDistributiveR dxx dxxs z) $ trans (bileibniz (<+>) prxx prxxs) $ sym $ monoidrec1D {v=xx} {vs=xxs}
 
 
 
@@ -800,39 +812,94 @@ elimFirstCol mat {n=S predn} {predm} = do {
 
 
 
+danrzTailHasLeadingZeros : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> getCol FZ xs = Algebra.neutral
+-- Should do this by noting (getCol FZ xs = map (index FZ) xs) and (\j => danrz j FZ ?lt ?lte : (j : Fin _) -> index FZ $ index j xs = Pos 0) becomes by (trans (indexMapChariz {f=index FZ})) a ((j : Fin _) -> index j $ map (index FZ) xs = Pos 0). So we just need a function ( ((i : Fin _) -> index i xs = index i ys) -> xs = ys ).
+danrzTailHasLeadingZeros danrz = vecIndexwiseEq (\j => trans (indexMapChariz {f=index FZ}) $ trans (danrz (FS j) FZ (zLtSuccIsTrue $ finToNat j) $ Right Refl) $ sym $ indexNeutralIsNeutral1D j)
+
 bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
 	-> ys `bispanslz` map tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
+bispansNulltailcolExtension = bispansNullcolExtension . danrzTailHasLeadingZeros
+
+leadingNonzeroIsFZIfNonzero : Not (index FZ x = Pos Z) -> map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
+leadingNonzeroIsFZIfNonzero {x=x::xs} nonz with ( runIso eitherBotRight $ map nonz $ mirror $ zzZOrOrPosNeg x )
+	| Left (k ** prposS) = rewrite prposS in Refl
+	| Right (k ** prnegS) = rewrite prnegS in Refl
 
 -- Corrollary : decEq w/ eitherBotRight lets you extract rowEchelon proofs.
-danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ))
+danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ)
+danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
+	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
+	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
 
 echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs
 
-{-
-When we use this type signature we get the error "No such variable k" when using it,
-as in the ImplicitArgsError error message.
-Presumably (k) would be the Nat whose successor is the length of (x).
-
-> echelonHeadnonzerovecExtension : ( leadingNonzeroCalc x = Right ( FZ ** pr ) )
-> 	-> rowEchelon xs
-> 	-> rowEchelon (x::xs)
-
-specifically, we got the error from using the line
-
-> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} (getProof headxFCELeadingNonzero) xsNullcolextElimEch
-
-(in (gaussElimlzIfGCD2)'s (No) case) instead of what would now be written
-
-> let endmatEch = echelonHeadnonzerovecExtension {x=xFCE} headxFCELeadingNonzero xsNullcolextElimEch
--}
-echelonHeadnonzerovecExtension : ( pr : _ ** leadingNonzeroCalc x = Right ( FZ ** pr ) )
+echelonHeadnonzerovecExtension : {xs : Matrix n (S m) ZZ}
+	-> map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
 	-> rowEchelon xs
 	-> rowEchelon (x::xs)
+{-
+So the below doesn't work because we can't get the value of the (rowEchelon xs) at (nargxs) to take into account that (index nargxs xs = Algebra.neutral).
 
-echelonFromDanrzLast : {mat : Matrix _ (S mu) ZZ}
-	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
-	-> rowEchelon mat
+Perhaps then (rowEchelon) should be rewritten as
+
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+rowEchelon {n} {m} xs = (narg : Fin n) -> either ( const ((nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral) ) ( (downAndNotRightOfEntryImpliesZ xs narg) . Sigma.getWitness ) $ leadingNonzeroCalc $ index narg xs
+
+However, the problem isn't with producing (rowEchelon) values (see (echelonFromDanrzLast)), it's with inspecting them based on the known (leadingNonzeroCalc) value. So if a combinator can be written which converts it to the above form, the (rowEchelon) as it is shouldn't be a problem. But since the above form is superficially the same as the current one, perhaps it won't affect anything if we swap the definitions!
+
+Another possibility is matching on not just
+
+	(leadingNonzeroCalc $ index nargxs xs)
+
+but
+
+	(leadingNonzeroCalc $ index nargxs xs, echxs nargxs)
+
+but trying that:
+
+echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs (FS nargxs) with ((leadingNonzeroCalc $ index nargxs xs, echxs nargxs))
+	| (Right someNonZness, echval) with someNonZness
+		| (leadeln ** _) = ?echelonHeadnonzerovecExtension_rhs_2_right
+	| (Left _, echval) = ?echelonHeadnonzerovecExtension_rhs_2_left
+
+the (with) block is not resolved.
+
+Letting (rowEchelon2) be written as the above alternative definition for (rowEchelon), there is a problem with the type which is preventing us from writing a (rowEchelon2 xs -> rowEchelon xs), where if you try and accept the (rowEchelon2 xs) argument and the argument (narg : Fin n) to the intended value, even when the latter is only matched on by a local function, at the same time as you pattern match on the (leadingNonzeroCalc $ index narg xs), then you'll get an error
+
+"
+Type mismatch between
+        Fin n
+and
+        Fin m
+"
+
+-----
+
+echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs FZ with (leadingNonzeroCalc x)
+	| Right someNonZness with someNonZness
+		| (leadeln ** _) = ?echelonHeadnonzerovecExtension_rhs_1_right
+	-- Contradicts prleadFZ
+	| Left _ = ?echelonHeadnonzerovecExtension_rhs_1_left
+-- Roughly: echelonHeadnonzerovecExtension prleadFZ echxs (FS nargxs) = echxs nargxs
+echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs (FS nargxs) with (leadingNonzeroCalc $ index nargxs xs)
+	| Right someNonZness with someNonZness
+		| (leadeln ** _) = ?echelonHeadnonzerovecExtension_rhs_2_right
+	| Left _ = echxnxs
+		where {
+			mkLTwkn : (S predn) `LTRel` (finToNat nelow) -> (nelow = FS prednelow) -> predn `LTRel` finToNat prednelow
+			runEchxs : (nelow : Fin n) -> (ltpr : (finToNat nargxs) `LTRel` (finToNat nelow)) -> Vect.index nelow xs = Algebra.neutral
+			{-
+			Can't figure out that (echxs) matched the (Left _) pattern.
+			Instead, we might be able to give (echxs) the (Left _) value
+			by rewriting (echxs nargxs), the value of which is a (with) block expressed in terms of (leadingNonzeroCalc (index nargxs xs)), by a proof that (leadingNonzeroCalc (index nargxs)) of the form (Left _).
+			However, a proof of (index nargxs xs = Pos 0 :: replicate m (Pos 0)) doesn't seem to affect the value alone, so.
+			-}
+			runEchxs ?= echxs nargxs
+			echxnxs : (snelow : Fin (S n)) -> (ltpr : (finToNat $ FS nargxs) `LTRel` (finToNat snelow)) -> Vect.index snelow (x::xs) = Algebra.neutral
+			echxnxs snelow ltpr = ( \nelow_succeq : (nelow : Fin n ** snelow = FS nelow) => trans (cong {f=\i => index i (x::xs)} $ getProof nelow_succeq) $ runEchxs (getWitness nelow_succeq) (mkLTwkn {nelow=snelow} ltpr $ getProof nelow_succeq) ) $ gtnatFZImpliesIsFinSucc snelow $ natGtAnyImpliesGtZ (finToNat $ FS nargxs) (finToNat snelow) ltpr
+		}
+-}
 
 {-
 Reference
@@ -844,8 +911,58 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 		ty nel with (leadingNonzeroCalc $ index nel xs)
 			| Right someNonZness with someNonZness
 				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
+			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
 -}
+
+danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
+	-> downAndNotRightOfEntryImpliesZ mat FZ mel
+danrzLastcolImpliesAllcol danrzlast i j ltrel _ = danrzlast i j ltrel $ ltenatLastIsTrue2 j
+
+danrzLastcolImpliesTailNeutral : {xs : Matrix n (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu}) -> xs=Algebra.neutral
+danrzLastcolImpliesTailNeutral {x} {xs} {n} {mu} danrz = uniformValImpliesReplicate (replicate (S mu) $ Pos 0) xs $ \na => uniformValImpliesReplicate (Pos 0) (index na xs) (fn na)
+	where
+		fn : (prednel : Fin n) -> (j : Fin (S mu)) -> indices prednel j xs = Pos 0
+		fn prednel j = danrz (FS prednel) j (zLtSuccIsTrue $ finToNat prednel) (ltenatLastIsTrue2 j)
+
+-- echelonTrivial : rowEchelon [x]
+
+
+
+echelonFromDanrzLast : {mat : Matrix (S n) (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
+	-> rowEchelon mat
+echelonFromDanrzLast {mat=x::xs} {n} {mu} danrz FZ with (leadingNonzeroCalc x)
+	| Right someNonZness with someNonZness
+		| (leadeln ** _) = danrzLastcolImpliesAllcol {mel=leadeln} danrz
+	| Left _ = ?echelonFromDanrzLast_rhs_1
+	{-
+	Doing this made the module take 20 seconds longer to compile, 2:40 total.
+
+	> | Left _ = \nelow => \ltpr => trans (cong {f=\ts => Vect.index nelow (x::ts)} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral2D _
+
+	The above was debugged by making a hole like this
+
+	> | Left _ = ?echelonFromDanrzLast_rhs_1_1
+
+	making sure a correct REPL proof existed, then finding some missing implicit args
+	required by the compiler by putting that proof in the module, and whenever a type
+	mismatch occurred looking at the type expected and assuming it was a value from
+	the context that was needed as an implicit argument somewhere.
+	-}
+echelonFromDanrzLast {mat=x::xs} danrz (FS k) with (leadingNonzeroCalc $ index k xs)
+	-- indexNeutralIsNeutral1D
+	| Right someNonZness with (someNonZness)
+		| (leadeln ** (_, prNonZ)) = void $ prNonZ $ flip trans (indexNeutralIsNeutral1D leadeln) $ cong {f=index leadeln} $ trans (cong {f=index k} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ indexNeutralIsNeutral2D k
+	| Left _ = ?echelonFromDanrzLast_rhs_2
+
+echelonFromDanrzLast_rhs_1 = proof
+  intros
+  exact trans (cong {f=\ts => Vect.index nelow (x::ts)} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr) $ indexNeutralIsNeutral2D _
+
+echelonFromDanrzLast_rhs_2 = proof
+  intros
+  exact trans (cong {f=\ts => Vect.index nelow (x::ts)} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))} $ getProof $ gtnatFZImpliesIsFinSucc nelow $ natGtAnyImpliesGtZ (S $ finToNat k) (finToNat nelow) ltpr) $ indexNeutralIsNeutral2D _
 
 
 
@@ -873,8 +990,9 @@ No such variable mu
 gaussElimlzIfGCD2 xs {predm=Z} = map (\k => (_ ** (getWitness k ** ( echelonFromDanrzLast $ fst $ getProof k, snd $ getProof k)))) $ elimFirstCol xs
 {-
 We handle recursion in different ways depending on whether the first column is neutral.
-Since (with) blocks only handle matching on dependent pairs, and (case) blocks have
-totality problems, we write it as a wrapping of a local function which pattern matches on the equality decision.
+Since (with) blocks can't access local functions (unless local to the case?), and (case)
+blocks have totality problems, we write it as a wrapping of a local function which
+pattern matches on the equality decision.
 -}
 gaussElimlzIfGCD2 xs {predm = S prededm} = gaussElimlzIfGCD2_gen $ decEq (getCol FZ xs) Algebra.neutral
 	where

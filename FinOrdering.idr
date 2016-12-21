@@ -3,6 +3,7 @@ module FinOrdering
 
 import Data.Fin
 import Data.ZZ
+import Control.Isomorphism
 
 
 -- Note that unlike (=) the types do not inherently need to be ambiguous
@@ -81,3 +82,14 @@ lteToLTERel (LTESucc ltepr) {a=S preda} {b=S predb} = either
 	(Left . LTESucc)
 	(Right . (cong {f=S}))
 	$ lteToLTERel ltepr
+
+gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel Z $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
+
+natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
+
+ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
+
+ltenatLastIsTrue2 : (i : Fin (S nu)) -> LTERel (finToNat i) $ finToNat $ last {n=nu}
+
+zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)
+zLtSuccIsTrue _ = LTESucc LTEZero
