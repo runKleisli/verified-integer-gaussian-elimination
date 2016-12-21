@@ -385,8 +385,8 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
 	where
 		ty : Fin n -> Type
 		ty nel with (leadingNonzeroCalc $ index nel xs)
-			| Right someNonZness with someNonZness
-				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
+			| Right someNonZness = downAndNotRightOfEntryImpliesZ xs nel
+				$ getWitness someNonZness
 			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
 
 
@@ -832,7 +832,16 @@ danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
 	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
 	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
 
-echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs
+echelonNullcolExtension : {xs : Matrix n m ZZ}
+	-> rowEchelon xs
+	-> rowEchelon $ map ((Pos 0)::) xs
+{-
+echelonNullcolExtension {n} {m} {xs} echxs narg
+	with (leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs)
+	| Right someNonZness with someNonZness
+		| (leadeln ** _) = ?nullcol_danrz
+	| Left _ = ?nullcol_nelowfn
+-}
 
 echelonHeadnonzerovecExtension : {xs : Matrix n (S m) ZZ}
 	-> map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
@@ -901,19 +910,6 @@ echelonHeadnonzerovecExtension {n} {m} {x} {xs} prleadFZ echxs (FS nargxs) with 
 		}
 -}
 
-{-
-Reference
------
-rowEchelon : (xs : Matrix n m ZZ) -> Type
-rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
-	where
-		ty : Fin n -> Type
-		ty nel with (leadingNonzeroCalc $ index nel xs)
-			| Right someNonZness with someNonZness
-				| (leadeln ** _) = downAndNotRightOfEntryImpliesZ xs nel leadeln
-			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
--}
-
 danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> downAndNotRightOfEntryImpliesZ mat FZ mel
@@ -933,8 +929,8 @@ echelonFromDanrzLast : {mat : Matrix (S n) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> rowEchelon mat
 echelonFromDanrzLast {mat=x::xs} {n} {mu} danrz FZ with (leadingNonzeroCalc x)
-	| Right someNonZness with someNonZness
-		| (leadeln ** _) = danrzLastcolImpliesAllcol {mel=leadeln} danrz
+	| Right someNonZness = danrzLastcolImpliesAllcol
+		{mel=getWitness $ someNonZness} danrz
 	| Left _ = ?echelonFromDanrzLast_rhs_1
 	{-
 	Doing this made the module take 20 seconds longer to compile, 2:40 total.
@@ -952,8 +948,12 @@ echelonFromDanrzLast {mat=x::xs} {n} {mu} danrz FZ with (leadingNonzeroCalc x)
 	-}
 echelonFromDanrzLast {mat=x::xs} danrz (FS k) with (leadingNonzeroCalc $ index k xs)
 	-- indexNeutralIsNeutral1D
-	| Right someNonZness with (someNonZness)
-		| (leadeln ** (_, prNonZ)) = void $ prNonZ $ flip trans (indexNeutralIsNeutral1D leadeln) $ cong {f=index leadeln} $ trans (cong {f=index k} $ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz) $ indexNeutralIsNeutral2D k
+	| Right someNonZness = void $ (snd $ getProof someNonZness)
+		$ flip trans (indexNeutralIsNeutral1D $ getWitness someNonZness)
+		$ cong {f=index $ getWitness someNonZness}
+		$ trans (cong {f=index k}
+		$ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz)
+		$ indexNeutralIsNeutral2D k
 	| Left _ = ?echelonFromDanrzLast_rhs_2
 
 echelonFromDanrzLast_rhs_1 = proof
