@@ -17,12 +17,12 @@ __All proofs mentioned below are up to Issue #24 on GitHub being solved__
 ## ZZGaussianElimination
 
 Contents:
-* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (n' : Nat 	* (gexs : Matrix n' m ZZ 	* (rowEchelon gexs, bispanslz gexs xs)))`
+* Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, bispanslz gexs xs)))`
 * Implementation of the second property, `rowEchelon`.
 * `leadingNonzeroCalc`, which takes a `Vect n ZZ` to its first index to a nonzero entry or a proof that all entries are zero.
 * `downAndNotRightOfEntryImpliesZ`, which says a matrix is zero below an index and at or to the left of a second index.
-* Implementation of column-zero elimination, `elimFirstCol : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ 	* (downAndNotRightOfEntryImpliesZ gexs FZ FZ, bispanslz gexs xs))`.
-* Implementation of the inductive step for elimination, `gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat 	* (gexs : Matrix n' (S predm) ZZ 	* (rowEchelon gexs, bispanslz gexs xs)) )`
+* Implementation of column-zero elimination, `elimFirstCol : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (downAndNotRightOfEntryImpliesZ gexs FZ FZ, bispanslz gexs xs))`.
+* Implementation of the inductive step for elimination, `gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat ** (gexs : Matrix n' (S predm) ZZ ** (rowEchelon gexs, bispanslz gexs xs)) )`
 * `foldAutoind` - A vector fold over suppressed indices. Extends one witness for some predicate `p : (m : Nat) -> Fin (S m) -> a -> Type` to a `Vect` of them.
 * `foldAutoind2` - Same strength of result as `foldAutoind`, but applies where the predicate `p : (m : Nat) -> Fin (S m) -> (a m) -> Type` isn't naturally expressed or proved without affecting the type of the witnesses dealt with by this process.
 
@@ -138,10 +138,10 @@ Foundational - fins:
 	* `finReduceIsLeft : (z = FS k) -> finReduce z = Left k`
 	* ```finReduceIsRight_sym : (z : Fin (S predn))
 	-> (prFZ : z = FZ)
-	-> (pr : FZ {k=predn} = z 	* Right pr = finReduce z)```
-* `splitFinFS : (i : Fin (S predn)) -> Either ( k : Fin predn 	* i = FS k ) ( i = Fin.FZ {k=predn} )`
+	-> (pr : FZ {k=predn} = z ** Right pr = finReduce z)```
+* `splitFinFS : (i : Fin (S predn)) -> Either ( k : Fin predn ** i = FS k ) ( i = Fin.FZ {k=predn} )`
 * ```splitFinAtConcat : (i : Fin $ n+m)
-	-> Either (k : Fin n 	* i = weakenN m k) (k : Fin m 	* i = shift n k)```
+	-> Either (k : Fin n ** i = weakenN m k) (k : Fin m ** i = shift n k)```
 * `indexConcatAsIndexAppendee : (i : Fin n) -> index (weakenN m i) $ xs++ys = index i xs`
 * `indexConcatAsIndexAppended : (i : Fin m) -> index (shift n i) $ xs++ys = index i ys`
 * `FSPreservesBoolEq : (i, j : Fin n) -> (FS i == FS j) = (i == j)`
