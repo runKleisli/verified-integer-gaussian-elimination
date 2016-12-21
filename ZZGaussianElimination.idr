@@ -817,7 +817,7 @@ danrzTailHasLeadingZeros : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> getCo
 danrzTailHasLeadingZeros danrz = vecIndexwiseEq (\j => trans (indexMapChariz {f=index FZ}) $ trans (danrz (FS j) FZ (zLtSuccIsTrue $ finToNat j) $ Right Refl) $ sym $ indexNeutralIsNeutral1D j)
 
 bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
-	-> ys `bispanslz` map tail xs
+	-> ys `bispanslz` map Vect.tail xs
 	-> map ((Pos Z)::) ys `bispanslz` xs
 bispansNulltailcolExtension = bispansNullcolExtension . danrzTailHasLeadingZeros
 
