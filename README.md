@@ -1,5 +1,7 @@
 # verified-integer-gaussian-elimination
 
+[![bountysource](https://img.shields.io/bountysource/team/verified-integer-gaussian-elimination/activity.svg "bountysource (salt)")](https://www.bountysource.com/teams/verified-integer-gaussian-elimination) Funded through [Bountysource (salt)](https://salt.bountysource.com/teams/verified-integer-gaussian-elimination).
+
 Written in Idris 0.9.20
 
 Idris package looking to define, implement, and verify naiive Gaussian elimination over the integers in some system of linear algebra.
