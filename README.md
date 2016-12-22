@@ -232,6 +232,10 @@ Contents:
 * A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
 * An instance of this for `Nat`, by which `Fin n` will be ordered indirectly through `finToNat`.
 * `lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b`, relating `FinOrdering`'s version `LTERel` of the less-than-or-equal-to relation to `LTE`, from Prelude, for `Nat`s.
+* `zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)`
+* Declaration: `gtnatFZImpliesIsFinSucc` — A `Fin _` of ordinal _n_ > 0 is a fin-successor.
+* Declaration: `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
+* Declarations: `ltenatLastIsTrue`/...`2` — a number is in \{1, ..., _n_\} if and only if it is less than or equal to _n_, in our sense.
 
 ## Control.Algebra.ZZVerifiedInstances
 
