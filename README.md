@@ -282,6 +282,7 @@ A library of properties to do w/ `Vect`s as a structure and functions to/from th
 * The theorem `extensionalEqToMapEq` extending an extensional equality between functions to one between their `map`s over `Vect`s.
 * `composeUnderMap` w/c proves preservation of function composition for `Vect _`, what would be `functorComposition` in a `VerifiedFunctor` instance.
 * `updateDeleteAtChariz : deleteAt i $ updateAt i f xs = deleteAt i xs`
+* `uniformValImpliesReplicate : `...`((i : _) -> index i x = a) -> x = replicate n a`
 
 * Compatibility between the operations of the ring (a) and of (Vect n a) as a module under (index).
 
@@ -308,3 +309,5 @@ A library of properties to do w/ `Matrix`s as a structure and functions to/from 
 * `leadingElemExtensionAsZipWithCons : map (r::) xs = Vect.zipWith Vect.(::) (replicate _ r) xs`
 	* `leadingElemExtensionFirstColReplicate`/`leadingElemExtensionColFSId` — the columns of `map (r::) xs`. Special cases of `map` being a `VerifiedFunctor`.
 * `nullcolExtensionEq` — If the first column of `xs` is the zero vector, then `xs` is the appension of `0` to each of its rows' `tail`s.
+
+* `indexNeutralIsNeutral2D` — every row of a zero matrix is the zero vector.
