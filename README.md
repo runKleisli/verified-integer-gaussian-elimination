@@ -18,13 +18,45 @@ __All proofs mentioned below are up to Issue #24 on GitHub being solved__
 
 Contents:
 * Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, bispanslz gexs xs)))`
-* Implementation of the second property, `rowEchelon`.
-* `leadingNonzeroCalc`, which takes a `Vect n ZZ` to its first index to a nonzero entry or a proof that all entries are zero.
-* `downAndNotRightOfEntryImpliesZ`, which says a matrix is zero below an index and at or to the left of a second index.
-* Implementation of column-zero elimination, `elimFirstCol : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg (gexs : Matrix (S n) (S predm) ZZ ** (downAndNotRightOfEntryImpliesZ gexs FZ FZ, bispanslz gexs xs))`.
-* Implementation of the inductive step for elimination, `gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ) -> Reader ZZGaussianElimination.gcdOfVectAlg ( n' : Nat ** (gexs : Matrix n' (S predm) ZZ ** (rowEchelon gexs, bispanslz gexs xs)) )`
+	* Actual implementation ```gaussElimlzIfGCD2 : (xs : Matrix n (S predm) ZZ)
+	-> Reader ZZGaussianElimination.gcdOfVectAlg
+		( n' : Nat ** (gexs : Matrix n' (S predm) ZZ
+			** (rowEchelon gexs, gexs `bispanslz` xs)) )``` for matrices with at least one column. Note that a `Reader a b` is just a wrapped `a -> b`. __Proof calculated depends on__ `echelonHeadnonzerovecExtension`__, which is false.__ The suggested modification to that proposition is compatible w/ the current algorithm's structure.
+	* First-column elimination, `elimFirstCol`, in particular.
+* `rowEchelon`, the first property. (the other is from ZZModuleSpan)
+* Inference rules for `rowEchelon`
+	* Implemented: `echelonFromDanrzLast` w/c says that a matrix w/ nonzero topleft corner and otherwise-zero first column is row-echelon.
+	* Declared: `echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs`. Note that `map ((Pos 0)::)` appends the integer 0 to the start of each row of a matrix.
+	* Declared __(FALSE)__: `echelonHeadnonzerovecExtension` w/c says that a row-echelon matrix can have a new row added with first entry nonzero to get a row-echelon matrix. __The new row should be appended to the null-column-appended original matrix.__
+* `downAndNotRightOfEntryImpliesZ` (referred to as _danrz_), the property of a matrix and a pair of indices to it of the matrix being zero on the submatrix w/ topright corner just below the entry given by the indices. The row-echelon property is built of from many of these w/ the indices generally being to the leading (first) nonzero entries of each row.
+* Inference rules for _danrz_
+	* `danrzLastcolImpliesAllcol` — If _danrz_ holds for the topright corner, it holds for any entry on the top row.
+	* `danrzLastcolImpliesTailNeutral` — If _danrz_ holds for the topright corner, then the matrix is zero below the top row.
+		* `danrzTailHasLeadingZeros` — If _danrz_ holds for the topright corner, then the matrix is zero in the first column of the submatrix w/out the top row.
+* `leadingNonzeroCalc`, which takes a `Vect n ZZ` to its first index to a nonzero entry or a proof that all entries are zero. (See also: `leadingNonzeroIsFZIfNonzero`)
+	* `danrzLeadingZeroAlt` — If _danrz_ holds for the topright corner, then the first column of the matrix is zero or the topleft corner is the leading nonzero entry of the top row.
+* ```bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
+	-> ys `bispanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `bispanslz` xs```
 * `foldAutoind` - A vector fold over suppressed indices. Extends one witness for some predicate `p : (m : Nat) -> Fin (S m) -> a -> Type` to a `Vect` of them.
 * `foldAutoind2` - Same strength of result as `foldAutoind`, but applies where the predicate `p : (m : Nat) -> Fin (S m) -> (a m) -> Type` isn't naturally expressed or proved without affecting the type of the witnesses dealt with by this process.
+
+Further contents concerning divisibility:
+* `quotientOverZZ : ZZ -> ZZ -> Type`. ```x `quotientOverZZ` y``` reads "_x_ is a quotient of _y_". The opposite relation to "_a_ divides _b_". For those unfamiliar w/ type theory, an inhabitant of the type is a proof of the statement.
+	* `quotientOverZZrefl`, `quotientOverZZreflFromEq`, `quotientOverZZtrans` for reflexivity and transitivity of the relation.
+	* `divisorByDistrib`, `zipWithHeadsQuotientRelation`, `linearComboQuotientRelation`, `linearComboQuotientRelation_corrollary`
+* `gcdOfVectAlg : Type` — any algorithm w/c produces a common divisor for a sequence of integers and a method of expressing the divisor as a linear combination of the entries in the sequence. When the divisor is their GCD, the existence of one proves `ZZ` is a Bézout domain.
+
+...And foundations:
+* `bileibniz : (f : a -> b -> c) -> (x1=x2) -> (y1=y2) -> f x1 y1 = f x2 y2` — indiscernability of identicals in two variables.
+* `zzZOrOrPosNeg` — An integer is either zero (`= Pos 0`), positive (`= Pos (S k)`), or negative (`= NegS k`).
+* `FinSZAreFZ : (x : Fin 1) -> x=FZ`
+* `commuteFSWeaken : (i : Fin n) -> (FS $ weaken i = weaken $ FS i)`
+* `notSNatLastLTEAnything`
+* `finToNatWeaken : {k : Fin n} -> finToNat k = finToNat (weaken k)`
+* `partitionNatWknLT` — For _p_ in \{1, ..., _n_\}, _k_ in \{1, ..., n+1\}, if `weaken` _p_ < _k_ then `FS` _p_ ≤ _k_.
+* `splitFinS` : `last` and `weaken`ings of lower-order `Fin`s are the only `Fin`s.
+* Other nonsense.
 
 ## ZZModuleSpan
 
@@ -200,6 +232,10 @@ Contents:
 * A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
 * An instance of this for `Nat`, by which `Fin n` will be ordered indirectly through `finToNat`.
 * `lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b`, relating `FinOrdering`'s version `LTERel` of the less-than-or-equal-to relation to `LTE`, from Prelude, for `Nat`s.
+* `zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)`
+* Declaration: `gtnatFZImpliesIsFinSucc` — A `Fin _` of ordinal _n_ > 0 is a fin-successor.
+* Declaration: `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
+* Declarations: `ltenatLastIsTrue`/...`2` — a number is in \{1, ..., _n_\} if and only if it is less than or equal to _n_, in our sense.
 
 ## Control.Algebra.ZZVerifiedInstances
 
@@ -250,6 +286,7 @@ A library of properties to do w/ `Vect`s as a structure and functions to/from th
 * The theorem `extensionalEqToMapEq` extending an extensional equality between functions to one between their `map`s over `Vect`s.
 * `composeUnderMap` w/c proves preservation of function composition for `Vect _`, what would be `functorComposition` in a `VerifiedFunctor` instance.
 * `updateDeleteAtChariz : deleteAt i $ updateAt i f xs = deleteAt i xs`
+* `uniformValImpliesReplicate : `...`((i : _) -> index i x = a) -> x = replicate n a`
 
 * Compatibility between the operations of the ring (a) and of (Vect n a) as a module under (index).
 
@@ -276,3 +313,5 @@ A library of properties to do w/ `Matrix`s as a structure and functions to/from 
 * `leadingElemExtensionAsZipWithCons : map (r::) xs = Vect.zipWith Vect.(::) (replicate _ r) xs`
 	* `leadingElemExtensionFirstColReplicate`/`leadingElemExtensionColFSId` — the columns of `map (r::) xs`. Special cases of `map` being a `VerifiedFunctor`.
 * `nullcolExtensionEq` — If the first column of `xs` is the zero vector, then `xs` is the appension of `0` to each of its rows' `tail`s.
+
+* `indexNeutralIsNeutral2D` — every row of a zero matrix is the zero vector.
