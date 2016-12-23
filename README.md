@@ -1,6 +1,6 @@
 # verified-integer-gaussian-elimination
 
-[![bountysource](https://img.shields.io/bountysource/team/verified-integer-gaussian-elimination/activity.svg "bountysource (salt)")](https://www.bountysource.com/teams/verified-integer-gaussian-elimination) Funded through [Bountysource (salt)](https://salt.bountysource.com/teams/verified-integer-gaussian-elimination).
+[![bountysource](https://img.shields.io/bountysource/team/verified-integer-gaussian-elimination/activity.svg "bountysource (salt)")](https://www.bountysource.com/teams/verified-integer-gaussian-elimination) Funded through [Bountysource (salt)](https://salt.bountysource.com/teams/verified-integer-gaussian-elimination) by [viewers like you](../Backers.md).
 
 Written in Idris 0.9.20
 
