@@ -868,15 +868,28 @@ echElim1 {xs} {narg} echxs with (leadingNonzeroCalc $ index narg $ map ((Pos 0):
 
 echReduce1 : {xs : Matrix n predm ZZ}
 	-> {narg : Fin n}
-	-> {someNonZness : ( nel : Fin _
-		** ({i : Fin _} -> LTRel (finToNat i) (finToNat nel)
-				-> indices narg i $ map ((Pos 0)::) xs = Pos 0,
-			Not (indices narg nel $ map ((Pos 0)::) xs = Pos 0)) )}
+	-> {someNonZnessNel : Fin (S predm)}
+	-> {someNonZnessFn : ({i : Fin _} -> LTRel (finToNat i) (finToNat someNonZnessNel)
+			-> indices narg i $ map ((Pos 0)::) xs = Pos 0,
+		Not (indices narg someNonZnessNel $ map ((Pos 0)::) xs = Pos 0))}
 	-> rowEchelon xs
-	-> leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs = Right someNonZness
+	-> leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs
+		= Right (someNonZnessNel ** someNonZnessFn)
 	-> (leadeln : Fin predm ** (downAndNotRightOfEntryImpliesZ xs narg leadeln,
-		getWitness someNonZness = FS leadeln))
-echReduce1 {someNonZness} {xs} {narg} echxs = ?echReduce1_rhs
+		someNonZnessNel = FS leadeln))
+echReduce1 {someNonZnessNel} {someNonZnessFn} {xs} {narg} echxs lnzcEq
+	with (splitFinFS someNonZnessNel)
+		| Left fspr = ?echReduce1_rhs_FS -- (getWitness fspr ** (_, getProof fspr))
+		-- Except we want to show that (getWitness fspr) comes from (echxs), or
+		-- take it from (echxs) instead of using the (fspr) that comes from this.
+		-- So, the (downAndNotRightOfEntryImpliesZ) indices must be proved universal.
+		-- That's where (lnzcEq) comes in, and shows (someNonZnessNel) is the (FS)er.
+		-- So we just need to prove (leadingNonzeroCalc) is compatible w/ tails,
+		-- and then unlock the (leadingNonzeroCalc $ index nel xs) (with) block
+		-- in (rowEchelon xs) in such a way that that equation remains applicable.
+		-- Perhaps best would be for the goal to be the implication from such an eq.
+		-- together w/ any (rowEchelon xs) that the danrz exists.
+		| Right fzpr = ?echReduce1_rhs_FZ -- Absurd; FZ not leading 0 of (Pos 0)::_.
 
 echelonNullcolExtension : {xs : Matrix n m ZZ}
 	-> rowEchelon xs
