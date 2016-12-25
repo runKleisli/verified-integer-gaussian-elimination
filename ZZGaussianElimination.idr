@@ -832,6 +832,52 @@ danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
 	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
 	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
 
+-- Using (the (leadingNonzero _) $ Right someNonZness) while debugging the type.
+lnzcElim : {xs : Matrix n m ZZ}
+	-> (narg : Fin n)
+	-> Either (index narg xs = Algebra.neutral)
+	(someNonZness : (nel : Fin _
+			** ({i : _} -> LTRel (finToNat i) (finToNat nel)
+					-> index i $ index narg xs = Pos 0,
+				Not (index nel $ index narg xs = Pos 0)))
+		** leadingNonzeroCalc $ index narg xs = Right someNonZness)
+lnzcElim {xs} narg with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = Right $ (someNonZness ** Refl)
+	| Left pr = Left pr
+
+-- This is actually a test goal for producing a (void) from conflicting (leadingNonzeroCalc)s.
+echElim1 : {xs : Matrix n m ZZ}
+	-> rowEchelon xs
+	-> Either (index narg $ map ((Pos 0)::) xs = Algebra.neutral)
+	(someNonZness : (nel : Fin _
+			** ({i : _} -> LTRel (finToNat i) (finToNat nel)
+					-> index i $ index narg $ map ((Pos 0)::) xs = Pos 0,
+				Not (index nel $ index narg $ map ((Pos 0)::) xs = Pos 0)))
+		** leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs
+			= Right someNonZness)
+echElim1 {xs} {narg} echxs with (leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs)
+	| Right someNonZness = lnzcElim narg
+	| Left pr with (leadingNonzeroCalc $ index narg xs)
+		| Right someOtherNZ = void
+			$ (snd $ getProof $ someOtherNZ)
+			$ trans (cong {f=index $ getWitness someOtherNZ}
+				$ vectInjective2 {x=Pos 0} {y=Pos 0}
+				$ trans (sym $ indexMapChariz {k=narg} {f=((Pos 0)::)}) pr)
+			$ indexNeutralIsNeutral1D $ getWitness someOtherNZ
+		| Left pr2 = ?echElim1_rhs_2
+
+echReduce1 : {xs : Matrix n predm ZZ}
+	-> {narg : Fin n}
+	-> {someNonZness : ( nel : Fin _
+		** ({i : Fin _} -> LTRel (finToNat i) (finToNat nel)
+				-> indices narg i $ map ((Pos 0)::) xs = Pos 0,
+			Not (indices narg nel $ map ((Pos 0)::) xs = Pos 0)) )}
+	-> rowEchelon xs
+	-> leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs = Right someNonZness
+	-> (leadeln : Fin predm ** (downAndNotRightOfEntryImpliesZ xs narg leadeln,
+		getWitness someNonZness = FS leadeln))
+echReduce1 {someNonZness} {xs} {narg} echxs = ?echReduce1_rhs
+
 echelonNullcolExtension : {xs : Matrix n m ZZ}
 	-> rowEchelon xs
 	-> rowEchelon $ map ((Pos 0)::) xs
