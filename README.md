@@ -27,7 +27,7 @@ Contents:
 	* First-column elimination, `elimFirstCol`, in particular.
 * `rowEchelon`, the first property. (the other is from ZZModuleSpan)
 * Inference rules for `rowEchelon`
-	* Implemented: `echelonFromDanrzLast` w/c says that a matrix w/ nonzero topleft corner and otherwise-zero first column is row-echelon.
+	* Implemented: `echelonFromDanrzLast` w/c says that a matrix w/c is zero off the top row is row echelon.
 	* Declared: `echelonNullcolExtension : rowEchelon xs -> rowEchelon $ map ((Pos 0)::) xs`. Note that `map ((Pos 0)::)` appends the integer 0 to the start of each row of a matrix.
 	* Declared __(FALSE)__: `echelonHeadnonzerovecExtension` w/c says that a row-echelon matrix can have a new row added with first entry nonzero to get a row-echelon matrix. __The new row should be appended to the null-column-appended original matrix.__
 * `downAndNotRightOfEntryImpliesZ` (referred to as _danrz_), the property of a matrix and a pair of indices to it of the matrix being zero on the submatrix w/ topright corner just below the entry given by the indices. The row-echelon property is built of from many of these w/ the indices generally being to the leading (first) nonzero entries of each row.
