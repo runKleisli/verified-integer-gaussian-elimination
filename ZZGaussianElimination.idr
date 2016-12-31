@@ -380,14 +380,14 @@ So, we just simplify things and write
 
 > | Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 -}
+echTy : (xs : Matrix n m ZZ) -> (nel : Fin n) -> Type
+echTy {n} {m} xs nel with (leadingNonzeroCalc $ index nel xs)
+	| Right someNonZness = downAndNotRightOfEntryImpliesZ xs nel $ getWitness someNonZness
+	| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow)
+			-> index nelow xs = Algebra.neutral
+
 rowEchelon : (xs : Matrix n m ZZ) -> Type
-rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
-	where
-		ty : Fin n -> Type
-		ty nel with (leadingNonzeroCalc $ index nel xs)
-			| Right someNonZness = downAndNotRightOfEntryImpliesZ xs nel
-				$ getWitness someNonZness
-			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
+rowEchelon {n} {m} xs = (narg : Fin n) -> echTy xs narg
 
 
 
@@ -865,6 +865,68 @@ echElim1 {xs} {narg} echxs with (leadingNonzeroCalc $ index narg $ map ((Pos 0):
 				$ trans (sym $ indexMapChariz {k=narg} {f=((Pos 0)::)}) pr)
 			$ indexNeutralIsNeutral1D $ getWitness someOtherNZ
 		| Left pr2 = ?echElim1_rhs_2
+
+{-
+Because this can be written, the problem with reading a (rowEchelon) in a trivial way
+- extracting a value of an explicit type - may have been mainly a problem with the type
+we were trying to extract TO, which was the (either _ _ $ leadingNonZeroCalc _) seen in the commented functions below.
+-}
+extractEchAlt : (xs : Matrix n m ZZ)
+	-> (narg : Fin n)
+	-> (echval : echTy xs narg)
+	-> Either
+		(leadfn : (nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow)
+				-> index nelow xs = Algebra.neutral
+			** echval ~=~ leadfn)
+		(nel : Fin m ** (danrz : downAndNotRightOfEntryImpliesZ xs narg nel
+			** echval ~=~ danrz))
+extractEchAlt xs narg echval with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = Right (getWitness someNonZness ** (echval ** Refl))
+	| Left _ = Left (echval ** Refl)
+
+{-
+extractEchDanrz : (xs : Matrix n m ZZ)
+	-> (narg : Fin n)
+	-> echTy xs narg
+	-> either
+		( const {a=Type}
+			((nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow)
+				-> index nelow xs = Algebra.neutral) )
+		( (downAndNotRightOfEntryImpliesZ xs narg) . (Sigma.getWitness
+			{P=\nel : Fin m =>
+				({i : Fin m} -> finToNat i `LTRel` finToNat nel
+					-> indices narg i xs = Pos 0,
+				Not (indices narg nel xs = Pos 0))}) )
+		$ leadingNonzeroCalc $ index narg xs
+-- extractEchDanrz xs narg echval = ?echval'
+-}
+{-
+extractEchDanrz xs narg echval with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = echval
+	| Left _ = echval
+-}
+{-
+extractEchDanrz xs narg with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = ?echval1
+	| Left _ = ?echval2
+-}
+{-
+extractEchDanrz xs narg echval with (leadingNonzeroCalc $ index narg xs)
+	| value = ?extractEchDanrz'
+-}
+
+{-
+echExtractDanrz : {narg : Fin n}
+	-> (xs : Matrix n m ZZ)
+	-> rowEchelon xs
+	-> (someNonZnessNel : Fin m)
+	-> ( someNonZnessFn : ((i : Fin m) -> LTRel (finToNat i) (finToNat someNonZnessNel)
+			-> indices narg i xs = Pos 0,
+		Not (indices narg someNonZnessNel xs = Pos 0)) )
+	-> leadingNonzeroCalc $ index narg xs = Right (someNonZnessNel ** someNonZnessFn)
+	-> downAndNotRightOfEntryImpliesZ xs narg someNonZnessNel
+echExtractDanrz xs echxs someNonZnessNel someNonZnessFn lnzEq = ?echExtractDanrz'
+-}
 
 echReduce1 : {xs : Matrix n predm ZZ}
 	-> {narg : Fin n}
