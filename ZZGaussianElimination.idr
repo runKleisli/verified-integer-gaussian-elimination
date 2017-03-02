@@ -928,6 +928,21 @@ echExtractDanrz : {narg : Fin n}
 echExtractDanrz xs echxs someNonZnessNel someNonZnessFn lnzEq = ?echExtractDanrz'
 -}
 
+extractEchAltStep2 : (xs : Matrix n m ZZ)
+	-> (echxs : rowEchelon xs)
+	-> (narg : Fin n)
+	-> Either
+		(leadfn : (nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow)
+				-> index nelow xs = Algebra.neutral
+			** echxs narg ~=~ leadfn)
+		(nel : Fin m ** (danrz : downAndNotRightOfEntryImpliesZ xs narg nel
+			** echxs narg ~=~ danrz))
+extractEchAltStep2 xs echxs narg = extractEchAlt xs narg $ echxs narg
+
+-- Now we just need to show (nel) as the value of above
+-- induces (echxsPrependZ narg = danrz ... $ FS nel)
+-- relating the (rowEchelon xs)@narg to the (rowEchelon $ map ((Pos 0)::) xs)@narg.
+
 echReduce1 : {xs : Matrix n predm ZZ}
 	-> {narg : Fin n}
 	-> {someNonZnessNel : Fin (S predm)}
