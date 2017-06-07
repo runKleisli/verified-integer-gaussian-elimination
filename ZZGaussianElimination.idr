@@ -821,18 +821,46 @@ bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
 	-> map ((Pos Z)::) ys `bispanslz` xs
 bispansNulltailcolExtension = bispansNullcolExtension . danrzTailHasLeadingZeros
 
+||| (x::xs) leads with a nonzero for x not 0
 leadingNonzeroIsFZIfNonzero : Not (index FZ x = Pos Z) -> map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
 leadingNonzeroIsFZIfNonzero {x=x::xs} nonz with ( runIso eitherBotRight $ map nonz $ mirror $ zzZOrOrPosNeg x )
 	| Left (k ** prposS) = rewrite prposS in Refl
 	| Right (k ** prnegS) = rewrite prnegS in Refl
 
 -- Corrollary : decEq w/ eitherBotRight lets you extract rowEchelon proofs.
+-- In particular,
+||| x|xs
+||| 0|_
+||| 0|_
+||| ...
+||| has 0th-col 0 or its 0th row leads with a nonzero
 danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ)
 danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
 	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
 	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
 
 -- Using (the (leadingNonzero _) $ Right someNonZness) while debugging the type.
+||| ∀ xs : n by m
+||| ∀ narg : Fin n
+||| xs_narg = 0 or
+||| leadingNonzeroCalc xs_narg = Right k,
+||| 
+||| where k gives:
+||| 
+|||           ∃nel
+||| xs          |
+|||       *****|*|***
+||| narg--00000|x|***
+|||       *****|*|***
+|||
+||| w/ x nonzero.
+||| 
+||| Explicitly,
+||| a (Fin m) nel
+||| & a proof that
+||| xs_narg_nel nonzero
+||| & ∀ i < nel, xs_narg_i = 0
+||| i.e. xs_narg is 0 to the left of the column index (nel) given.
 lnzcElim : {xs : Matrix n m ZZ}
 	-> (narg : Fin n)
 	-> Either (index narg xs = Algebra.neutral)
@@ -846,6 +874,34 @@ lnzcElim {xs} narg with (leadingNonzeroCalc $ index narg xs)
 	| Left pr = Left pr
 
 -- This is actually a test goal for producing a (void) from conflicting (leadingNonzeroCalc)s.
+||| Application of (lnzcElim)
+||| 
+||| If xs is a row echelon form n by m matrix,
+||| and xs' is
+||| 
+||| 	0|xs_0
+||| 	0|xs_1
+||| 	...,
+||| 
+||| then xs'_narg = 0 or
+||| leadingNonzeroCalc xs'_narg = Right k,
+||| 
+||| where k gives:
+||| 
+|||            ∃nel
+||| xs'          |
+|||       0|****|*|***
+||| narg--0|0000|x|***
+|||       0|****|*|***
+|||
+||| w/ x nonzero.
+||| 
+||| Explicitly,
+||| a (Fin (S m)) nel
+||| & a proof that
+||| xs'_narg_nel nonzero
+||| & ∀ i < nel, xs'_narg_i = 0
+||| i.e. xs'_narg is 0 to the left of the column index (nel) given.
 echElim1 : {xs : Matrix n m ZZ}
 	-> rowEchelon xs
 	-> Either (index narg $ map ((Pos 0)::) xs = Algebra.neutral)
@@ -871,6 +927,25 @@ Because this can be written, the problem with reading a (rowEchelon) in a trivia
 - extracting a value of an explicit type - may have been mainly a problem with the type
 we were trying to extract TO, which was the (either _ _ $ leadingNonZeroCalc _) seen in the commented functions below.
 -}
+||| ∀ xs : n by m
+||| ∀ narg : Fin n
+||| ∀ echval : echTy xs narg
+||| either echval gives
+||| 
+||| xs
+|||       ********
+||| narg--********
+|||       00000000
+|||       00000000
+||| 
+||| or we have a (Fin m) nel such that echval gives
+||| 
+|||           nel
+||| xs         |
+|||       ****|*|***
+||| narg--****|*|***
+|||       0000|0|***
+|||       0000|0|***
 extractEchAlt : (xs : Matrix n m ZZ)
 	-> (narg : Fin n)
 	-> (echval : echTy xs narg)
@@ -928,6 +1003,27 @@ echExtractDanrz : {narg : Fin n}
 echExtractDanrz xs echxs someNonZnessNel someNonZnessFn lnzEq = ?echExtractDanrz'
 -}
 
+-- Corollary:
+-- 
+||| ∀ xs : n by m
+||| ∀ echxs : rowEchelon xs
+||| ∀ narg : Fin n
+||| either echxs narg gives
+||| 
+||| xs
+|||       ********
+||| narg--********
+|||       00000000
+|||       00000000
+||| 
+||| or we have a (Fin m) nel such that echxs narg gives
+||| 
+|||           nel
+||| xs         |
+|||       ****|*|***
+||| narg--****|*|***
+|||       0000|0|***
+|||       0000|0|***
 extractEchAltStep2 : (xs : Matrix n m ZZ)
 	-> (echxs : rowEchelon xs)
 	-> (narg : Fin n)
@@ -942,7 +1038,34 @@ extractEchAltStep2 xs echxs narg = extractEchAlt xs narg $ echxs narg
 -- Now we just need to show (nel) as the value of above
 -- induces (echxsPrependZ narg = danrz ... $ FS nel)
 -- relating the (rowEchelon xs)@narg to the (rowEchelon $ map ((Pos 0)::) xs)@narg.
-
+||| If xs is a row echelon form n by predm matrix,
+||| and xs' is
+||| 
+||| 	0|xs_0
+||| 	0|xs_1
+||| 	...,
+||| 
+||| then
+||| ∀ narg : Fin n
+||| If xs'_narg has xs'_narg_someNonZnessNel as its first nonzero entry,
+||| 
+|||       someNonZnessNel
+||| xs'          |
+|||       0|****|*|***
+||| narg--0|0000|x|***
+|||       0|****|*|***
+||| 	for x nonzero
+||| 
+||| we have
+||| someNonZnessNel = FS leadeln
+||| where leadeln satisfies
+||| 
+|||         leadeln
+||| xs         |
+|||       ****|*|***
+||| narg--****|*|***
+|||       0000|0|***
+|||       0000|0|***
 echReduce1 : {xs : Matrix n predm ZZ}
 	-> {narg : Fin n}
 	-> {someNonZnessNel : Fin (S predm)}
