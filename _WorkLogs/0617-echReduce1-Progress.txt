@@ -204,3 +204,70 @@ as the implication
 	leadingNonzeroCalc xs_narg = Right (leadeln ** _)
 
 to prove (echReduce1) (for this pattern).
+
+-----
+
+To get the equation
+
+	someNonZnessNel = FS leadeln
+
+the original strategy can be elaborated with the following argument:
+
+if
+
+	leadingNonzeroCalc xs_narg = Right (n ** pr)
+
+then
+
+	for some pr : _,
+	leadingNonzeroCalc xs'_narg = Right (FS n ** pr).
+
+Then by
+
+	lnzcEq : leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs
+		= Right (someNonZnessNel ** someNonZnessFn),
+
+	trans (sym _) lnzcEq : Right (FS n ** pr)
+		= Right (someNonZnessNel ** someNonZnessFn)
+
+& hence
+
+	FS n = someNonZnessNel
+
+indeed, without using (fspr) directly.
+
+Observe:
+
+	lnzcElim {xs=xs} narg : Either (index narg xs = Algebra.neutral)
+		(someNonZness :
+			(nel : Fin _ ** i < nel -> xs_narg_i = 0, Not xs_narg_nel=0)
+			** leadingNonzeroCalc xs_narg = Right someNonZness)
+
+thereby we may write
+
+	let lex = eitherBotRight
+		$ map (some xs_narg = 0 -> Void)
+		$ mirror
+		$ lnzcElim {xs=xs} narg
+	let leadelnDerived = getWitness $ getWitness lex
+	let leadelnDIsLeadeln = getProof lex
+
+so that
+
+	leadelnDIsLeadeln : leadingNonzeroCalc xs_narg = Right (leadelnDerived ** _)
+
+as required.
+
+Hence, we can use a derivation of (lnzc xs'_narg) from (lnzc xs_narg) to complete the
+equation, rather than a derivation of (lnzc xs_narg) from (lnzc xs'_narg) & use the
+absurdity of (xs_narg = 0) given (Not xs'_narg = 0) rather than the absurdity of the
+leading 0 of (xs'_narg) being at FZ.
+
+---
+
+Goals:
+1) characterization of (lnzc xs'_narg) given (lnzc xs'_narg = Right (n ** _))
+2) Modify (extractEchAlt) to show, rather than an equality w/ the (echTy xs narg),
+that for the (danrz xs narg indEchRight) it produces, (indEchRight) satisfies
+
+	leadingNonzeroCalc xs_narg = Right (indEchRight ** _).
