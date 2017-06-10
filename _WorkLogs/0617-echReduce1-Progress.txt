@@ -284,3 +284,7 @@ w/c is morally of type
 
 	map getWitness $ leadingNonzeroCalc v = Right k
 		-> map getWitness $ leadingNonzeroCalc $ (Pos 0)::v = Right (FS k)
+
+We could possible make something with that type if we wrote (Sigma.getWitness), since
+(leadingNonzeroIsFZIfNonzero) did that succesfully. It's worth having figured out how
+to do the full thing, though, since other places may need to take proof part given them.
