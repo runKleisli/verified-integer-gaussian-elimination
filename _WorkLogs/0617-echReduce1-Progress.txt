@@ -271,3 +271,16 @@ Goals:
 that for the (danrz xs narg indEchRight) it produces, (indEchRight) satisfies
 
 	leadingNonzeroCalc xs_narg = Right (indEchRight ** _).
+
+Goal 1 is implemented by
+
+	lnzcNullext : leadingNonzeroCalc v = Right (k ** pr)
+		-> (pr' : ((i : Fin _) -> LTRel (finToNat i) (finToNat (FS k))
+				-> index i $ (Pos 0)::v = Pos 0,
+				Not (index (FS k) $ (Pos 0)::v = Pos 0))
+			** leadingNonzeroCalc $ (Pos 0)::v = Right (FS k ** pr'))
+
+w/c is morally of type
+
+	map getWitness $ leadingNonzeroCalc v = Right k
+		-> map getWitness $ leadingNonzeroCalc $ (Pos 0)::v = Right (FS k)
