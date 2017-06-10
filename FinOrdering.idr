@@ -93,3 +93,5 @@ ltenatLastIsTrue2 : (i : Fin (S nu)) -> LTERel (finToNat i) $ finToNat $ last {n
 
 zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)
 zLtSuccIsTrue _ = LTESucc LTEZero
+
+trichotomy : (n,m : Nat) -> Either (n `LT` m) $ Either (n = m) (m `LT` n)

@@ -839,6 +839,13 @@ danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
 	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
 	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
 
+||| Hopefully, this subsumes (lnzcElim).
+lnzcElim2 : {v : Vect n ZZ}
+	-> Either (v = Algebra.neutral) (someNonZness : _ ** leadingNonzeroCalc v = Right someNonZness)
+lnzcElim2 {v} with (leadingNonzeroCalc v)
+	| Right someNonZness = Right (someNonZness ** Refl)
+	| Left pr = Left pr
+
 -- Using (the (leadingNonzero _) $ Right someNonZness) while debugging the type.
 ||| ∀ xs : n by m
 ||| ∀ narg : Fin n
@@ -1034,6 +1041,120 @@ extractEchAltStep2 : (xs : Matrix n m ZZ)
 		(nel : Fin m ** (danrz : downAndNotRightOfEntryImpliesZ xs narg nel
 			** echxs narg ~=~ danrz))
 extractEchAltStep2 xs echxs narg = extractEchAlt xs narg $ echxs narg
+
+lnzIndInvar : (lnz : leadingNonzero v)
+	-> (lnz = Right (k ** pr))
+	-> (pr' : _ ** leadingNonzeroCalc v = Right (k ** pr'))
+lnzIndInvar {v} {k} {pr} lnz lnzEq with (leadingNonzeroCalc v)
+	| Left prNeut = void $ snd pr $ flip trans indexReplicateChariz $ cong {f=index k} prNeut
+	| Right (k' ** pr') = ?lnzIndInvar_r -- reduces to proving (k = k').
+
+lnzIndInvar_r = proof
+	intros
+	claim lnzIndEq k = k'
+	unfocus
+	rewrite sym lnzIndEq
+	exact (pr' ** Refl)
+	-- lnzIndEq : k = k'
+	let trich_kk' = trichotomy (finToNat k) (finToNat k')
+	-- Approximately:
+	--	> exact either _ (either (finToNatInjective k k') _) trich_kk'
+	-- But really that's lazy
+	claim nlkk' LT (finToNat k) (finToNat k') -> Void
+	unfocus
+	claim ngkk' LT (finToNat k') (finToNat k) -> Void
+	unfocus
+	exact either (absurd . nlkk') (either (finToNatInjective k k') $ absurd . ngkk') trich_kk'
+	-- nlkk'
+	intro hlkk'
+	-- can't apply (fst pr') directly to (hlkk')
+	let fst_pr' = fst pr'
+	exact snd pr $ fst_pr' hlkk'
+	-- ngkk'
+	intro hgkk'
+	let fst_pr = fst pr
+	exact snd pr' $ fst_pr hgkk'
+
+{-
+Type inference gripe:
+
+lnzcNullext : {v : Vect n ZZ} -> {k : Fin n}
+	-> map getWitness $ leadingNonzeroCalc {n=n} v = Right k
+	-> map getWitness $ leadingNonzeroCalc {n=S n} $ (Pos 0)::v = Right (FS k)
+lnzcNullext {v} {k} lnzcEq = ?lnzcNullext_pr
+
+When checking type of ZZGaussianElimination.lnzcNullext:
+When checking argument n to ZZGaussianElimination.leadingNonzeroCalc:
+        Type mismatch between
+                n (Inferred value)
+        and
+                S n (Given value)
+
+should just be
+
+lnzcNullext : map getWitness $ leadingNonzeroCalc v = Right k
+	-> map getWitness $ leadingNonzeroCalc $ (Pos 0)::v = Right (FS k)
+-}
+
+lnzcNullext : leadingNonzeroCalc v = Right (k ** pr)
+	-> (pr' : ((i : Fin _) -> LTRel (finToNat i) (finToNat (FS k))
+			-> index i $ (Pos 0)::v = Pos 0,
+			Not (index (FS k) $ (Pos 0)::v = Pos 0))
+		** leadingNonzeroCalc $ (Pos 0)::v = Right (FS k ** pr'))
+lnzcNullext {v} {k} {pr} lnzcEq = ?lnzcNullext_pr
+
+lnzcNullext_pr = proof
+	intros
+	claim lnz leadingNonzero $ Pos 0 :: v
+	claim pr2 ((i : Fin _) -> LTRel (finToNat i) (finToNat (FS k)) -> index i $ (Pos 0)::v = Pos 0, Not (index (FS k) $ (Pos 0)::v = Pos 0))
+	unfocus
+	unfocus
+	claim lnzEq lnz = Right (FS k ** pr2)
+	unfocus
+	-- Main goal
+	exact lnzIndInvar lnz lnzEq
+	-- pr2 on stack
+	unfocus
+	-- lnz on stack
+	exact Right (FS k ** pr2)
+	-- lnzEq on stack
+	exact Refl
+	-- pr2
+	-- w/c should follow from lnzcEq/pr
+	exact (_ $ fst pr, snd pr)
+	intro ltkThenZ
+	intro i
+	intro ltSk
+	claim f (c : Fin n ** i = FS c) -> index i (Pos 0 :: v) = Pos 0
+	unfocus
+	exact either f (cong {f=flip index $ Pos 0::v}) $ splitFinFS i
+	-- f
+	intro iSplit
+	rewrite sym $ getProof iSplit
+	exact ltkThenZ $ the (LT (finToNat $ getWitness iSplit) (finToNat k)) _
+	-- i `leq` k
+	exact fromLteSucc _
+	rewrite cong {f=finToNat} $ getProof iSplit
+	exact ltSk
+
+	{-
+	The (f) solution was originally written
+
+	-- f
+	> intro iSplit
+	> rewrite sym $ getProof iSplit
+	> exact ltkThenZ _
+	> rewrite cong {f=finToNat} $ getProof iSplit
+	-- i `leq` k
+	> exact fromLteSucc ltSk
+
+	but apparently the compiler won't do the (cong) rewrite, nor will the proof engine when you hole
+	the proof off into a second proposition after the
+
+	> exact ltkThenZ _
+
+	So, we have to do the cong rewrite over the hole in (fromLteSucc _).
+	-}
 
 -- Now we just need to show (nel) as the value of above
 -- induces (echxsPrependZ narg = danrz ... $ FS nel)
