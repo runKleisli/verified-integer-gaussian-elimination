@@ -237,12 +237,30 @@ because the error described in ImplicitArgsError applied to (i) and (j) in ({i :
 
 
 
-weakenDownAndNotRight : (downAndNotRightOfEntryImpliesZ mat (FS prednel) mel) -> ((j : _) -> LTERel (finToNat j) (finToNat mel) -> indices (FS prednel) j mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
-weakenDownAndNotRight {prednel} {mat} danrz newzfn i j iDown jNotRight = either (\b => danrz i j b jNotRight) (\pr => trans (cong {f=\e => indices e j mat} pr) $ newzfn j jNotRight) $ partitionNatWknLT prednel i iDown
+weakenDownAndNotRight :
+	downAndNotRightOfEntryImpliesZ mat (FS prednel) mel
+	-> ((j : _)
+		-> LTERel (finToNat j) (finToNat mel)
+		-> indices (FS prednel) j mat = Pos Z)
+	-> downAndNotRightOfEntryImpliesZ mat (weaken prednel) mel
+weakenDownAndNotRight {prednel} {mat} danrz newzfn i j iDown jNotRight
+	= either
+		(\b => danrz i j b jNotRight)
+		(\pr => trans (cong {f=\e => indices e j mat} pr) $ newzfn j jNotRight)
+	$ partitionNatWknLT prednel i iDown
 
 ||| A special case of (weakenDownAndNotRight).
-weakenDownAndNotRightFZ : (downAndNotRightOfEntryImpliesZ mat (FS prednel) FZ) -> (indices (FS prednel) FZ mat = Pos Z) -> downAndNotRightOfEntryImpliesZ mat (weaken prednel) FZ
-weakenDownAndNotRightFZ {prednel} {mat} danrz newz i FZ iDown fzNotRight = either (\b => danrz i FZ b fzNotRight) (\pr => trans (cong {f=\e => indices e FZ mat} pr) newz) $ partitionNatWknLT prednel i iDown
+weakenDownAndNotRightFZ :
+	downAndNotRightOfEntryImpliesZ mat (FS prednel) FZ
+	-> indices (FS prednel) FZ mat = Pos Z
+	-> downAndNotRightOfEntryImpliesZ mat (weaken prednel) FZ
+weakenDownAndNotRightFZ {prednel} {mat} danrz newz i FZ iDown fzNotRight
+	= either
+		(\b => danrz i FZ b fzNotRight)
+		(\pr => trans (cong {f=\e => indices e FZ mat} pr) newz)
+	$ partitionNatWknLT prednel i iDown
+weakenDownAndNotRightFZ _ _ _ (FS prel) _ fzNotRight
+	= void . succNotLTEzero . lteRelToLTE $ fzNotRight
 
 
 

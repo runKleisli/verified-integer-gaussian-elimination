@@ -83,6 +83,10 @@ lteToLTERel (LTESucc ltepr) {a=S preda} {b=S predb} = either
 	(Right . (cong {f=S}))
 	$ lteToLTERel ltepr
 
+lteRelToLTE : LTERel a b -> LTE a b
+lteRelToLTE (Left lt) = fromLteSucc . lteSuccRight $ lt
+lteRelToLTE (Right pr) = rewrite pr in lteRefl
+
 gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel Z $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
 
 natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
