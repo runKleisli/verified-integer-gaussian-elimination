@@ -6,6 +6,13 @@ import Data.ZZ
 import Control.Isomorphism
 
 
+
+{-
+Definitions
+-}
+
+
+
 -- Note that unlike (=) the types do not inherently need to be ambiguous
 class OrdRel A where
 	LTRel : A -> A -> Type
@@ -75,6 +82,14 @@ instance DecLT (Fin n) where
 	decLT {n} = decLTFin n
 -}
 
+
+
+{-
+Equivalence between LTERel and LTE
+-}
+
+
+
 lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b
 lteToLTERel LTEZero {b=Z} = Right Refl
 lteToLTERel LTEZero {b=S predb} = Left $ LTESucc $ LTEZero {right=predb}
@@ -87,15 +102,35 @@ lteRelToLTE : LTERel a b -> LTE a b
 lteRelToLTE (Left lt) = fromLteSucc . lteSuccRight $ lt
 lteRelToLTE (Right pr) = rewrite pr in lteRefl
 
-gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel Z $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
+
+
+{-
+Productions
+-}
+
+
+
+zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)
+zLtSuccIsTrue _ = LTESucc LTEZero
 
 natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
+natGtAnyImpliesGtZ m Z = absurd
+natGtAnyImpliesGtZ m (S n) = const $ zLtSuccIsTrue n
+
+
+
+{-
+Structure of (Fin)s
+* in general
+* in terms of ordering
+-}
+
+
+
+gtnatFZImpliesIsFinSucc : (nel : Fin (S nu)) -> (LTRel Z $ finToNat nel) -> (prednel : Fin nu ** nel = FS prednel)
 
 ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
 
 ltenatLastIsTrue2 : (i : Fin (S nu)) -> LTERel (finToNat i) $ finToNat $ last {n=nu}
-
-zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)
-zLtSuccIsTrue _ = LTESucc LTEZero
 
 trichotomy : (n,m : Nat) -> Either (n `LT` m) $ Either (n = m) (m `LT` n)
