@@ -74,6 +74,24 @@ All with parameters
 
 With parameters
 	predn
+	mat
+
+foldedFully :
+	(v : Vect (S predn) ZZ)
+	-> ( vmatQfunc :
+		( i : Fin _ )
+		-> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
+	-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ
+		** (i : Fin (S (S predn)))
+		-> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
+
+-}
+
+{- (elimFirstCol) lemmas parameters -}
+parameters (predm : Nat) {
+
+{- (mkQFunc) parameters -}
+parameters (predn : Nat) {
 
 mkQFunc : (v : Vect (S predn) ZZ)
 	-> (xs : Matrix (S predn) (S predm) ZZ)
@@ -81,29 +99,16 @@ mkQFunc : (v : Vect (S predn) ZZ)
 		-> (index i $ getCol FZ xs) `quotientOverZZ` (v <:> (getCol FZ xs)) )
 	-> ( ( i : Fin (S $ S predn) )
 		-> (indices i FZ $ (v<\>xs)::xs) `quotientOverZZ` (head $ v<\>xs) )
+mkQFunc v xs fn FZ = quotientOverZZreflFromEq $ indexFZIsheadValued {xs=v<\>xs}
+mkQFunc v xs fn (FS k) =
+	( (quotientOverZZreflFromEq $ sym $ indexMapChariz {k=k} {f=index FZ} {xs=xs})
+		`quotientOverZZtrans` fn k )
+	`quotientOverZZtrans`
+	( quotientOverZZreflFromEq $ sym $ headVecMatMultChariz {v=v} {xs=xs} )
 
-With parameters
-	predn
-	mat
-	senior
-	srQfunc
-	imat
+} {- (mkQFunc) parameters -}
 
-succImplWknStep_Qfunclemma : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
-	-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
-	-> ( z : Matrix _ _ ZZ )
-	-> ( quotchariz : ( k : Fin _ ) -> ( LinearCombinations.monoidsum $ zipWith (<#>) (index k z) (senior::mat) = index k imat ) )
-	-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
 
-succImplWknStep_stepQfunc : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
-	-> ( imat : Matrix (S (S predn)) (S predm) ZZ )
-	-> ( reprolem : senior::mat `spanslz` imat )
-	-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
-
--}
-
-{- (elimFirstCol) lemmas parameters -}
-parameters (predm : Nat) {
 
 {- succImplWknStep lemmas parameters -}
 parameters (
