@@ -29,6 +29,37 @@ import Control.Isomorphism
 
 
 {-
+Nice things for elimination algorithms to talk about
+-}
+
+
+
+succImplWknProp :
+	(omat : Matrix predonnom (S predm) ZZ)
+	-> (senior : Vect (S predm) ZZ)
+	-> (nu : Nat)
+	-> (fi : Fin (S nu))
+	-> Matrix (S nu) (S predm) ZZ
+	-> Type
+succImplWknProp omat senior nu fi tmat =
+	( senior = head tmat
+	, downAndNotRightOfEntryImpliesZ tmat fi FZ
+	, tmat `bispanslz` (senior::omat) )
+
+succImplWknPropSec2 :
+	(nu : Nat)
+	-> (fi : Fin (S nu))
+	-> Matrix (S nu) (S predm) ZZ
+	-> Type
+succImplWknPropSec2 nu fi tmat = downAndNotRightOfEntryImpliesZ tmat fi FZ
+
+danrzLast : (omat : Matrix (S predn) (S predm) ZZ)
+	-> succImplWknPropSec2 predn (last {n=predn}) omat
+danrzLast omat = (\i => \j => void . notSNatLastLTEAnything)
+
+
+
+{-
 Preliminary arguments to (elimFirstCol)
 -}
 
@@ -71,8 +102,10 @@ succImplWknStep_stepQfunc : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : 
 
 -}
 
+{- (elimFirstCol) lemmas parameters -}
 parameters (predm : Nat) {
 
+{- succImplWknStep section parameters -}
 parameters (
 	mat : Matrix _ (S predm) ZZ
 	, predn : Nat
@@ -110,9 +143,112 @@ succImplWknStep_stepQfunc reprolem = succImplWknStep_Qfunclemma (getWitness repr
 	(\k => trans (sym indexMapChariz)
 		$ cong {f=index k} $ getProof reprolem)
 
-}
 
-}
+
+{-
+COMMENT - (succImplWknStep_unplumbed) PARAMETERS ERROR
+
+Tried to use parameters to treat the assumptions to (succImplWknStep_unplumbed) as
+both a (succImplWknProp) value and a tuple (as it's defined to be). The parameters
+in the tuple can't be unpacked from it, and tupled definitions won't work neither
+as a tupled parameter nor a tuple set equal to the (succImplWknProp) parameter.
+
+Got error:
+
+"
+When checking left hand side of ZZGaussianEliminationRedo.seniorIsImatHead:
+Can't match on seniorIsImatHead _
+                                predm
+                                mat
+                                predn
+                                senior
+                                srQfunc
+                                imat
+                                predm
+                                fi
+                                prfTuple
+"
+
+Same error for others.
+
+
+
+Attempted code:
+
+> {- (succImplWknStep_unplumbed) & lemmas parameters -}
+> parameters (
+> 	fi : Fin (S predn)
+> 	, prfTuple : succImplWknProp mat senior (S predn) (FS fi) imat
+> 	) {
+
+> seniorIsImatHead : ( senior = head imat )
+> seniorIsImatHead = fst prfTuple
+
+> imatDANRZ : downAndNotRightOfEntryImpliesZ imat (FS fi) FZ
+> imatDANRZ = let (_,a,_,_) = prfTuple in a
+
+> imatSpansOrig : imat `spanslz` (senior::mat)
+> imatSpansOrig with ( prfTuple )
+> 	| (_,_,a,_) = a
+
+> origSpansImat : (senior::mat) `spanslz` imat
+> origSpansImat with ( prfTuple )
+> 	| (_,_,_,a) = a
+
+> } {- (succImplWknStep_unplumbed) & lemmas parameters -}
+
+
+
+Still similar errors here:
+
+
+
+> {- (succImplWknStep_unplumbed) & lemmas parameters -}
+> parameters (
+> 	fi : Fin (S predn)
+> 	, seniorIsImatHead : ( senior = head imat )
+> 	, imatDANRZ : downAndNotRightOfEntryImpliesZ imat (FS fi) FZ
+> 	, imatSpansOrig : imat `spanslz` (senior::mat)
+> 	, origSpansImat : (senior::mat) `spanslz` imat
+> 	) {
+
+> succImplWknStep_stepQfunc' : ( j : Fin _ )
+> 	-> (indices j FZ imat) `quotientOverZZ` (head senior)
+> succImplWknStep_stepQfunc' = succImplWknStep_stepQfunc origSpansImat
+
+
+
+And trying to make sure we use all the same implicit parameters we supplied to the
+original definition, we get a different error, saying the (predm) in the type of
+(imat) doesn't match the (predm) we're passing (downAndNotRightOfEntryImpliesZ):
+
+
+
+> {- (succImplWknStep_unplumbed) & lemmas parameters -}
+> parameters (
+> 	fi : Fin (S predn)
+> 	, seniorIsImatHead : ( senior = head imat )
+> 	, imatDANRZ : downAndNotRightOfEntryImpliesZ {n=S $ S predn} {m=S predm} imat (FS fi) (FZ {k=predm})
+> 	, imatSpansOrig : imat `spanslz` (senior::mat)
+> 	, origSpansImat : (senior::mat) `spanslz` imat
+> 	) {
+
+> succImplWknStep_stepQfunc' : ( j : Fin _ )
+> 	-> (indices j FZ imat) `quotientOverZZ` (head senior)
+
+> } {- (succImplWknStep_unplumbed) & lemmas parameters -}
+
+
+
+END COMMENT - (succImplWknStep_unplumbed) PARAMETERS ERROR
+
+-}
+
+
+
+} {- succImplWknStep section parameters -}
+
+} {- (elimFirstCol) lemmas parameters -}
 
 
 
