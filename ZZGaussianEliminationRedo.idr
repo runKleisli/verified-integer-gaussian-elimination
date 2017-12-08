@@ -28,20 +28,14 @@ import Control.Isomorphism
 
 
 
-{-
-A type synonym for talking about a GCD algorithm indirectly
--}
+parameters (
+	gcdOfVectAlg :
+		-- Will making argument "k" implicit work?
+		(k : Nat)
+		-> (x : Vect k ZZ)
+		-> ( v : Vect k ZZ **
+			( i : Fin k )
+			-> (index i x) `quotientOverZZ` (v <:> x) )
+	) {
 
-
-
--- Making argument "k" implicit will not work.
-gcdOfVectAlg : Type
-gcdOfVectAlg = (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
-
--- Necessary because Idris won't unpack the definition of (gcdOfVectAlg) at occurrences.
-runGCDOfVectAlg : ZZGaussianEliminationRedo.gcdOfVectAlg -> (k : Nat) -> (x : Vect k ZZ) -> ( v : Vect k ZZ ** ( i : Fin k ) -> (index i x) `quotientOverZZ` (v <:> x) )
-runGCDOfVectAlg gcdalg = gcdalg
-
-
-
---
+}
