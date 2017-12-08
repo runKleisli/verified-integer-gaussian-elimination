@@ -29,6 +29,17 @@ import Control.Isomorphism
 
 
 {-
+Table of Contents:
+
+* The induction algorithm used to verify first-column elimination
+* Nice things for elimination algorithms to talk about
+* Preliminary arguments to (elimFirstCol)
+* Main elimination algorithms
+-}
+
+
+
+{-
 The induction algorithm used to verify first-column elimination
 -}
 
