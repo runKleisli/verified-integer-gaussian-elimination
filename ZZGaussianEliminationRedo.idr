@@ -29,6 +29,159 @@ import Control.Isomorphism
 
 
 {-
+The induction algorithm used to verify first-column elimination
+-}
+
+
+
+{-
+BUG: Wrong type displayed given implicit argument in argument
+
+Incorrect type displayed:
+
+\a : Type => \p : ({m : Nat} -> Fin (S m) -> a -> Type) => p (weaken $ FZ {k=Z})
+	: (a : Type) ->
+	  Fin (S m) -> a -> Type ->
+	  a -> Type
+
+Correct type displayed:
+
+\a : Type => \p : ((m : Nat) -> Fin (S m) -> a -> Type) => p 5 (weaken FZ)
+	: (a : Type) ->
+	  ((m : Nat) -> Fin (S m) -> a -> Type) ->
+	  a -> Type
+
+Note that these examples both actually have the correct type, they're just not displayed correctly.
+-}
+
+
+
+{-
+Error discovered while implementing (foldAutoind).
+
+---
+
+It was found that if you replace the argument
+
+> p : (m : Nat) -> Fin (S m) -> a -> Type
+
+with one where (m) is implicit, and rewrite (foldAutoind) & dependencies accordingly, then one can't implement them, because composing (p) with weaken leads to a Universe Inconsistency error, which doesn't appear when the weakening is done in the REPL, only when the resulting proof is loaded in the module.
+
+See (elimFirstCol-oldmaterial.idr) where (fai_regrwkn_chty) and (fai_regrwkn_chty2) are being implemented (for that file's (foldAutoind), (foldAutoind2) resp.) for details.
+
+This differs from the error described in (ImplicitArgsError), in that the values of (p) are irrelevant in creating this Universe Inconsistency error, whereas the one in (ImplicitArgsError) would arise from the values of (p) having implicit arguments of their own.
+-}
+
+
+
+fai_regrwkn : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
+	-> ( (i : Fin (S predn))
+		-> ( w : a ** p _ (FS i) w )
+		-> ( w' : a ** p _ (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w : a ** ((p _) . weaken) (FS i) w )
+	-> ( w' : a ** ((p _) . weaken) (weaken i) w' )
+-- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
+fai_regrwkn p fn i = fn (weaken i)
+
+||| A vector fold over suppressed indices
+|||
+||| Extends one witness for some predicate
+|||
+||| p : (m : Nat) -> Fin (S m) -> a -> Type
+|||
+||| to a (Vect) of them.
+|||
+||| Best used with those (p) which are trivial for (last) and some (a).
+foldAutoind : ( p : (m : Nat) -> Fin (S m) -> a -> Type )
+	-> ( (i : Fin predn)
+		-> ( w : a ** p _ (FS i) w )
+		-> ( w' : a ** p _ (weaken i) w' ) )
+	-> ( v : a ** p _ (last {n=predn}) v )
+	-> ( xs : Vect (S predn) a ** (i : Fin (S predn)) -> p _ i (index i xs) )
+foldAutoind {predn=Z} p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind {predn=S prededn} p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+	| (v' ** pv') with ( foldAutoind {predn=prededn} (\mu => (p $ S mu) . weaken) (fai_regrwkn p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew
+		-- | ( xs ** fn ) = ( xs++[v] ** _ )
+
+faiNew = proof
+  intros
+  exact (appendedSingletonAsSuccVect xs v ** _)
+  intro i
+  claim ifLastThenProved (i=last) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  claim ifWeakenedThenProved (j : Fin (S prededn) ** i = weaken j) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  let iAsEither = splitFinS i
+  exact either ifWeakenedThenProved ifLastThenProved iAsEither
+  intro prIsLast
+  rewrite sym prIsLast
+  exact rewrite (lastInd {xs=xs} {v=v}) in pv
+  intro parIsWeakened
+  let prIsWeakened = getProof parIsWeakened
+  rewrite sym prIsWeakened
+  exact rewrite (weakenedInd {xs=xs} {v=v} {k=getWitness parIsWeakened}) in fn (getWitness parIsWeakened)
+
+
+
+fai2_regrwkn : (a : Nat -> Type)
+	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
+	-> ( (i : Fin (S predn))
+		-> ( w : a (S predn) ** p _ (FS i) w )
+		-> ( w' : a (S predn) ** p _ (weaken i) w' ) )
+	-> (i : Fin predn)
+	-> ( w  : (a . S) predn ** ((p _) . weaken) (FS i) w )
+	-> ( w' : (a . S) predn ** ((p _) . weaken) (weaken i) w' )
+-- can't be written as `(fn . weaken) i`, nor can `i` be dropped as an argument.
+fai2_regrwkn a p fn i = fn (weaken i)
+
+||| A vector fold over suppressed indices
+|||
+||| Same strength of result as foldAutoind, but where the predicate is of the form
+|||
+||| p : (m : Nat) -> Fin (S m) -> (a m) -> Type
+|||
+||| for when it isn't naturally expressed or proved without affecting
+||| the type (a _) of the witnesses dealt with by this process.
+{-
+(a : Nat -> Type) is not made implicit because Idris isn't likely to deduce it and will likely spend a long time trying anyway.
+-}
+foldAutoind2 : ( a : Nat -> Type )
+	-> ( p : (m : Nat) -> Fin (S m) -> (a m) -> Type )
+	-> ( (i : Fin predn)
+		-> ( w : a predn ** p _ (FS i) w )
+		-> ( w' : a predn ** p _ (weaken i) w' ) )
+	-> ( v : a predn ** p _ (last {n=predn}) v )
+	-> ( xs : Vect (S predn) (a predn) ** (i : Fin (S predn)) -> p _ i (index i xs) )
+foldAutoind2 {predn=Z} _ p regr (v ** pv) = ( [v] ** \i => rewrite sym (the (FZ = i) $ sym $ FinSZAreFZ i) in pv )
+foldAutoind2 {predn=S prededn} natToA p regr (v ** pv) with (regr (last {n=prededn}) (v ** pv))
+	| (v' ** pv') with ( foldAutoind2 {predn=prededn} (natToA . S) (\mu => (p $ S mu) . weaken) (fai2_regrwkn natToA p regr) (v' ** pv') )
+		| (xs ** fn) = ?faiNew2
+		-- | ( xs ** fn ) = ( xs++[v] ** _ )
+
+-- Identical to the proof of faiNew
+faiNew2 = proof
+  intros
+  exact (appendedSingletonAsSuccVect xs v ** _)
+  intro i
+  claim ifLastThenProved (i=last) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  claim ifWeakenedThenProved (j : Fin (S prededn) ** i = weaken j) -> p (S prededn) i (index i $ appendedSingletonAsSuccVect xs v)
+  unfocus
+  let iAsEither = splitFinS i
+  exact either ifWeakenedThenProved ifLastThenProved iAsEither
+  intro prIsLast
+  rewrite sym prIsLast
+  exact rewrite (lastInd {xs=xs} {v=v}) in pv
+  intro parIsWeakened
+  let prIsWeakened = getProof parIsWeakened
+  rewrite sym prIsWeakened
+  exact rewrite (weakenedInd {xs=xs} {v=v} {k=getWitness parIsWeakened}) in fn (getWitness parIsWeakened)
+
+
+
+{-
 Nice things for elimination algorithms to talk about
 -}
 
