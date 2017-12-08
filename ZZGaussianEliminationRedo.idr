@@ -591,6 +591,67 @@ Structure of (elimFirstCol):
 succImplWknStep_Qfunclemma => succImplWknStep_stepQfunc => succImplWknStep_unplumbed => succImplWknStep => foldedFully
 
 (mkQfunc, foldedFully) => elimFirstCol (after some work)
+
+---
+
+Better to refine this to a type that depends on (m=S predm) so that the case (m=Z) may also be covered.
+
+Shall start from the bottom of the matrix (last) and work up to row (FS FZ) using a traversal based on (weaken) and a binary map from index (Fin n) and oldvals to newvals.
+-}
+
+elimFirstCol :
+	(xs : Matrix n (S predm) ZZ)
+	-> (gexs : Matrix (S n) (S predm) ZZ **
+		(downAndNotRightOfEntryImpliesZ gexs FZ FZ
+		, gexs `bispanslz` xs))
+elimFirstCol [] {predm}
+	= ( row {n=S predm} $ neutral ** ( nosuch, ([] ** Refl), ([neutral] ** Refl) ) )
+	where
+		nosuch : (i : Fin _) -> (j : Fin _)
+			-> LTRel Z (finToNat i)
+			-> LTERel (finToNat j) Z
+			-> indices i j (row {n=S predm} Prelude.Algebra.neutral) = Pos 0
+		nosuch FZ FZ _ = either (const Refl) (const Refl)
+		nosuch (FS k) FZ _ = absurd k
+		nosuch _ (FS k) _ = void . ( either succNotLTEzero SIsNotZ )
+elimFirstCol mat {n=S predn} {predm} = ?elimFirstCol'
+
+{-
+
+elimFirstCol mat {n=S predn} {predm} with ( gcdOfVectAlg (S predn) (getCol FZ mat) )
+	| ( v ** fn ) with ( foldedFully _ _ mat v $ mkQFunc _ _ v mat fn )
+		| ( endmat ** endmatPropFn )
+			= let bisWithGCD
+				= the ((v<\>mat)::mat `bispanslz` mat)
+				(extendSpanningLZsByPreconcatTrivially
+					{zs=[_]} spanslzrefl
+				, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl);
+			let ( headvecWasFixed, leftColZBelow, endmatBispansMatandgcd )
+				= endmatPropFn FZ
+			in ( index FZ endmat
+				** (leftColZBelow
+				, bispanslztrans endmatBispansMatandgcd bisWithGCD) )
+
+-----
+
+For now, showing it works verbatim:
+
+-----
+
+ZZGaussianEliminationRedo.elimFirstCol' = proof
+  intros
+  let vAndFn = gcdOfVectAlg (S predn) (getCol FZ mat)
+  let v = getWitness vAndFn
+  let fn = getProof vAndFn
+  let endMatAndPropFn = foldedFully _ _ mat v $ mkQFunc _ _ v mat fn
+  let endmat = getWitness endMatAndPropFn
+  let endmatPropFn = getProof endMatAndPropFn
+  let bisWithGCD = the ((v<\>mat)::mat `bispanslz` mat) (extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
+  let headvecWasFixed = fst $ endmatPropFn FZ
+  let leftColZBelow = fst . snd $ endmatPropFn FZ
+  let endmatBispansMatandgcd = snd . snd $ endmatPropFn FZ
+  exact ( index FZ endmat ** (leftColZBelow, bispanslztrans endmatBispansMatandgcd bisWithGCD) )
+
 -}
 
 
