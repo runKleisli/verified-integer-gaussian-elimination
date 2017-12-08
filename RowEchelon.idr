@@ -264,6 +264,18 @@ weakenDownAndNotRightFZ _ _ _ (FS prel) _ fzNotRight
 
 
 
+total
+afterUpdateAtCurStillDownAndNotRight :
+	(downAndNotRightOfEntryImpliesZ mat (FS prednel) mel)
+	-> (downAndNotRightOfEntryImpliesZ (updateAt (FS prednel) f mat) (FS prednel) mel)
+afterUpdateAtCurStillDownAndNotRight {prednel=FZ} {mat=x::y::xs} {mel} danrz FZ j iDown jNotRight = void $ succNotLTEzero $ iDown
+afterUpdateAtCurStillDownAndNotRight {prednel=FZ} {mat=x::y::xs} {mel} danrz (FS FZ) j iDown jNotRight = void $ succNotLTEzero $ fromLteSucc iDown
+afterUpdateAtCurStillDownAndNotRight {prednel=FZ} {mat=x::y::xs} {mel} danrz (FS $ FS i) j iDown jNotRight = danrz (FS $ FS i) j iDown jNotRight
+afterUpdateAtCurStillDownAndNotRight {prednel=FS predednel} {mat=x::xs} {f} danrz FZ j iDown jNotRight = danrz FZ j iDown jNotRight
+afterUpdateAtCurStillDownAndNotRight {prednel=FS predednel} {mat=x::xs} {mel} {f} danrz (FS i) j iDown jNotRight = afterUpdateAtCurStillDownAndNotRight {prednel=predednel} {mat=xs} {mel=mel} {f=f} (\i_xs => \j_xs => \iDown_xs => \jNotRight_xs => danrz (FS i_xs) j_xs (LTESucc iDown_xs) jNotRight_xs) i j (fromLteSucc iDown) jNotRight
+
+
+
 {-
 Row echelon properties
 
