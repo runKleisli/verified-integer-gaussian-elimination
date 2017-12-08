@@ -614,45 +614,44 @@ elimFirstCol [] {predm}
 		nosuch FZ FZ _ = either (const Refl) (const Refl)
 		nosuch (FS k) FZ _ = absurd k
 		nosuch _ (FS k) _ = void . ( either succNotLTEzero SIsNotZ )
-elimFirstCol mat {n=S predn} {predm} = ?elimFirstCol'
-
-{-
-
-elimFirstCol mat {n=S predn} {predm} with ( gcdOfVectAlg (S predn) (getCol FZ mat) )
-	| ( v ** fn ) with ( foldedFully _ _ mat v $ mkQFunc _ _ v mat fn )
-		| ( endmat ** endmatPropFn )
-			= let bisWithGCD
-				= the ((v<\>mat)::mat `bispanslz` mat)
-				(extendSpanningLZsByPreconcatTrivially
-					{zs=[_]} spanslzrefl
-				, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl);
-			let ( headvecWasFixed, leftColZBelow, endmatBispansMatandgcd )
-				= endmatPropFn FZ
-			in ( index FZ endmat
-				** (leftColZBelow
-				, bispanslztrans endmatBispansMatandgcd bisWithGCD) )
-
------
-
-For now, showing it works verbatim:
-
------
-
-ZZGaussianEliminationRedo.elimFirstCol' = proof
-  intros
-  let vAndFn = gcdOfVectAlg (S predn) (getCol FZ mat)
-  let v = getWitness vAndFn
-  let fn = getProof vAndFn
-  let endMatAndPropFn = foldedFully _ _ mat v $ mkQFunc _ _ v mat fn
-  let endmat = getWitness endMatAndPropFn
-  let endmatPropFn = getProof endMatAndPropFn
-  let bisWithGCD = the ((v<\>mat)::mat `bispanslz` mat) (extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
-  let headvecWasFixed = fst $ endmatPropFn FZ
-  let leftColZBelow = fst . snd $ endmatPropFn FZ
-  let endmatBispansMatandgcd = snd . snd $ endmatPropFn FZ
-  exact ( index FZ endmat ** (leftColZBelow, bispanslztrans endmatBispansMatandgcd bisWithGCD) )
-
--}
+elimFirstCol mat {n=S predn} {predm} =
+	( index FZ endmat
+		** (leftColZBelow, bispanslztrans endmatBispansMatandgcd bisWithGCD) )
+	where
+		{-
+		Should just be nested (with) blocks over (vAndFn) & (endMatAndPropFn),
+		but the typechecker is struggling.
+		-}
+		vAndFn : ( v : Vect (S predn) ZZ **
+			( i : Fin (S predn) )
+			-> (index i (getCol FZ mat))
+				`quotientOverZZ` (v <:> (getCol FZ mat)) )
+		vAndFn = gcdOfVectAlg (S predn) (getCol FZ mat)
+		v : Vect (S predn) ZZ
+		v = getWitness vAndFn
+		fn : ( i : Fin (S predn) )
+			-> (index i (getCol FZ mat))
+				`quotientOverZZ` (v <:> (getCol FZ mat))
+		fn = getProof vAndFn
+		endMatAndPropFn : ( mats : Vect (S (S predn))
+			$ Matrix (S (S predn)) (S predm) ZZ
+			** (i : Fin (S (S predn)))
+			-> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
+		endMatAndPropFn = foldedFully _ _ mat v $ mkQFunc _ _ v mat fn
+		endmat : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ
+		endmat = getWitness endMatAndPropFn
+		endmatPropFn : (i : Fin (S (S predn)))
+			-> succImplWknProp mat (v<\>mat) (S predn) i (index i endmat)
+		endmatPropFn = getProof endMatAndPropFn
+		bisWithGCD : (v<\>mat)::mat `bispanslz` mat
+		bisWithGCD =
+			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl
+			, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
+		{- In tuple match: headvecWasFixed = fst $ endmatPropFn FZ -}
+		leftColZBelow : downAndNotRightOfEntryImpliesZ (index FZ endmat) FZ FZ
+		leftColZBelow = fst . snd $ endmatPropFn FZ
+		endmatBispansMatandgcd : (index FZ endmat) `bispanslz` ((v<\>mat)::mat)
+		endmatBispansMatandgcd = snd . snd $ endmatPropFn FZ
 
 
 
