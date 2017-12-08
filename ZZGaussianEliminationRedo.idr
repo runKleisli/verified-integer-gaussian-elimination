@@ -218,28 +218,6 @@ Preliminary arguments to (elimFirstCol)
 
 
 
-{-
-
-All with parameters
-	predm
-
----
-
-With parameters
-	predn
-	mat
-
-foldedFully :
-	(v : Vect (S predn) ZZ)
-	-> ( vmatQfunc :
-		( i : Fin _ )
-		-> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
-	-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ
-		** (i : Fin (S (S predn)))
-		-> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
-
--}
-
 {- (elimFirstCol) lemmas parameters -}
 parameters (predm : Nat) {
 
@@ -548,6 +526,29 @@ succImplWknStep fi imatAndPrs = succImplWknStep_unplumbed predm mat predn senior
 		(getProof imatAndPrs)
 
 } {- (succImplWknStep) parameters -}
+
+
+
+{- (foldedFully) parameters -}
+parameters (
+	predn : Nat
+	, mat : Matrix (S predn) (S predm) ZZ
+	) {
+
+foldedFully :
+	(v : Vect (S predn) ZZ)
+	-> ( vmatQfunc :
+		( i : Fin _ )
+		-> (indices i FZ ((v <\> mat)::mat)) `quotientOverZZ` (head $ v <\> mat) )
+	-> ( mats : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ
+		** (i : Fin (S (S predn)))
+		-> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
+foldedFully v vmatQfunc = foldAutoind2 {predn=S predn} (\ne => Matrix (S ne) (S predm) ZZ)
+	(succImplWknProp mat (v <\> mat))
+	(succImplWknStep predm mat predn (v <\> mat) vmatQfunc)
+	( (v<\>mat)::mat ** (Refl, danrzLast ((v <\> mat)::mat), bispanslzrefl) )
+
+} {- (foldedFully) parameters -}
 
 
 
