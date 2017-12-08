@@ -266,9 +266,18 @@ weakenDownAndNotRightFZ _ _ _ (FS prel) _ fzNotRight
 
 {-
 Row echelon properties
+
+Definitions
 * (echPreTy) The per-row component of (rowEchelonPre)
 * (rowEchelonPre) The row echelon property in terms of (leadingNonzeroNum) & its correctness
+* (echTy) The per-row component of (rowEchelon)
 * (rowEchelon) The row echelon property -- (rowEchelonPre) but with numbers having the leading nonzero property (leadingNonzeroProp) -- inferable about (leadingNonzeroNum) using (leadingNonzeroProof), hence inferable from a given (rowEchelonPre) proof.
+
+Theorems
+* rowEchelonPreEmpty
+* rowEchelonPreExtension
+* toEchTy
+* toRowEchelon
 -}
 
 
@@ -282,7 +291,7 @@ echPreTy {n} {m} xs nel =
 			, downAndNotRightOfEntryImpliesZ xs nel mel))
 
 {-
-Lemma about left case:
+Lemma about left case of (echPreTy):
 
 Everything zero below or at a row of xs
 =>
@@ -296,6 +305,19 @@ the converse (danrzLastcolImpliesTailNeutral) of this from (ZZGaussianEliminatio
 
 rowEchelonPre : (xs : Matrix n m ZZ) -> Type
 rowEchelonPre {n} {m} xs = (narg : Fin n) -> echPreTy xs narg
+
+||| For best results, prove in terms of `echPreTy` using `toEchTy`
+echTy : (xs : Matrix n m ZZ) -> (nel : Fin n) -> Type
+echTy {n} {m} xs nel =
+	Either
+		((nelow : Fin n) -> (ltpr : finToNat nel `LTERel` finToNat nelow)
+			-> index nelow xs = Algebra.neutral)
+		(mel : Fin m ** (leadingNonzeroProp (index nel xs) (Just mel)
+			, downAndNotRightOfEntryImpliesZ xs nel mel))
+
+||| For best results, prove in terms of `rowEchelonPre` using `toRowEchelon`
+rowEchelon : (xs : Matrix n m ZZ) -> Type
+rowEchelon {n} {m} xs = (narg : Fin n) -> echTy xs narg
 
 
 
@@ -416,3 +438,14 @@ rowEchelonPreExtension {n} {predm} {x} {xs} lnz ech (FS narg) with ( ech narg )
 							(finToNat j')
 							(finToNat mel))
 						ltJSM
+
+
+
+toEchTy : echPreTy xs nel -> echTy xs nel
+toEchTy ech = map prrw ech
+	where
+		prrw (mel ** (pr, danrz))
+			= (mel ** (rewrite sym pr in leadingNonzeroProof, danrz))
+
+toRowEchelon : rowEchelonPre xs -> rowEchelon xs
+toRowEchelon echxs = \narg => toEchTy (echxs narg)
