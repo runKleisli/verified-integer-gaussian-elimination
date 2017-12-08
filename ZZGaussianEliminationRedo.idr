@@ -53,7 +53,9 @@ mkQFunc : (v : Vect (S predn) ZZ)
 
 With parameters
 	predn
-	senior |-> srQfunc |-> that divisibility
+	mat
+	senior
+	srQfunc
 	imat
 
 succImplWknStep_Qfunclemma : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : Fin _ ) -> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior) )
@@ -68,6 +70,44 @@ succImplWknStep_stepQfunc : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : 
 	-> ( ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior) )
 
 -}
+
+parameters (predm : Nat) {
+
+parameters (
+	mat : Matrix _ (S predm) ZZ
+	, predn : Nat
+	, senior : Vect (S predm) ZZ
+	, srQfunc : ( i : Fin _ )
+		-> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior)
+	, imat : Matrix (S (S predn)) (S predm) ZZ
+	) {
+
+succImplWknStep_Qfunclemma :
+	( z : Matrix _ _ ZZ )
+	-> ( quotchariz :
+		( k : Fin _ )
+		-> ( LinearCombinations.monoidsum
+			$ zipWith (<#>) (index k z) (senior::mat)
+			= index k imat ) )
+	-> ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+succImplWknStep_Qfunclemma z quotchariz j
+	= (getWitness lemma **
+		trans (getProof lemma)
+		$ trans (cong {f=head} $ quotchariz j)
+		$ sym $ indexFZIsheadValued {xs=index j imat})
+	where
+	lemma : (head $ monoidsum $ zipWith (<#>) (index j z) (senior::mat))
+		`quotientOverZZ` (head senior)
+	lemma = linearComboQuotientRelation_corrollary senior mat (index j z)
+		(\i => quotientOverZZtrans
+			(quotientOverZZreflFromEq $ sym indexFZIsheadValued)
+			$ srQfunc i)
+
+-- succImplWknStep_stepQfunc
+
+}
+
+}
 
 
 
