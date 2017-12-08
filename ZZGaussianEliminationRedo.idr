@@ -103,7 +103,12 @@ succImplWknStep_Qfunclemma z quotchariz j
 			(quotientOverZZreflFromEq $ sym indexFZIsheadValued)
 			$ srQfunc i)
 
--- succImplWknStep_stepQfunc
+succImplWknStep_stepQfunc :
+	( reprolem : senior::mat `spanslz` imat )
+	-> ( j : Fin _ ) -> (indices j FZ imat) `quotientOverZZ` (head senior)
+succImplWknStep_stepQfunc reprolem = succImplWknStep_Qfunclemma (getWitness reprolem)
+	(\k => trans (sym indexMapChariz)
+		$ cong {f=index k} $ getProof reprolem)
 
 }
 
