@@ -105,7 +105,7 @@ succImplWknStep_stepQfunc : ( senior : Vect (S predm) ZZ ) -> ( srQfunc : ( i : 
 {- (elimFirstCol) lemmas parameters -}
 parameters (predm : Nat) {
 
-{- succImplWknStep section parameters -}
+{- succImplWknStep lemmas parameters -}
 parameters (
 	mat : Matrix _ (S predm) ZZ
 	, predn : Nat
@@ -356,7 +356,42 @@ succImplWknStep_unplumbed fi ( seniorIsImatHead, imatDANRZ, imatSpansOrig, origS
 
 
 
-} {- succImplWknStep section parameters -}
+} {- succImplWknStep lemmas parameters -}
+
+
+
+{- (succImplWknStep) parameters -}
+parameters (
+	mat : Matrix _ (S predm) ZZ
+	, predn : Nat
+	, senior : Vect (S predm) ZZ
+	, srQfunc : ( i : Fin _ )
+		-> (indices i FZ (senior::mat)) `quotientOverZZ` (head senior)
+	) {
+
+{-
+Unexpectedly, (succImplWknStep_unplumbed) has to be given (predm) as an argument,
+even though it's from the same (parameters) block in which (predm) was declared.
+
+That might explain part of the earlier troubles with parametrizing
+(succImplWknStep_unplumbed), if the parameters required (predm) or other implicit
+arguments, but they'd passed out of scope from their declaration coming after the
+closing of a nested parameter block that also references them.
+-}
+succImplWknStep :
+	(fi : Fin (S predn))
+	-> ( imat : Matrix (S (S predn)) (S predm) ZZ
+		** succImplWknProp mat senior (S predn) (FS fi) imat )
+	-> ( imat' : Matrix (S (S predn)) (S predm) ZZ
+		** succImplWknProp mat senior (S predn) (weaken fi) imat' )
+succImplWknStep fi imatAndPrs = succImplWknStep_unplumbed predm mat predn senior srQfunc
+		(getWitness imatAndPrs)
+		fi
+		(getProof imatAndPrs)
+
+} {- (succImplWknStep) parameters -}
+
+
 
 } {- (elimFirstCol) lemmas parameters -}
 
