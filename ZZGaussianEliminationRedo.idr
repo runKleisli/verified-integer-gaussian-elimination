@@ -27,12 +27,65 @@ import FinOrdering
 
 import Control.Isomorphism
 
+-- Dependent pattern matching using (do) notation binds improves clarity
+import Control.Monad.Identity
+
 
 
 {-
 Table of Contents:
 
 * Main elimination algorithms
+-}
+
+
+
+{-
+Dependent pattern matching using (do) notation binds improves clarity
+
+---
+
+Template & usage for technique:
+
+> f : (a : ZZ ** a = Pos Z)
+> f = runIdentity $ do {
+> 		clause <- Id $ 'c'
+> 		(s ** s_pr) <- Id $ the (r : ZZ ** r = Pos Z) (Pos 0 ** Refl)
+> 		(t ** t_pr) <- Id $ (s ** s_pr)
+> 		(a, b, c) <- Id $ ('x', ('y', 'z'))
+> 		return $ believe_me "Placeholder for while argument incomplete"
+> 		-- return (the ZZ _ ** ?foo)
+> 	}
+
+Note that two dependent pattern matches have occurred without nesting (with) blocks.
+
+If we figure out the witness of the dependent pair value, we can test things out
+interactively, which is sometimes helpful. Note that (clause) won't get recognized
+as being ('c'), it's still only a monadic bind.
+
+> g : (a : ZZ ** a = Pos Z)
+> g = runIdentity $ do {
+> 		clause <- Id $ 'c'
+> 		(s ** s_pr) <- Id $ the (r : ZZ ** r = Pos Z) (Pos 0 ** Refl)
+> 		-- return $ believe_me "Placeholder for while argument incomplete"
+> 		return (the ZZ (Pos 0) ** ?bar)
+> 	}
+
+Likewise, we can't recognize (s_pr) is a proof that (Pos 0 = Pos 0), so it doesn't
+match the actual goal. However, we can still change the last line to
+
+> 		return (s ** ?bar)
+
+at which point `s_pr` solves the goal.
+
+
+
+While (Reader) without (runReader) can simulate a (parameters) block at the same time,
+this adds some plumbing overhead, and (ask) may have to be passed its (MonadReader)
+instance explicitly:
+
+> z <- ask @{the (MonadReader ZZ _) %instance}
+
 -}
 
 
@@ -84,44 +137,32 @@ elimFirstCol [] {predm}
 		nosuch FZ FZ _ = either (const Refl) (const Refl)
 		nosuch (FS k) FZ _ = absurd k
 		nosuch _ (FS k) _ = void . ( either succNotLTEzero SIsNotZ )
-elimFirstCol mat {n=S predn} {predm} =
-	( index FZ endmat
-		** (leftColZBelow, bispanslztrans endmatBispansMatandgcd bisWithGCD) )
+elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
+
+		-- The application of (gcdOfVectAlg) to (mat) column 0.
+		(v ** fn) <- Id $ vAndFn
+
+		-- Refines endgoal
+		let bisWithGCD = the ( (v<\>mat)::mat `bispanslz` mat )
+			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl
+			, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
+
+		-- ( _ ** forall i. succImplWknProp mat (v<\>mat) _ i endmat_i )
+		(endmat ** endmatPropFn)
+			<- Id $ foldedFully _ _ mat v $ mkQFunc _ _ v mat fn
+
+		-- (_, danrz endmat_0 0 0, endmat_0 bispans v<\>mat::mat)
+		(_, leftColZBelow, endmatBispansMatandgcd) <- Id $ endmatPropFn FZ
+		return $ ( index FZ endmat **
+			(leftColZBelow
+			, endmatBispansMatandgcd `bispanslztrans` bisWithGCD) )
+	}
 	where
-		{-
-		Should just be nested (with) blocks over (vAndFn) & (endMatAndPropFn),
-		but the typechecker is struggling.
-		-}
 		vAndFn : ( v : Vect (S predn) ZZ **
 			( i : Fin (S predn) )
 			-> (index i (getCol FZ mat))
 				`quotientOverZZ` (v <:> (getCol FZ mat)) )
 		vAndFn = gcdOfVectAlg (S predn) (getCol FZ mat)
-		v : Vect (S predn) ZZ
-		v = getWitness vAndFn
-		fn : ( i : Fin (S predn) )
-			-> (index i (getCol FZ mat))
-				`quotientOverZZ` (v <:> (getCol FZ mat))
-		fn = getProof vAndFn
-		endMatAndPropFn : ( mats : Vect (S (S predn))
-			$ Matrix (S (S predn)) (S predm) ZZ
-			** (i : Fin (S (S predn)))
-			-> succImplWknProp mat (v<\>mat) (S predn) i (index i mats) )
-		endMatAndPropFn = foldedFully _ _ mat v $ mkQFunc _ _ v mat fn
-		endmat : Vect (S (S predn)) $ Matrix (S (S predn)) (S predm) ZZ
-		endmat = getWitness endMatAndPropFn
-		endmatPropFn : (i : Fin (S (S predn)))
-			-> succImplWknProp mat (v<\>mat) (S predn) i (index i endmat)
-		endmatPropFn = getProof endMatAndPropFn
-		bisWithGCD : (v<\>mat)::mat `bispanslz` mat
-		bisWithGCD =
-			(extendSpanningLZsByPreconcatTrivially {zs=[_]} spanslzrefl
-			, mergeSpannedLZs spanslzRowTimesSelf spanslzrefl)
-		{- In tuple match: headvecWasFixed = fst $ endmatPropFn FZ -}
-		leftColZBelow : downAndNotRightOfEntryImpliesZ (index FZ endmat) FZ FZ
-		leftColZBelow = fst . snd $ endmatPropFn FZ
-		endmatBispansMatandgcd : (index FZ endmat) `bispanslz` ((v<\>mat)::mat)
-		endmatBispansMatandgcd = snd . snd $ endmatPropFn FZ
 
 
 
