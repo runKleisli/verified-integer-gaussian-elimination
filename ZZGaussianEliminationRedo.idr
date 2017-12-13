@@ -166,19 +166,19 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 
 
 
-{- Gaussian elimination in general -}
-{- Suppose case width = 0. -}
+{- Gaussian elimination for width > 0 -}
+{- Suppose case width = 1. -}
 
 {-
 Proof by
 
-echelonFromDanrzLast :
+echelonPreFromDanrzLast :
 	downAndNotRightOfEntryImpliesZ mat FZ last
 	-> rowEchelonPre mat
 -}
 
 {-
-Else case width > 0.
+Else case width > 1.
 
 We handle recursion in different ways depending on whether the first column is neutral.
 Since (with) blocks can't access local functions unless local to the case, and (case)
@@ -198,7 +198,7 @@ tool used.
 		{-
 		Proof by
 
-		echelonNullcolExtension :
+		echelonPreNullcolExtension :
 			rowEchelon xs
 			-> rowEchelonPre (map ((Pos 0) ::) xs)
 		-}
@@ -224,6 +224,10 @@ tool used.
 
 
 
+{- Gaussian elimination in general -}
+
+
+
 }
 
 
@@ -232,15 +236,15 @@ tool used.
 
 Appendix Elim.General.Meta
 
-Case matrix has height, width > 0 of gaussian elimination.
+Case matrix has height > 0, width > 1 of gaussian elimination.
 
 The following meta-analytic proof translates between the mathematical ideas and the realization in the formal logic.
 
 ---
 
-Suppose we are to produce from a given (x::xs) of width > 0 a row-span-equivalent
+Suppose we are to produce from a given (x::xs) of width > 1 a row-span-equivalent
 row echelon matrix, given how to do this for all matrices of lesser height
-and width, and given that the first column of (x::xs) is nonzero.
+and (nonzero) width, and given that the first column of (x::xs) is nonzero.
 
 By (rowEchelonPreExtension), (leadingNonzeroNum v = Just FZ) & (rowEchelonPre vs)
 --> row echelon v :: 0|vs
@@ -278,7 +282,7 @@ Eliminating ys' then gives a matrix equivalent to ys under bispannability
 	matchbind
 
 which is preserved (bispansSamevecExtension) by consing a common vector. Thus we can
-convert each y::ys of width > 0 to an equivalent y' :: 0|zs =: (yy'::yys') :: 0|zs such
+convert each y::ys of width > 1 to an equivalent y' :: 0|zs =: (yy'::yys') :: 0|zs such
 that yy' /= 0 and 0|zs is row echelon.
 
 Sharing the head y' means preserving the leading nonzero of the head, shown to
