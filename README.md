@@ -16,7 +16,66 @@ These show what other kind of theorems are needed, but about the wrong objects t
 
 __All proofs mentioned below are up to Issue #24 on GitHub being solved__
 
+## ZZGaussianEliminationRedo
+
+Main elimination algorithms.
+
+Mostly complete:
+Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
+Some cases are still missing.
+Some theorems it depends on are unproved, things like basic facts about finite sets and Issue #24.
+Mostly total, where implemented, but for a mutual recursion in proofs regarding the properties of linear combination.
+
+Index:
+* Template & usage for do notation pattern matching technique
+* elimFirstCol
+* gaussElimlzIfGCD3
+* Appendix Elim.General.Meta
+
+Replaces (ZZGaussianElimination), under conjunction with satellite modules.
+
+Satellite modules are:
+* ZZGaussianEliminationLemmas
+* RowEchelon
+* ZZDivisors
+* ZZGaussianEliminationRedoNoMonad
+  Implementation of (elimFirstCol) without using the do notation dependent pattern matching technique.
+
+## ZZGaussianEliminationLemmas
+
+Table of Contents:
+* The induction algorithm used to verify first-column elimination
+* Nice things for elimination algorithms to talk about
+* Preliminary arguments to (elimFirstCol)
+
+Guide:
+Structure of (elimFirstCol):
+succImplWknStep_Qfunclemma => succImplWknStep_stepQfunc => succImplWknStep_unplumbed => succImplWknStep => foldedFully
+(mkQfunc, foldedFully) => elimFirstCol (after some work)
+
+## RowEchelon
+
+A library for making inferences about when the row echelon property holds for a matrix.
+
+`rowEchelon xs`, equal to `forall i. echTy xs i`, is what corresponds to the real life row echelon property of the matrix `xs`. However, this is not the suitable form for verifying it recursively, and instead `toRowEchelon` is used to prove it from a `rowEchelonPre xs`, which is a `forall i. echPreTy xs i`.
+
+Table of contents:
+* ZZ proofs
+* Fin proofs
+* Vect/Matrix proofs
+* The leading nonzero of a vector
+* DANRZ property
+* Corollary bispannability property
+* Row echelon properties
+
+## ZZDivisors
+
+* An integer divisibility relation `quotientOverZZ` & its properties
+* Interactions between integer divisibility and linear combinations
+
 ## ZZGaussianElimination
+
+__ DEPRECATED : See ZZGaussianEliminationRedo __
 
 Contents:
 * Declaration of gaussian elimination as an algorithm which converts a matrix into one in row echelon form which spans it. `gaussElimlz : (xs : Matrix n m ZZ) -> (n' : Nat ** (gexs : Matrix n' m ZZ ** (rowEchelon gexs, bispanslz gexs xs)))`
