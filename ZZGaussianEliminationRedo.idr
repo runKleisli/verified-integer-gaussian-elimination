@@ -166,13 +166,71 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 
 
 
+{- Gaussian elimination in general -}
+{- Suppose case width = 0. -}
+
+{-
+Proof by
+
+echelonFromDanrzLast :
+	downAndNotRightOfEntryImpliesZ mat FZ last
+	-> rowEchelonPre mat
+-}
+
+{-
+Else case width > 0.
+
+We handle recursion in different ways depending on whether the first column is neutral.
+Since (with) blocks can't access local functions unless local to the case, and (case)
+blocks have totality problems, we write it as a wrapping of a local function which
+pattern matches on the equality decision.
+
+The locally scoped functions in question were involved in partially completing the
+proof, and this is retained as an artifact to retain compatibility this implementation
+tool used.
+-}
+
+		{-
+		If first col neutral then we can reduce the process
+		to that on the value of (map tail).
+		-}
+
+		{-
+		Proof by
+
+		echelonNullcolExtension :
+			rowEchelon xs
+			-> rowEchelonPre (map ((Pos 0) ::) xs)
+		-}
+
+		{-
+		Otherwise it's nonneutral, so we can show that since the elimFirstCol
+		is DANRZ FZ FZ, its first row's leading nonzero entry is FZ. This leads
+		to promoting the (rowEchelon) of one matrix to one with the same
+		first row as the elimFirstCol.
+
+		For a proof, compare with "Appendix Elim.General.Meta"
+		-}
+
+		{-
+		Proof by
+
+		danrzLeadingZeroAlt :
+			downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
+			-> Either
+				(getCol FZ (x::xs) = Algebra.neutral)
+				(leadingNonzeroNum x = Just FZ)
+		-}
+
+
+
 }
 
 
 
 {-
 
-Appendix Elim.Induction.Meta
+Appendix Elim.General.Meta
 
 Case matrix has height, width > 0 of gaussian elimination.
 
