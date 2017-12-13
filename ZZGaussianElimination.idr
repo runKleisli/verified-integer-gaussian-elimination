@@ -380,14 +380,14 @@ So, we just simplify things and write
 
 > | Left _ = {nelow : Fin n} -> (finToNat nel `LTRel` finToNat nelow) -> index nel xs = neutral
 -}
+echTy : (xs : Matrix n m ZZ) -> (nel : Fin n) -> Type
+echTy {n} {m} xs nel with (leadingNonzeroCalc $ index nel xs)
+	| Right someNonZness = downAndNotRightOfEntryImpliesZ xs nel $ getWitness someNonZness
+	| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow)
+			-> index nelow xs = Algebra.neutral
+
 rowEchelon : (xs : Matrix n m ZZ) -> Type
-rowEchelon {n} {m} xs = (narg : Fin n) -> (ty narg)
-	where
-		ty : Fin n -> Type
-		ty nel with (leadingNonzeroCalc $ index nel xs)
-			| Right someNonZness = downAndNotRightOfEntryImpliesZ xs nel
-				$ getWitness someNonZness
-			| Left _ = (nelow : Fin n) -> (ltpr : finToNat nel `LTRel` finToNat nelow) -> index nelow xs = Algebra.neutral
+rowEchelon {n} {m} xs = (narg : Fin n) -> echTy xs narg
 
 
 
@@ -821,16 +821,396 @@ bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
 	-> map ((Pos Z)::) ys `bispanslz` xs
 bispansNulltailcolExtension = bispansNullcolExtension . danrzTailHasLeadingZeros
 
+||| (x::xs) leads with a nonzero for x not 0
 leadingNonzeroIsFZIfNonzero : Not (index FZ x = Pos Z) -> map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ
 leadingNonzeroIsFZIfNonzero {x=x::xs} nonz with ( runIso eitherBotRight $ map nonz $ mirror $ zzZOrOrPosNeg x )
 	| Left (k ** prposS) = rewrite prposS in Refl
 	| Right (k ** prnegS) = rewrite prnegS in Refl
 
 -- Corrollary : decEq w/ eitherBotRight lets you extract rowEchelon proofs.
+-- In particular,
+||| x|xs
+||| 0|_
+||| 0|_
+||| ...
+||| has 0th-col 0 or its 0th row leads with a nonzero
 danrzLeadingZeroAlt : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ -> Either (getCol FZ (x::xs)=Algebra.neutral) (map Sigma.getWitness $ leadingNonzeroCalc x = Right FZ)
 danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
 	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
 	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
+
+||| Hopefully, this subsumes (lnzcElim).
+lnzcElim2 : {v : Vect n ZZ}
+	-> Either (v = Algebra.neutral) (someNonZness : _ ** leadingNonzeroCalc v = Right someNonZness)
+lnzcElim2 {v} with (leadingNonzeroCalc v)
+	| Right someNonZness = Right (someNonZness ** Refl)
+	| Left pr = Left pr
+
+-- Using (the (leadingNonzero _) $ Right someNonZness) while debugging the type.
+||| ∀ xs : n by m
+||| ∀ narg : Fin n
+||| xs_narg = 0 or
+||| leadingNonzeroCalc xs_narg = Right k,
+||| 
+||| where k gives:
+||| 
+|||           ∃nel
+||| xs          |
+|||       *****|*|***
+||| narg--00000|x|***
+|||       *****|*|***
+|||
+||| w/ x nonzero.
+||| 
+||| Explicitly,
+||| a (Fin m) nel
+||| & a proof that
+||| xs_narg_nel nonzero
+||| & ∀ i < nel, xs_narg_i = 0
+||| i.e. xs_narg is 0 to the left of the column index (nel) given.
+lnzcElim : {xs : Matrix n m ZZ}
+	-> (narg : Fin n)
+	-> Either (index narg xs = Algebra.neutral)
+	(someNonZness : (nel : Fin _
+			** ({i : _} -> LTRel (finToNat i) (finToNat nel)
+					-> index i $ index narg xs = Pos 0,
+				Not (index nel $ index narg xs = Pos 0)))
+		** leadingNonzeroCalc $ index narg xs = Right someNonZness)
+lnzcElim {xs} narg with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = Right $ (someNonZness ** Refl)
+	| Left pr = Left pr
+
+-- This is actually a test goal for producing a (void) from conflicting (leadingNonzeroCalc)s.
+||| Application of (lnzcElim)
+||| 
+||| If xs is a row echelon form n by m matrix,
+||| and xs' is
+||| 
+||| 	0|xs_0
+||| 	0|xs_1
+||| 	...,
+||| 
+||| then xs'_narg = 0 or
+||| leadingNonzeroCalc xs'_narg = Right k,
+||| 
+||| where k gives:
+||| 
+|||            ∃nel
+||| xs'          |
+|||       0|****|*|***
+||| narg--0|0000|x|***
+|||       0|****|*|***
+|||
+||| w/ x nonzero.
+||| 
+||| Explicitly,
+||| a (Fin (S m)) nel
+||| & a proof that
+||| xs'_narg_nel nonzero
+||| & ∀ i < nel, xs'_narg_i = 0
+||| i.e. xs'_narg is 0 to the left of the column index (nel) given.
+echElim1 : {xs : Matrix n m ZZ}
+	-> rowEchelon xs
+	-> Either (index narg $ map ((Pos 0)::) xs = Algebra.neutral)
+	(someNonZness : (nel : Fin _
+			** ({i : _} -> LTRel (finToNat i) (finToNat nel)
+					-> index i $ index narg $ map ((Pos 0)::) xs = Pos 0,
+				Not (index nel $ index narg $ map ((Pos 0)::) xs = Pos 0)))
+		** leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs
+			= Right someNonZness)
+echElim1 {xs} {narg} echxs with (leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs)
+	| Right someNonZness = lnzcElim narg
+	| Left pr with (leadingNonzeroCalc $ index narg xs)
+		| Right someOtherNZ = void
+			$ (snd $ getProof $ someOtherNZ)
+			$ trans (cong {f=index $ getWitness someOtherNZ}
+				$ vectInjective2 {x=Pos 0} {y=Pos 0}
+				$ trans (sym $ indexMapChariz {k=narg} {f=((Pos 0)::)}) pr)
+			$ indexNeutralIsNeutral1D $ getWitness someOtherNZ
+		| Left pr2 = ?echElim1_rhs_2
+
+{-
+Because this can be written, the problem with reading a (rowEchelon) in a trivial way
+- extracting a value of an explicit type - may have been mainly a problem with the type
+we were trying to extract TO, which was the (either _ _ $ leadingNonZeroCalc _) seen in the commented functions below.
+-}
+||| ∀ xs : n by m
+||| ∀ narg : Fin n
+||| ∀ echval : echTy xs narg
+||| either echval gives
+||| 
+||| xs
+|||       ********
+||| narg--********
+|||       00000000
+|||       00000000
+||| 
+||| or we have a (Fin m) nel such that echval gives
+||| 
+|||           nel
+||| xs         |
+|||       ****|*|***
+||| narg--****|*|***
+|||       0000|0|***
+|||       0000|0|***
+extractEchAlt : (xs : Matrix n m ZZ)
+	-> (narg : Fin n)
+	-> (echval : echTy xs narg)
+	-> Either
+		(leadfn : (nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow)
+				-> index nelow xs = Algebra.neutral
+			** echval ~=~ leadfn)
+		(nel : Fin m ** (danrz : downAndNotRightOfEntryImpliesZ xs narg nel
+			** echval ~=~ danrz))
+extractEchAlt xs narg echval with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = Right (getWitness someNonZness ** (echval ** Refl))
+	| Left _ = Left (echval ** Refl)
+
+{-
+extractEchDanrz : (xs : Matrix n m ZZ)
+	-> (narg : Fin n)
+	-> echTy xs narg
+	-> either
+		( const {a=Type}
+			((nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow)
+				-> index nelow xs = Algebra.neutral) )
+		( (downAndNotRightOfEntryImpliesZ xs narg) . (Sigma.getWitness
+			{P=\nel : Fin m =>
+				({i : Fin m} -> finToNat i `LTRel` finToNat nel
+					-> indices narg i xs = Pos 0,
+				Not (indices narg nel xs = Pos 0))}) )
+		$ leadingNonzeroCalc $ index narg xs
+-- extractEchDanrz xs narg echval = ?echval'
+-}
+{-
+extractEchDanrz xs narg echval with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = echval
+	| Left _ = echval
+-}
+{-
+extractEchDanrz xs narg with (leadingNonzeroCalc $ index narg xs)
+	| Right someNonZness = ?echval1
+	| Left _ = ?echval2
+-}
+{-
+extractEchDanrz xs narg echval with (leadingNonzeroCalc $ index narg xs)
+	| value = ?extractEchDanrz'
+-}
+
+{-
+echExtractDanrz : {narg : Fin n}
+	-> (xs : Matrix n m ZZ)
+	-> rowEchelon xs
+	-> (someNonZnessNel : Fin m)
+	-> ( someNonZnessFn : ((i : Fin m) -> LTRel (finToNat i) (finToNat someNonZnessNel)
+			-> indices narg i xs = Pos 0,
+		Not (indices narg someNonZnessNel xs = Pos 0)) )
+	-> leadingNonzeroCalc $ index narg xs = Right (someNonZnessNel ** someNonZnessFn)
+	-> downAndNotRightOfEntryImpliesZ xs narg someNonZnessNel
+echExtractDanrz xs echxs someNonZnessNel someNonZnessFn lnzEq = ?echExtractDanrz'
+-}
+
+-- Corollary:
+-- 
+||| ∀ xs : n by m
+||| ∀ echxs : rowEchelon xs
+||| ∀ narg : Fin n
+||| either echxs narg gives
+||| 
+||| xs
+|||       ********
+||| narg--********
+|||       00000000
+|||       00000000
+||| 
+||| or we have a (Fin m) nel such that echxs narg gives
+||| 
+|||           nel
+||| xs         |
+|||       ****|*|***
+||| narg--****|*|***
+|||       0000|0|***
+|||       0000|0|***
+extractEchAltStep2 : (xs : Matrix n m ZZ)
+	-> (echxs : rowEchelon xs)
+	-> (narg : Fin n)
+	-> Either
+		(leadfn : (nelow : Fin n) -> (ltpr : finToNat narg `LTRel` finToNat nelow)
+				-> index nelow xs = Algebra.neutral
+			** echxs narg ~=~ leadfn)
+		(nel : Fin m ** (danrz : downAndNotRightOfEntryImpliesZ xs narg nel
+			** echxs narg ~=~ danrz))
+extractEchAltStep2 xs echxs narg = extractEchAlt xs narg $ echxs narg
+
+lnzIndInvar : (lnz : leadingNonzero v)
+	-> (lnz = Right (k ** pr))
+	-> (pr' : _ ** leadingNonzeroCalc v = Right (k ** pr'))
+lnzIndInvar {v} {k} {pr} lnz lnzEq with (leadingNonzeroCalc v)
+	| Left prNeut = void $ snd pr $ flip trans indexReplicateChariz $ cong {f=index k} prNeut
+	| Right (k' ** pr') = ?lnzIndInvar_r -- reduces to proving (k = k').
+
+lnzIndInvar_r = proof
+	intros
+	claim lnzIndEq k = k'
+	unfocus
+	rewrite sym lnzIndEq
+	exact (pr' ** Refl)
+	-- lnzIndEq : k = k'
+	let trich_kk' = trichotomy (finToNat k) (finToNat k')
+	-- Approximately:
+	--	> exact either _ (either (finToNatInjective k k') _) trich_kk'
+	-- But really that's lazy
+	claim nlkk' LT (finToNat k) (finToNat k') -> Void
+	unfocus
+	claim ngkk' LT (finToNat k') (finToNat k) -> Void
+	unfocus
+	exact either (absurd . nlkk') (either (finToNatInjective k k') $ absurd . ngkk') trich_kk'
+	-- nlkk'
+	intro hlkk'
+	-- can't apply (fst pr') directly to (hlkk')
+	let fst_pr' = fst pr'
+	exact snd pr $ fst_pr' hlkk'
+	-- ngkk'
+	intro hgkk'
+	let fst_pr = fst pr
+	exact snd pr' $ fst_pr hgkk'
+
+{-
+Type inference gripe:
+
+lnzcNullext : {v : Vect n ZZ} -> {k : Fin n}
+	-> map getWitness $ leadingNonzeroCalc {n=n} v = Right k
+	-> map getWitness $ leadingNonzeroCalc {n=S n} $ (Pos 0)::v = Right (FS k)
+lnzcNullext {v} {k} lnzcEq = ?lnzcNullext_pr
+
+When checking type of ZZGaussianElimination.lnzcNullext:
+When checking argument n to ZZGaussianElimination.leadingNonzeroCalc:
+        Type mismatch between
+                n (Inferred value)
+        and
+                S n (Given value)
+
+should just be
+
+lnzcNullext : map getWitness $ leadingNonzeroCalc v = Right k
+	-> map getWitness $ leadingNonzeroCalc $ (Pos 0)::v = Right (FS k)
+-}
+
+lnzcNullext : leadingNonzeroCalc v = Right (k ** pr)
+	-> (pr' : ((i : Fin _) -> LTRel (finToNat i) (finToNat (FS k))
+			-> index i $ (Pos 0)::v = Pos 0,
+			Not (index (FS k) $ (Pos 0)::v = Pos 0))
+		** leadingNonzeroCalc $ (Pos 0)::v = Right (FS k ** pr'))
+lnzcNullext {v} {k} {pr} lnzcEq = ?lnzcNullext_pr
+
+lnzcNullext_pr = proof
+	intros
+	claim lnz leadingNonzero $ Pos 0 :: v
+	claim pr2 ((i : Fin _) -> LTRel (finToNat i) (finToNat (FS k)) -> index i $ (Pos 0)::v = Pos 0, Not (index (FS k) $ (Pos 0)::v = Pos 0))
+	unfocus
+	unfocus
+	claim lnzEq lnz = Right (FS k ** pr2)
+	unfocus
+	-- Main goal
+	exact lnzIndInvar lnz lnzEq
+	-- pr2 on stack
+	unfocus
+	-- lnz on stack
+	exact Right (FS k ** pr2)
+	-- lnzEq on stack
+	exact Refl
+	-- pr2
+	-- w/c should follow from lnzcEq/pr
+	exact (_ $ fst pr, snd pr)
+	intro ltkThenZ
+	intro i
+	intro ltSk
+	claim f (c : Fin n ** i = FS c) -> index i (Pos 0 :: v) = Pos 0
+	unfocus
+	exact either f (cong {f=flip index $ Pos 0::v}) $ splitFinFS i
+	-- f
+	intro iSplit
+	rewrite sym $ getProof iSplit
+	exact ltkThenZ $ the (LT (finToNat $ getWitness iSplit) (finToNat k)) _
+	-- i `leq` k
+	exact fromLteSucc _
+	rewrite cong {f=finToNat} $ getProof iSplit
+	exact ltSk
+
+	{-
+	The (f) solution was originally written
+
+	-- f
+	> intro iSplit
+	> rewrite sym $ getProof iSplit
+	> exact ltkThenZ _
+	> rewrite cong {f=finToNat} $ getProof iSplit
+	-- i `leq` k
+	> exact fromLteSucc ltSk
+
+	but apparently the compiler won't do the (cong) rewrite, nor will the proof engine when you hole
+	the proof off into a second proposition after the
+
+	> exact ltkThenZ _
+
+	So, we have to do the cong rewrite over the hole in (fromLteSucc _).
+	-}
+
+-- Now we just need to show (nel) as the value of above
+-- induces (echxsPrependZ narg = danrz ... $ FS nel)
+-- relating the (rowEchelon xs)@narg to the (rowEchelon $ map ((Pos 0)::) xs)@narg.
+||| If xs is a row echelon form n by predm matrix,
+||| and xs' is
+||| 
+||| 	0|xs_0
+||| 	0|xs_1
+||| 	...,
+||| 
+||| then
+||| ∀ narg : Fin n
+||| If xs'_narg has xs'_narg_someNonZnessNel as its first nonzero entry,
+||| 
+|||       someNonZnessNel
+||| xs'          |
+|||       0|****|*|***
+||| narg--0|0000|x|***
+|||       0|****|*|***
+||| 	for x nonzero
+||| 
+||| we have
+||| someNonZnessNel = FS leadeln
+||| where leadeln satisfies
+||| 
+|||         leadeln
+||| xs         |
+|||       ****|*|***
+||| narg--****|*|***
+|||       0000|0|***
+|||       0000|0|***
+echReduce1 : {xs : Matrix n predm ZZ}
+	-> {narg : Fin n}
+	-> {someNonZnessNel : Fin (S predm)}
+	-> {someNonZnessFn : ({i : Fin _} -> LTRel (finToNat i) (finToNat someNonZnessNel)
+			-> indices narg i $ map ((Pos 0)::) xs = Pos 0,
+		Not (indices narg someNonZnessNel $ map ((Pos 0)::) xs = Pos 0))}
+	-> rowEchelon xs
+	-> leadingNonzeroCalc $ index narg $ map ((Pos 0)::) xs
+		= Right (someNonZnessNel ** someNonZnessFn)
+	-> (leadeln : Fin predm ** (downAndNotRightOfEntryImpliesZ xs narg leadeln,
+		someNonZnessNel = FS leadeln))
+echReduce1 {someNonZnessNel} {someNonZnessFn} {xs} {narg} echxs lnzcEq
+	with (splitFinFS someNonZnessNel)
+		| Left fspr = ?echReduce1_rhs_FS -- (getWitness fspr ** (_, getProof fspr))
+		-- Except we want to show that (getWitness fspr) comes from (echxs), or
+		-- take it from (echxs) instead of using the (fspr) that comes from this.
+		-- So, the (downAndNotRightOfEntryImpliesZ) indices must be proved universal.
+		-- That's where (lnzcEq) comes in, and shows (someNonZnessNel) is the (FS)er.
+		-- So we just need to prove (leadingNonzeroCalc) is compatible w/ tails,
+		-- and then unlock the (leadingNonzeroCalc $ index nel xs) (with) block
+		-- in (rowEchelon xs) in such a way that that equation remains applicable.
+		-- Perhaps best would be for the goal to be the implication from such an eq.
+		-- together w/ any (rowEchelon xs) that the danrz exists.
+		| Right fzpr = ?echReduce1_rhs_FZ -- Absurd; FZ not leading 0 of (Pos 0)::_.
 
 echelonNullcolExtension : {xs : Matrix n m ZZ}
 	-> rowEchelon xs
