@@ -31,12 +31,26 @@ import Control.Isomorphism
 
 {-
 Table of contents:
+* ZZ proofs
 * Fin proofs
 * Vect/Matrix proofs
 * The leading nonzero of a vector
 * DANRZ property
 * Row echelon properties
 -}
+
+
+
+{-
+ZZ proofs
+-}
+
+
+
+zzZOrOrPosNeg : (z : ZZ) -> Either (z=Pos 0) $ Either (k : _ ** z = Pos (S k)) $ (k : _ ** z = NegS k)
+zzZOrOrPosNeg (Pos Z) = Left Refl
+zzZOrOrPosNeg (Pos (S k)) = Right (Left (k ** Refl))
+zzZOrOrPosNeg (NegS k) = Right (Right (k ** Refl))
 
 
 
@@ -208,6 +222,14 @@ lemma3_mat : leadingNonzeroNum (index nel xs) = Just mel
 	-> leadingNonzeroNum (index (FS nel) $ map ((Pos Z)::) xs) = Just (FS mel)
 -}
 
+||| (x::xs) leads with a nonzero for x not 0
+leadingNonzeroIsFZIfNonzero :
+	Not (index FZ x = Pos Z)
+	-> leadingNonzeroNum x = Just FZ
+leadingNonzeroIsFZIfNonzero {x=x::xs} nonz with ( runIso eitherBotRight $ map nonz $ mirror $ zzZOrOrPosNeg x )
+	| Left (k ** prposS) = rewrite prposS in Refl
+	| Right (k ** prnegS) = rewrite prnegS in Refl
+
 
 
 {-
@@ -277,6 +299,49 @@ afterUpdateAtCurStillDownAndNotRight {prednel=FS predednel} {mat=x::xs} {mel} {f
 
 
 {-
+Subsection proving (danrzLeadingZeroAlt)
+-}
+
+{-
+Proved by noting
+	getCol FZ xs = map (index FZ) xs
+and
+	\j => danrz j FZ ?lt ?lte :
+		(j : Fin _) -> index FZ $ index j xs = Pos 0
+becomes by (trans (indexMapChariz {f=index FZ})) a
+	(j : Fin _) -> index j $ map (index FZ) xs = Pos 0.
+
+So that it suffices to prove
+	((i : Fin _) -> index i xs = index i ys)
+	-> xs = ys.
+-}
+danrzTailHasLeadingZeros :
+	downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
+	-> getCol FZ xs = Algebra.neutral
+danrzTailHasLeadingZeros danrz = vecIndexwiseEq
+	(\j => trans (indexMapChariz {f=index FZ})
+		$ trans (danrz (FS j) FZ (zLtSuccIsTrue $ finToNat j) $ Right Refl)
+	$ sym $ indexNeutralIsNeutral1D j)
+
+-- Corrollary : decEq w/ eitherBotRight lets you extract rowEchelon proofs.
+-- In particular,
+||| x|xs
+||| 0|_
+||| 0|_
+||| ...
+||| has 0th-col 0 or its 0th row leads with a nonzero
+danrzLeadingZeroAlt :
+	downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
+	-> Either
+		(getCol FZ (x::xs) = Algebra.neutral)
+		(leadingNonzeroNum x = Just FZ)
+danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
+	| Yes preq = Left (vecHeadtailsEq preq $ danrzTailHasLeadingZeros danrz)
+	| No prneq = Right $ leadingNonzeroIsFZIfNonzero prneq
+
+
+
+{-
 Row echelon properties
 
 Definitions
@@ -288,6 +353,13 @@ Definitions
 Theorems
 * rowEchelonPreEmpty
 * rowEchelonPreExtension
+	Inducing gaussian elimination verification from the lesser height & width cases,
+	done when first column is nonzero.
+* echelonPreNullcolExtension
+	Inducing gaussian elimination from the lesser width cases,
+	done when first column is zero.
+* echelonPreFromDanrzLast
+	For verifying gaussian elimination in the width = 1 case
 * toEchTy
 * toRowEchelon
 -}
@@ -450,6 +522,17 @@ rowEchelonPreExtension {n} {predm} {x} {xs} lnz ech (FS narg) with ( ech narg )
 							(finToNat j')
 							(finToNat mel))
 						ltJSM
+
+echelonPreNullcolExtension :
+	{xs : Matrix n predm ZZ}
+	-> rowEchelonPre xs
+	-> rowEchelonPre $ map ((Pos 0)::) xs
+
+
+
+echelonPreFromDanrzLast :
+	downAndNotRightOfEntryImpliesZ mat FZ last
+	-> rowEchelonPre mat
 
 
 
