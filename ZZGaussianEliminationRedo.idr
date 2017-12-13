@@ -226,6 +226,8 @@ tool used.
 
 {- Gaussian elimination in general -}
 
+{- Render proper row echelon property -}
+
 
 
 }
