@@ -346,11 +346,17 @@ danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
 	-> downAndNotRightOfEntryImpliesZ mat FZ mel
 danrzLastcolImpliesAllcol danrzlast i j ltrel _ = danrzlast i j ltrel $ ltenatLastIsTrue2 j
 
-danrzLastcolImpliesTailNeutral : {xs : Matrix n (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu}) -> xs=Algebra.neutral
-danrzLastcolImpliesTailNeutral {x} {xs} {n} {mu} danrz = uniformValImpliesReplicate (replicate (S mu) $ Pos 0) xs $ \na => uniformValImpliesReplicate (Pos 0) (index na xs) (fn na)
+danrzLastcolImpliesTailNeutral : {xs : Matrix n (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu})
+	-> xs=Algebra.neutral
+danrzLastcolImpliesTailNeutral {x} {xs} {n} {mu} danrz
+	= uniformValImpliesReplicate (replicate (S mu) $ Pos 0) xs
+	$ \na => uniformValImpliesReplicate (Pos 0) (index na xs) (fn na)
 	where
 		fn : (prednel : Fin n) -> (j : Fin (S mu)) -> indices prednel j xs = Pos 0
-		fn prednel j = danrz (FS prednel) j (zLtSuccIsTrue $ finToNat prednel) (ltenatLastIsTrue2 j)
+		fn prednel j = danrz (FS prednel) j
+			(zLtSuccIsTrue $ finToNat prednel)
+			(ltenatLastIsTrue2 j)
 
 
 
@@ -566,7 +572,33 @@ echelonPreFromDanrzLast {mat=x::xs} {n} {mu} danrz FZ with (leadingNonzeroProof 
 			in snd nothPrAndZeroPr
 	| Right (mel ** melpr)
 		= Right $ (mel ** (fst melpr, danrzLastcolImpliesAllcol {mel=mel} danrz))
-echelonPreFromDanrzLast {mat=x::xs} danrz (FS k) = ?echelonFromDanrzLast_rhs_2
+echelonPreFromDanrzLast {mat=x::xs} danrz (FS k) with (leadingNonzeroProof {v=index k xs})
+	| Left nothPrAndZeroPr = Left echelonPreFromDanrzLast_Nothing2
+	where
+		echelonPreFromDanrzLast_Nothing2 :
+			(nelow : Fin (S _))
+			-> (ltepr : Either
+				(finToNat (FS k) `LT` finToNat nelow)
+				(finToNat (FS k) = finToNat nelow))
+			-> index nelow (x::xs) = Algebra.neutral
+		echelonPreFromDanrzLast_Nothing2 nelow (Left ltpr)
+			= trans
+				(cong {f=\ts => Vect.index nelow (x::ts)}
+				$ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz)
+			$ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))}
+				$ getProof $ gtnatFZImpliesIsFinSucc nelow
+				$ natGtAnyImpliesGtZ
+					(S $ finToNat k) (finToNat nelow) ltpr)
+			$ indexNeutralIsNeutral2D _
+		echelonPreFromDanrzLast_Nothing2 nelow (Right eqpr)
+			= rewrite sym $ finToNatInjective (FS k) nelow eqpr
+			in snd nothPrAndZeroPr
+	| Right (mel ** melpr) = void $ (snd $ snd melpr)
+		$ flip trans (indexNeutralIsNeutral1D mel)
+		$ cong {f=index mel}
+		$ trans (cong {f=index k}
+			$ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz)
+		$ indexNeutralIsNeutral2D k
 
 
 
