@@ -173,8 +173,11 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 Proof by
 
 echelonPreFromDanrzLast :
-	downAndNotRightOfEntryImpliesZ mat FZ last
+	{mat : Matrix (S n) (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ last
 	-> rowEchelonPre mat
+
+Confirm: Applied to such a matrix of height > 0
 -}
 
 {-

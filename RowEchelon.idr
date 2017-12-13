@@ -341,6 +341,19 @@ danrzLeadingZeroAlt {x} {xs} danrz with ( decEq (index FZ x) $ Pos Z )
 
 
 
+danrzLastcolImpliesAllcol : {mat : Matrix (S _) (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
+	-> downAndNotRightOfEntryImpliesZ mat FZ mel
+danrzLastcolImpliesAllcol danrzlast i j ltrel _ = danrzlast i j ltrel $ ltenatLastIsTrue2 j
+
+danrzLastcolImpliesTailNeutral : {xs : Matrix n (S mu) ZZ} -> downAndNotRightOfEntryImpliesZ (x::xs) FZ (last {n=mu}) -> xs=Algebra.neutral
+danrzLastcolImpliesTailNeutral {x} {xs} {n} {mu} danrz = uniformValImpliesReplicate (replicate (S mu) $ Pos 0) xs $ \na => uniformValImpliesReplicate (Pos 0) (index na xs) (fn na)
+	where
+		fn : (prednel : Fin n) -> (j : Fin (S mu)) -> indices prednel j xs = Pos 0
+		fn prednel j = danrz (FS prednel) j (zLtSuccIsTrue $ finToNat prednel) (ltenatLastIsTrue2 j)
+
+
+
 {-
 Row echelon properties
 
@@ -531,8 +544,29 @@ echelonPreNullcolExtension :
 
 
 echelonPreFromDanrzLast :
-	downAndNotRightOfEntryImpliesZ mat FZ last
+	{mat : Matrix (S n) (S mu) ZZ}
+	-> downAndNotRightOfEntryImpliesZ mat FZ (last {n=mu})
 	-> rowEchelonPre mat
+echelonPreFromDanrzLast {mat=x::xs} {n} {mu} danrz FZ with (leadingNonzeroProof {v=x})
+	| Left nothPrAndZeroPr = Left echelonPreFromDanrzLast_Nothing
+	where
+		echelonPreFromDanrzLast_Nothing :
+			(nelow : Fin (S n))
+			-> (ltepr : Either (0 `LT` finToNat nelow) (0 = finToNat nelow))
+			-> index nelow (x::xs) = Algebra.neutral
+		echelonPreFromDanrzLast_Nothing nelow (Left ltpr)
+			= trans
+				(cong {f=\ts => Vect.index nelow (x::ts)}
+				$ danrzLastcolImpliesTailNeutral {x=x} {xs=xs} danrz)
+			$ trans (cong {f=(\i => Vect.index i (x::Algebra.neutral))}
+				$ getProof $ gtnatFZImpliesIsFinSucc nelow ltpr)
+			$ indexNeutralIsNeutral2D _
+		echelonPreFromDanrzLast_Nothing nelow (Right eqpr)
+			= rewrite sym $ finToNatInjective FZ nelow eqpr
+			in snd nothPrAndZeroPr
+	| Right (mel ** melpr)
+		= Right $ (mel ** (fst melpr, danrzLastcolImpliesAllcol {mel=mel} danrz))
+echelonPreFromDanrzLast {mat=x::xs} danrz (FS k) = ?echelonFromDanrzLast_rhs_2
 
 
 
