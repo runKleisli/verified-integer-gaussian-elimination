@@ -546,6 +546,12 @@ echelonPreNullcolExtension :
 	{xs : Matrix n predm ZZ}
 	-> rowEchelonPre xs
 	-> rowEchelonPre $ map ((Pos 0)::) xs
+echelonPreNullcolExtension {n} {predm} {xs} ech narg with ( ech narg )
+	| Left neutfn = Left $ \nelow => \ltpr =>
+		trans indexMapChariz
+		$ cong {f=((Pos 0)::)} $ neutfn nelow ltpr
+	| Right (mel ** (lnzJMelEq, danrzNelMel))
+		= Right (FS mel ** ?echelonPreNullcolExtension_2)
 
 
 
