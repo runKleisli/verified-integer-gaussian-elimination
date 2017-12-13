@@ -167,3 +167,72 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 
 
 }
+
+
+
+{-
+
+Appendix Elim.Induction.Meta
+
+Case matrix has height, width > 0 of gaussian elimination.
+
+The following meta-analytic proof translates between the mathematical ideas and the realization in the formal logic.
+
+---
+
+Suppose we are to produce from a given (x::xs) of width > 0 a row-span-equivalent
+row echelon matrix, given how to do this for all matrices of lesser height
+and width, and given that the first column of (x::xs) is nonzero.
+
+By (rowEchelonPreExtension), (leadingNonzeroNum v = Just FZ) & (rowEchelonPre vs)
+--> row echelon v :: 0|vs
+
+Eliminating the first column
+
+	matchbind
+
+converts a y::ys of width > 0 to an equivalent y' :: 0|ys' =: (yy'::yys') :: 0|ys'.
+
+Being of this form is an unspoken equivalence to "danrz" (abbrev.): tautologically,
+(downAndNotRightOfEntryImpliesZ (y'::0|ys') 0 0). Whence the type of & intention
+behind (elimFirstCol).
+
+	"y::ys === m where (m = y'::0|ys')"
+	<==>
+	y::ys `bispanslz` m & downAndNotRightOfEntryImpliesZ m 0 0
+
+Since x::xs didn't have a 0 column, & bispannability preserves this (spansImpliesSameFirstColNeutrality), bispannability implies that xx' /= 0:
+
+	"xx' /= 0"
+	<==>
+	lnzn x' = Just 0,
+
+& the latter is proved through (danrzLeadingZeroAlt):
+
+	danrz (_1::_2) 0 0, getCol 0 (_1::_2) /= 0
+	==>	(danrzLeadingZeroAlt)
+	(getCol 0 (_1::_2) = 0 | lnzn _1 = Just 0) & getCol 0 (_1::_2) /= 0
+	==>
+	lnzn _1 = Just 0
+
+Eliminating ys' then gives a matrix equivalent to ys under bispannability
+
+	matchbind
+
+which is preserved (bispansSamevecExtension) by consing a common vector. Thus we can
+convert each y::ys of width > 0 to an equivalent y' :: 0|zs =: (yy'::yys') :: 0|zs such
+that yy' /= 0 and 0|zs is row echelon.
+
+Sharing the head y' means preserving the leading nonzero of the head, shown to
+be (Just 0).
+
+Thus the hypothesis of (rowEchelonPreExtension) applies
+
+	y'_0 /= 0 ==> leadingNonzeroNum y' = Just FZ
+
+& we have that the y'::0|zs equivalent to the original y::ys is row echelon.
+
+Such a matrix with the property of being equivalent to the original but row echelon is
+wwtbd.
+
+-}
