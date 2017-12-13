@@ -551,7 +551,29 @@ echelonPreNullcolExtension {n} {predm} {xs} ech narg with ( ech narg )
 		trans indexMapChariz
 		$ cong {f=((Pos 0)::)} $ neutfn nelow ltpr
 	| Right (mel ** (lnzJMelEq, danrzNelMel))
-		= Right (FS mel ** ?echelonPreNullcolExtension_2)
+		= Right (FS mel **
+			(trans (cong {f=leadingNonzeroNum} indexMapChariz)
+			$ cong {f=map FS} lnzJMelEq
+			, danrzFn))
+		where
+			{-
+			When j = 0, const (const Refl)
+			When j a successor, apply (danrzNelMel).
+			-}
+			danrzFn : (i : Fin n)
+				-> (j : Fin (S predm))
+				-> finToNat narg `LTRel` finToNat i
+				-> finToNat j `LTERel` (S $ finToNat mel)
+				-> indices i j $ map ((Pos 0)::) xs = Pos 0
+			danrzFn i FZ _ _ = indicesConstColChariz
+			danrzFn i (FS j') ltNI ltJSM = trans indicesConstColChariz2
+				$ danrzNelMel i j' ltNI
+				$ either
+					(Left . fromLteSucc)
+					(Right . succInjective
+						(finToNat j')
+						(finToNat mel))
+					ltJSM
 
 
 
