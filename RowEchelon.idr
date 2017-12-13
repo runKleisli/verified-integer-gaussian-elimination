@@ -36,6 +36,7 @@ Table of contents:
 * Vect/Matrix proofs
 * The leading nonzero of a vector
 * DANRZ property
+* Corollary bispannability property
 * Row echelon properties
 -}
 
@@ -357,6 +358,19 @@ danrzLastcolImpliesTailNeutral {x} {xs} {n} {mu} danrz
 		fn prednel j = danrz (FS prednel) j
 			(zLtSuccIsTrue $ finToNat prednel)
 			(ltenatLastIsTrue2 j)
+
+
+
+{-
+Corollary bispannability property
+-}
+
+
+
+bispansNulltailcolExtension : downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
+	-> ys `bispanslz` map Vect.tail xs
+	-> map ((Pos Z)::) ys `bispanslz` xs
+bispansNulltailcolExtension = bispansNullcolExtension . danrzTailHasLeadingZeros
 
 
 

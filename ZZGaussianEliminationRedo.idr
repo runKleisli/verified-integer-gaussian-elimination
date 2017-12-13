@@ -33,9 +33,14 @@ import Control.Monad.Identity
 
 
 {-
-Table of Contents:
+Main elimination algorithms.
 
-* Main elimination algorithms
+Index:
+
+* Template & usage for do notation pattern matching technique
+* elimFirstCol
+* gaussElimlzIfGCD3
+* Appendix Elim.General.Meta
 -}
 
 
@@ -167,18 +172,31 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 
 
 {- Gaussian elimination for width > 0 -}
-{- Suppose case width = 1. -}
+
+gaussElimlzIfGCD3 :
+	(xs : Matrix n (S predm) ZZ)
+	-> ( n' : Nat
+		** (gexs : Matrix n' (S predm) ZZ
+			** (rowEchelonPre gexs, gexs `bispanslz` xs)) )
 
 {-
-Proof by
+Suppose case width = 1.
 
-echelonPreFromDanrzLast :
-	{mat : Matrix (S n) (S mu) ZZ}
-	-> downAndNotRightOfEntryImpliesZ mat FZ last
-	-> rowEchelonPre mat
+If desired:
 
-Confirm: Applied to such a matrix of height > 0
+gaussElimlzIfGCD3 xs {predm=Z} with (elimFirstCol xs)
+	| (gexs ** (danrz, bis)) = (_ ** ( gexs ** (echelonPreFromDanrzLast danrz, bis) ))
+
+can't be done, because the typechecker thinks it's a (Vect 1 ZZ = ZZ) situation.
+
+Not fixed if the (danrz, bis) is matched as (danrzAndBis).
+Not fixed by passing (S n) into the hole.
 -}
+
+gaussElimlzIfGCD3 xs {predm=Z} = runIdentity $ do {
+		(gexs ** (danrz, bis)) <- Id $ elimFirstCol xs
+		return $ (_ ** ( gexs ** (echelonPreFromDanrzLast danrz, bis) ))
+	}
 
 {-
 Else case width > 1.
@@ -193,18 +211,28 @@ proof, and this is retained as an artifact to retain compatibility this implemen
 tool used.
 -}
 
+gaussElimlzIfGCD3 xs {predm = S prededm}
+	= gaussElimlzIfGCD3_gen $ decEq (getCol FZ xs) Algebra.neutral
+	where
+		gaussElimlzIfGCD3_gen :
+			Dec (getCol FZ xs = Algebra.neutral)
+			-> ( n' : Nat
+				** (gexs : Matrix n' (S $ S prededm) ZZ
+					** (rowEchelonPre gexs, gexs `bispanslz` xs)) )
+
 		{-
 		If first col neutral then we can reduce the process
 		to that on the value of (map tail).
 		-}
 
-		{-
-		Proof by
-
-		echelonPreNullcolExtension :
-			rowEchelonPre xs
-			-> rowEchelonPre (map ((Pos 0) ::) xs)
-		-}
+		gaussElimlzIfGCD3_gen (Yes prNeut) = runIdentity $ do {
+			( nold ** (matold ** (echold, bisold)) )
+				<- Id $ gaussElimlzIfGCD3 $ map tail xs
+			return ( nold **
+					(map ((Pos 0)::) matold
+					** (echelonPreNullcolExtension echold
+					, bispansNullcolExtension prNeut bisold)) )
+			}
 
 		{-
 		Otherwise it's nonneutral, so we can show that since the elimFirstCol
@@ -215,15 +243,58 @@ tool used.
 		For a proof, compare with "Appendix Elim.General.Meta"
 		-}
 
-		{-
-		Proof by
+		gaussElimlzIfGCD3_gen (No prNonneut) = runIdentity $ do {
+			-- Perform elimination on the first column.
+			(xFCE::xsFCE ** (xnxsFCEdanrz, fceBisxs))
+					<- Id $ elimFirstCol xs
+			-- Recurse, eliminating the tail.
+			(elimLen ** (xselim ** (xselimEch, coltailxsFCEBisElim)))
+				<- Id $ gaussElimlzIfGCD3 $ map tail xsFCE
 
-		danrzLeadingZeroAlt :
-			downAndNotRightOfEntryImpliesZ (x::xs) FZ FZ
-			-> Either
-				(getCol FZ (x::xs) = Algebra.neutral)
-				(leadingNonzeroNum x = Just FZ)
-		-}
+			{-
+			Add the head of the first-column elimination
+			to the tail's elimination to get the final elim.
+			-}
+
+			let endmat = xFCE::map ((Pos Z)::) xselim
+
+			-- The final elim is bispannable with the original matrix.
+			let xsNullcolextElimBisFCE = bispansNulltailcolExtension
+				xnxsFCEdanrz coltailxsFCEBisElim
+			-- Bispannability is preserved by consing a common vector
+			let endmatBisxnFCE = bispansSamevecExtension
+				xsNullcolextElimBisFCE xFCE
+			-- This is hence bispannable with the original matrix.
+			let endmatBisxs = bispanslztrans endmatBisxnFCE fceBisxs
+
+			{-
+			The first column being nonzero is invariant over the
+			bispannability class,
+			and we assumed (prNonneut) this to hold for (xs),
+			thus it holds for (endmat).
+
+			The first column being nonzero and the danrz for (endmat)
+			imply (head endmat = xFCE) has (leadingNonzeroNum xFCE = Just 0).
+			-}
+
+			let headxFCELeadingNonzero = either
+				( void
+				. prNonneut
+				. spansImpliesSameFirstColNeutrality (fst fceBisxs) )
+				id
+				$ danrzLeadingZeroAlt xnxsFCEdanrz
+
+			{-
+			Thus the hypothesis of (rowEchelonPreExtension) applies,
+			and the final elim is row echelon.
+			-}
+
+			let endmatEch = rowEchelonPreExtension {x=xFCE}
+				headxFCELeadingNonzero xselimEch
+
+			return (_ ** (endmat ** (endmatEch, endmatBisxs)))
+
+			}
 
 
 
