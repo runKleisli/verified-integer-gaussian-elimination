@@ -202,7 +202,7 @@ tool used.
 		Proof by
 
 		echelonPreNullcolExtension :
-			rowEchelon xs
+			rowEchelonPre xs
 			-> rowEchelonPre (map ((Pos 0) ::) xs)
 		-}
 
