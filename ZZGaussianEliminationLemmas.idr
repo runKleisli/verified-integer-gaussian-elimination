@@ -23,6 +23,7 @@ import RowEchelon
 import ZZDivisors
 
 import FinOrdering
+import FinStructural
 
 import Control.Isomorphism
 

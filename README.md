@@ -61,7 +61,6 @@ A library for making inferences about when the row echelon property holds for a 
 
 Table of contents:
 * ZZ proofs
-* Fin proofs
 * Vect/Matrix proofs
 * The leading nonzero of a vector
 * DANRZ property
@@ -248,9 +247,13 @@ Contents:
 * An instance of this for `Nat`, by which `Fin n` will be ordered indirectly through `finToNat`.
 * `lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b`, relating `FinOrdering`'s version `LTERel` of the less-than-or-equal-to relation to `LTE`, from Prelude, for `Nat`s.
 * `zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)`
-* Declaration: `gtnatFZImpliesIsFinSucc` — A `Fin _` of ordinal _n_ > 0 is a fin-successor.
-* Declaration: `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
-* Declarations: `ltenatLastIsTrue`/...`2` — a number is in \{1, ..., _n_\} if and only if it is less than or equal to _n_, in our sense.
+* `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
+
+## FinStructural
+
+Structure of (Fin)s
+* in general
+* in terms of ordering
 
 ## Control.Algebra.ZZVerifiedInstances
 

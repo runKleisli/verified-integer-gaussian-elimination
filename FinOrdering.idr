@@ -3,7 +3,6 @@ module FinOrdering
 
 import Data.Fin
 import Data.ZZ
-import Control.Isomorphism
 
 
 
@@ -116,33 +115,3 @@ zLtSuccIsTrue _ = LTESucc LTEZero
 natGtAnyImpliesGtZ : (m, n : Nat) -> LTRel m n -> LTRel Z n
 natGtAnyImpliesGtZ m Z = absurd
 natGtAnyImpliesGtZ m (S n) = const $ zLtSuccIsTrue n
-
-
-
-{-
-Structure of (Fin)s
-* in general
-* in terms of ordering
--}
-
-
-
-gtnatFZImpliesIsFinSucc :
-	(nel : Fin (S nu))
-	-> (LTRel Z $ finToNat nel)
-	-> (prednel : Fin nu ** nel = FS prednel)
-gtnatFZImpliesIsFinSucc FZ ltpr = void $ succNotLTEzero ltpr
-gtnatFZImpliesIsFinSucc (FS prednel) ltpr = (prednel ** Refl)
-
-ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
-
-ltenatLastIsTrue2 : (i : Fin (S nu)) -> LTERel (finToNat i) $ finToNat $ last {n=nu}
-
-trichotomy : (n,m : Nat) -> Either (n `LT` m) $ Either (n = m) (m `LT` n)
-trichotomy Z Z = Right $ Left Refl
-trichotomy (S predn) Z = Right $ Right $ zLtSuccIsTrue predn
-trichotomy Z (S predm) = Left $ zLtSuccIsTrue predm
-trichotomy (S predn) (S predm)
-	= either ( Left . LTESucc )
-		( Right . either (Left . cong) (Right . LTESucc) )
-	$ trichotomy predn predm
