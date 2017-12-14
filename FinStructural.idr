@@ -99,4 +99,44 @@ ltenatLastIsTrue2 i {nu=S prednu} with (splitFinS i)
 	| Left (k ** prwkn) = Left $ rewrite prwkn in wknLTLast {n=S prednu} k
 	| Right prLast = Right $ cong {f=finToNat} prLast
 
+
+
+{- (ltenatLastIsTrue) subsection -}
+
+notLTSelf : Not (LT a a)
+notLTSelf {a=Z} = succNotLTEzero
+notLTSelf {a=S preda} = notLTSelf . fromLteSucc
+
+lteUnique : {a, b : Nat} -> (x, y : LTERel a b) -> x = y
+lteUnique (Left LTEZero) (Left LTEZero) impossible
+lteUnique (Left LTEZero) (Left (LTESucc ltY)) impossible
+lteUnique (Left (LTESucc ltX)) (Left LTEZero) impossible
+lteUnique (Left (LTESucc ltX)) (Left (LTESucc ltY)) {b=Z} impossible
+lteUnique (Left (LTESucc LTEZero)) (Left (LTESucc LTEZero)) {a=Z} {b=S right} = Refl
+lteUnique (Left (LTESucc ltX)) (Left (LTESucc ltY)) {a=S left} {b=S right}
+	with (lteUnique (Left ltX) (Left ltY))
+	| prEq = cong {f=Left . LTESucc} $ leftInjective prEq
+lteUnique (Left ltX) (Right prEq) {b}
+	= void $ notLTSelf $ replace prEq {P=\x => LT x b} ltX
+lteUnique (Right prEq) (Left ltY) {b}
+	= void $ notLTSelf $ replace prEq {P=\x => LT x b} ltY
+lteUnique (Right Refl) (Right Refl) = Refl
+lteUnique (Right Refl) (Right Refl) {a=Z} {b = S right} impossible
+lteUnique (Right Refl) (Right Refl) {a = S left} {b=Z} impossible
+
 ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
+ltenatLastIsTrue = MkIso
+	getWitness
+	(\nel => (nel ** ltenatLastIsTrue2 nel))
+	(\y => Refl)
+	ltenatLastIsTrue_fromTo
+	where
+		ltenatLastIsTrue_fromTo :
+			(x : (nel : Fin (S nu)
+				** LTERel (finToNat nel) $ finToNat $ last {n=nu}))
+			-> (getWitness x ** ltenatLastIsTrue2 (getWitness x)) = x
+		ltenatLastIsTrue_fromTo (nel ** ltepr)
+			= rewrite sameLTEPr in Refl
+			where
+				sameLTEPr : ltenatLastIsTrue2 nel = ltepr
+				sameLTEPr = lteUnique (ltenatLastIsTrue2 nel) ltepr
