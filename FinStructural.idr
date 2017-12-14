@@ -88,6 +88,15 @@ splitFinS {predn=S prededn} (FS prednel) with ( splitFinS prednel )
 
 
 
-ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
+wknLTLast : (a : Fin n) -> LT (finToNat $ weaken a) (finToNat $ last {n=n})
+wknLTLast FZ = zLtSuccIsTrue _
+wknLTLast (FS k) = LTESucc $ wknLTLast k
 
 ltenatLastIsTrue2 : (i : Fin (S nu)) -> LTERel (finToNat i) $ finToNat $ last {n=nu}
+ltenatLastIsTrue2 FZ {nu=Z} = Right Refl
+ltenatLastIsTrue2 (FS k) {nu=Z} = absurd k
+ltenatLastIsTrue2 i {nu=S prednu} with (splitFinS i)
+	| Left (k ** prwkn) = Left $ rewrite prwkn in wknLTLast {n=S prednu} k
+	| Right prLast = Right $ cong {f=finToNat} prLast
+
+ltenatLastIsTrue : Iso (nel : Fin (S nu) ** LTERel (finToNat nel) $ finToNat $ last {n=nu}) $ Fin (S nu)
