@@ -22,7 +22,7 @@ Main elimination algorithms.
 
 Mostly complete:
 Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
-Some theorems it depends on are unproved, things like basic facts about finite sets and Issue #24.
+Some theorems it depends on are unproved, things like basic facts about finite sets, Issue #24, and some Data.Vect.Structural stuff left over.
 Idris confirms totality, up to those theorems it depends on, except for there's a mutual recursion in proofs regarding the properties of linear combination.
 
 Index:
