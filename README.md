@@ -22,7 +22,8 @@ Main elimination algorithms.
 
 Mostly complete:
 Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
-Some theorems it depends on are unproved, things like basic facts about finite sets, Issue #24, and some Data.Vect.Structural stuff left over.
+What's implemented is called (gaussElimlzIfGCD).
+Some theorems it depends on are unproved, things like Issue #24, and some Data.Matrix.ZZVerified stuff left over.
 Idris confirms totality, up to those theorems it depends on, except for there's a mutual recursion in proofs regarding the properties of linear combination.
 
 Index:
@@ -61,7 +62,6 @@ A library for making inferences about when the row echelon property holds for a 
 
 Table of contents:
 * ZZ proofs
-* Fin proofs
 * Vect/Matrix proofs
 * The leading nonzero of a vector
 * DANRZ property
@@ -248,9 +248,18 @@ Contents:
 * An instance of this for `Nat`, by which `Fin n` will be ordered indirectly through `finToNat`.
 * `lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b`, relating `FinOrdering`'s version `LTERel` of the less-than-or-equal-to relation to `LTE`, from Prelude, for `Nat`s.
 * `zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)`
-* Declaration: `gtnatFZImpliesIsFinSucc` — A `Fin _` of ordinal _n_ > 0 is a fin-successor.
-* Declaration: `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
-* Declarations: `ltenatLastIsTrue`/...`2` — a number is in \{1, ..., _n_\} if and only if it is less than or equal to _n_, in our sense.
+* `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
+
+## FinStructural
+
+Structure of (Fin)s
+* in general
+* in terms of ordering
+
+Of independent interest are (trichotomy) & (ltenatLastIsTrue), which state
+
+* Forall n, m : Nat, m > n or m <= n.
+* Fin (S n) ~= {x <= last}, using the induced ordering under (finToNat).
 
 ## Control.Algebra.ZZVerifiedInstances
 
