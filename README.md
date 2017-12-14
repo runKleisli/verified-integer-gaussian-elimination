@@ -16,7 +16,7 @@ These show what other kind of theorems are needed, but about the wrong objects t
 
 __All proofs mentioned below are up to Issue #24 on GitHub being solved__
 
-## ZZGaussianEliminationRedo
+## ZZGaussianElimination
 
 Main elimination algorithms.
 
@@ -33,13 +33,9 @@ Index:
 * gaussElimlzIfGCD
 * Appendix Elim.General.Meta
 
-Replaces (ZZGaussianElimination), under conjunction with satellite modules.
-
-Satellite modules are:
+Satellite modules:
 * ZZGaussianEliminationLemmas
-* RowEchelon
-* ZZDivisors
-* ZZGaussianEliminationRedoNoMonad
+* ZZGaussianEliminationNoMonad
   Implementation of (elimFirstCol) without using the do notation dependent pattern matching technique.
 
 ## ZZGaussianEliminationLemmas

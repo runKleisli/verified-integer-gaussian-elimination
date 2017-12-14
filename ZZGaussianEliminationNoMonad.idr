@@ -1,4 +1,4 @@
-module ZZGaussianEliminationRedoNoMonad
+module ZZGaussianEliminationNoMonad
 
 import Control.Algebra
 import Classes.Verified

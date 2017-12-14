@@ -1,4 +1,4 @@
-module ZZGaussianEliminationRedo
+module ZZGaussianElimination
 
 import Control.Algebra
 import Classes.Verified
