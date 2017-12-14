@@ -40,6 +40,8 @@ Index:
 * Template & usage for do notation pattern matching technique
 * elimFirstCol
 * gaussElimlzIfGCD3
+* gaussElimlzIfGCD2
+* gaussElimlzIfGCD
 * Appendix Elim.General.Meta
 -}
 
@@ -300,9 +302,26 @@ gaussElimlzIfGCD3 xs {predm = S prededm}
 
 {- Gaussian elimination in general -}
 
+gaussElimlzIfGCD2 :
+	(xs : Matrix n m ZZ)
+	-> ( n' : Nat
+		** (gexs : Matrix n' m ZZ
+			** (rowEchelonPre gexs, gexs `bispanslz` xs)) )
+gaussElimlzIfGCD2 {m=Z} xs = (_ ** (Algebra.neutral
+	** (rowEchelonPreZeroWidth, bispanslzreflFromEq $ sym $ zeroVecVecId xs)))
+gaussElimlzIfGCD2 {m=S predm} xs = gaussElimlzIfGCD3 xs
+
 {- Render proper row echelon property -}
 
-
+gaussElimlzIfGCD :
+	(xs : Matrix n m ZZ)
+	-> ( n' : Nat
+		** (gexs : Matrix n' m ZZ
+			** (rowEchelon gexs, gexs `bispanslz` xs)) )
+gaussElimlzIfGCD xs = runIdentity $ do {
+		(n' ** (gexs ** (echPre, bis))) <- Id $ gaussElimlzIfGCD2 xs
+		return $ (n' ** (gexs ** (toRowEchelon echPre, bis)))
+	}
 
 }
 

@@ -384,7 +384,7 @@ Definitions
 * (rowEchelon) The row echelon property -- (rowEchelonPre) but with numbers having the leading nonzero property (leadingNonzeroProp) -- inferable about (leadingNonzeroNum) using (leadingNonzeroProof), hence inferable from a given (rowEchelonPre) proof.
 
 Theorems
-* rowEchelonPreEmpty
+* rowEchelonPreZeroHeight
 * rowEchelonPreExtension
 	Inducing gaussian elimination verification from the lesser height & width cases,
 	done when first column is nonzero.
@@ -438,8 +438,11 @@ rowEchelon {n} {m} xs = (narg : Fin n) -> echTy xs narg
 
 
 
-rowEchelonPreEmpty : rowEchelonPre []
-rowEchelonPreEmpty = \narg => FinZElim narg
+rowEchelonPreZeroHeight : rowEchelonPre []
+rowEchelonPreZeroHeight = \narg => FinZElim narg
+
+rowEchelonPreZeroWidth : rowEchelonPre $ replicate n []
+rowEchelonPreZeroWidth = \narg => Left $ \_ => \_ => indexReplicateChariz
 
 rowEchelonPreExtension :
 	{x : Vect (S predm) ZZ}

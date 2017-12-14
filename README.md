@@ -22,14 +22,15 @@ Main elimination algorithms.
 
 Mostly complete:
 Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
-Some cases are still missing.
 Some theorems it depends on are unproved, things like basic facts about finite sets and Issue #24.
-Mostly total, where implemented, but for a mutual recursion in proofs regarding the properties of linear combination.
+Idris confirms totality, up to those theorems it depends on, except for there's a mutual recursion in proofs regarding the properties of linear combination.
 
 Index:
 * Template & usage for do notation pattern matching technique
 * elimFirstCol
 * gaussElimlzIfGCD3
+* gaussElimlzIfGCD2
+* gaussElimlzIfGCD
 * Appendix Elim.General.Meta
 
 Replaces (ZZGaussianElimination), under conjunction with satellite modules.
@@ -49,8 +50,11 @@ Table of Contents:
 * Preliminary arguments to (elimFirstCol)
 
 Guide:
+
 Structure of (elimFirstCol):
+
 succImplWknStep_Qfunclemma => succImplWknStep_stepQfunc => succImplWknStep_unplumbed => succImplWknStep => foldedFully
+
 (mkQfunc, foldedFully) => elimFirstCol (after some work)
 
 ## RowEchelon
