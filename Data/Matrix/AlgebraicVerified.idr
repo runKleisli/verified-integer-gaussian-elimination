@@ -72,6 +72,19 @@ moduleScalarMultiplyComposition_Vect : (VerifiedRingWithUnity a) => ( x, y : a )
 moduleScalarMultiplyComposition_Vect x y [] = Refl
 moduleScalarMultiplyComposition_Vect x y (v::vs) ?= vecHeadtailsEq (ringOpIsAssociative x y v) $ moduleScalarMultiplyComposition_Vect x y vs
 
+moduleScalarMultiplyComposition_Vect2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( x, y : a ) -> ( v : Vect n a )
+	-> x <#> (y <#> v) = x <.> y <#> v
+moduleScalarMultiplyComposition_Vect2 x y [] = Refl
+moduleScalarMultiplyComposition_Vect2 {ok} x y (v::vs) =
+	vecHeadtailsEq
+		(rewrite ok in ringOpIsAssociative x y v)
+	$ moduleScalarMultiplyComposition_Vect2 x y vs
+
 {-
 This doesn't exist because of a diamond inheritance problem.
 -}
@@ -189,6 +202,16 @@ abelianGroupOpIsCommutative_Mat (l::ls) (r::rs) = vecHeadtailsEq (abelianGroupOp
 moduleScalarMultiplyComposition_Mat : (VerifiedRingWithUnity a) => ( x, y : a ) -> ( v : Matrix n m a ) -> x <#> (y <#> v) = x <.> y <#> v
 moduleScalarMultiplyComposition_Mat x y [] = Refl
 moduleScalarMultiplyComposition_Mat x y (v::vs) = vecHeadtailsEq (moduleScalarMultiplyComposition_Vect _ _ _) $ moduleScalarMultiplyComposition_Mat _ _ _
+
+moduleScalarMultiplyComposition_Mat2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( x, y : a ) -> ( v : Matrix n m a )
+	-> x <#> (y <#> v) = x <.> y <#> v
+moduleScalarMultiplyComposition_Mat2 x y [] = Refl
+moduleScalarMultiplyComposition_Mat2 x y (v::vs) = vecHeadtailsEq (moduleScalarMultiplyComposition_Vect2 _ _ _) $ moduleScalarMultiplyComposition_Mat2 _ _ _
 
 moduleScalarUnityIsUnity_Mat : (VerifiedRingWithUnity a) => ( v : Matrix n m a ) -> (Algebra.unity {a=a}) <#> v = v
 moduleScalarUnityIsUnity_Mat [] = Refl
