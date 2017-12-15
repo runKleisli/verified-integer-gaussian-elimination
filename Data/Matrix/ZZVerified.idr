@@ -93,10 +93,10 @@ zzVecNeutralIsMatVecMultZero : (xs : Matrix n m ZZ) -> xs </> Algebra.neutral = 
 zzVecNeutralIsMatVecMultZero xs = trans (matVecMultIsVecTransposeMult Algebra.neutral xs) $ zzVecNeutralIsVecMatMultZero (transpose xs)
 
 zzVecNeutralIsNeutralL : (l : Vect n ZZ) -> l<+>Algebra.neutral=l
--- zzVecNeutralIsNeutralL = monoidNeutralIsNeutralL
+zzVecNeutralIsNeutralL = monoidNeutralIsNeutralL_Vect
 
 zzVecNeutralIsNeutralR : (r : Vect n ZZ) -> Algebra.neutral<+>r=r
--- zzVecNeutralIsNeutralR = monoidNeutralIsNeutralR
+zzVecNeutralIsNeutralR = monoidNeutralIsNeutralR_Vect
 
 zzVecScalarUnityIsUnity : (v : Vect n ZZ) -> (Algebra.unity {a=ZZ}) <#> v = v
 zzVecScalarUnityIsUnity = moduleScalarUnityIsUnity_Vect2
