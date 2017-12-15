@@ -45,10 +45,36 @@ ringVecNeutralIsVecMatMultZero : VerifiedRing a => (xs : Matrix n m a) -> Algebr
 ringVecNeutralIsVecMatMultZero xs = trans (vecMatMultTransposeEq Algebra.neutral xs) $ ringVecNeutralIsMatVecMultZero $ transpose xs
 -}
 
-zzVecNeutralIsVecPtwiseProdZeroL : (xs : Vect n ZZ) -> xs <:> Algebra.neutral = Algebra.neutral
+zzVecNeutralIsVecPtwiseProdZeroL :
+	(xs : Vect n ZZ)
+	-> xs <:> Algebra.neutral = Algebra.neutral
 zzVecNeutralIsVecPtwiseProdZeroL [] = Refl
-zzVecNeutralIsVecPtwiseProdZeroL (x::xs) = ?zzVecNeutralIsVecPtwiseProdZeroL'
--- zzVecNeutralIsVecPtwiseProdZeroL (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ zzVecNeutralIsVecPtwiseProdZeroL xs
+zzVecNeutralIsVecPtwiseProdZeroL (x::xs) =
+	trans ( foldrImplRec (<+>) (Pos 0) id
+		(x <.> Algebra.neutral)
+		(zipWith (<.>) xs Algebra.neutral) )
+	$ trans ( rewrite ringNeutralIsMultZeroR x in monoidNeutralIsNeutralR _ )
+	$ zzVecNeutralIsVecPtwiseProdZeroL xs
+{-
+Couldn't do this:
+
+> zzVecNeutralIsVecPtwiseProdZeroL (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ zzVecNeutralIsVecPtwiseProdZeroL xs
+
+Discovered this proof by ordered inspection following this proof script:
+
+ZZVerified.zzVecNeutralIsVecPtwiseProdZeroL' = proof
+  intros
+  let pr' = zzVecNeutralIsVecPtwiseProdZeroL xs
+  exact _ pr'
+  compute
+  intro computedPr
+  exact trans _ computedPr
+  -- The script thusfar makes it possible to identify the missing theorem.
+  exact trans ( foldrImplRec (<+>) (Pos 0) id (x <.> Algebra.neutral) (zipWith (<.>) xs Algebra.neutral) ) $ _
+  compute
+  rewrite sym $ ringNeutralIsMultZeroR x
+  exact monoidNeutralIsNeutralR _
+-}
 
 zzVecNeutralIsVecPtwiseProdZeroR : (xs : Vect n ZZ) -> Algebra.neutral <:> xs = Algebra.neutral
 zzVecNeutralIsVecPtwiseProdZeroR [] = Refl
