@@ -3,6 +3,7 @@ module ZZModuleSpan
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
+import Control.Algebra.DiamondInstances
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 import Data.Matrix.AlgebraicVerified

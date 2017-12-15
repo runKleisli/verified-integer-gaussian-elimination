@@ -3,38 +3,11 @@ module Data.Matrix.AlgebraicVerified
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
+import Control.Algebra.DiamondInstances
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
 import Data.Vect.Structural
-
-
-
-{-
-Diamond instances
-explicitly referenced for using in treating diamond inheritance problems
-* VerifiedRingWithUnity a -> Ring a
--}
-
-
-
-vrwuVerifiedRing : VerifiedRingWithUnity a -> VerifiedRing a
-vrwuVerifiedRing a = %instance
-
-vrwuRingWithUnity : VerifiedRingWithUnity a -> RingWithUnity a
-vrwuRingWithUnity a = %instance
-
-vrRing : VerifiedRing a -> Ring a
-vrRing a = %instance
-
-rwuRing : RingWithUnity a -> Ring a
-rwuRing a = %instance
-
-vrwuRingByVR : VerifiedRingWithUnity a -> Ring a
-vrwuRingByVR = vrRing . vrwuVerifiedRing
-
-vrwuRingByRWU : VerifiedRingWithUnity a -> Ring a
-vrwuRingByRWU = rwuRing . vrwuRingWithUnity
 
 
 

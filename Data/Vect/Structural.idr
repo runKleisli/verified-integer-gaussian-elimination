@@ -4,43 +4,9 @@ module Data.Vect.Structural
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
+import Control.Algebra.DiamondInstances
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
-
-
-
-{-
-Diamond instances
-explicitly referenced for using in treating diamond inheritance problems
-* VerifiedGroup a -> Semigroup a
-* VerifiedRingWithUnity a -> Semigroup a
--}
-
-
-
-vgrpVerifiedMonoid : VerifiedGroup a -> VerifiedMonoid a
-vgrpVerifiedMonoid a = %instance
-
-vgrpGroup : VerifiedGroup a -> Group a
-vgrpGroup a = %instance
-
-vmonSemigrp : VerifiedMonoid a -> Semigroup a
-vmonSemigrp a = %instance
-
-grpSemigrp : Group a -> Semigroup a
-grpSemigrp a = %instance
-
-vgrpSemigroupByVMon : VerifiedGroup a -> Semigroup a
-vgrpSemigroupByVMon = vmonSemigrp . vgrpVerifiedMonoid
-
-vgrpSemigroupByGrp : VerifiedGroup a -> Semigroup a
-vgrpSemigroupByGrp = grpSemigrp . vgrpGroup
-
-vrwuSemigroupByVMon : VerifiedRingWithUnity a -> Semigroup a
-vrwuSemigroupByVMon a = vgrpSemigroupByVMon %instance
-
-vrwuSemigroupByGrp : VerifiedRingWithUnity a -> Semigroup a
-vrwuSemigroupByGrp a = vgrpSemigroupByGrp %instance
 
 
 
@@ -290,9 +256,15 @@ indexCompatSub {ok} xs ys i = rewrite ok in
 	$ cong {f=((index i xs)<+>)}
 	$ indexCompatInverse ys i
 
-indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
+indexCompatScaling : VerifiedRingWithUnity a
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (r : a) -> (xs : Vect n a) -> (i : Fin n)
+	-> index i $ r <#> xs = r <.> index i xs
 indexCompatScaling r [] i = FinZElim i
-indexCompatScaling r (x::xs) FZ = ?indexCompatScaling_lemma_1 -- Should be Refl
+indexCompatScaling r (x::xs) FZ {ok} = cong {f=\t => t r x} ok
 indexCompatScaling r (x::xs) (FS preli) = indexCompatScaling r xs preli
 
 
