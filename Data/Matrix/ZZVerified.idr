@@ -47,6 +47,7 @@ ringVecNeutralIsVecMatMultZero xs = trans (vecMatMultTransposeEq Algebra.neutral
 
 zzVecNeutralIsVecPtwiseProdZeroL : (xs : Vect n ZZ) -> xs <:> Algebra.neutral = Algebra.neutral
 zzVecNeutralIsVecPtwiseProdZeroL [] = Refl
+zzVecNeutralIsVecPtwiseProdZeroL (x::xs) = ?zzVecNeutralIsVecPtwiseProdZeroL'
 -- zzVecNeutralIsVecPtwiseProdZeroL (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroR x) $ zzVecNeutralIsVecPtwiseProdZeroL xs
 
 zzVecNeutralIsVecPtwiseProdZeroR : (xs : Vect n ZZ) -> Algebra.neutral <:> xs = Algebra.neutral
@@ -67,4 +68,4 @@ zzVecNeutralIsNeutralR : (r : Vect n ZZ) -> Algebra.neutral<+>r=r
 -- zzVecNeutralIsNeutralR = monoidNeutralIsNeutralR
 
 zzVecScalarUnityIsUnity : (v : Vect n ZZ) -> (Algebra.unity {a=ZZ}) <#> v = v
--- zzVecScalarUnityIsUnity = moduleScalarUnityIsUnity
+zzVecScalarUnityIsUnity = moduleScalarUnityIsUnity_Vect2

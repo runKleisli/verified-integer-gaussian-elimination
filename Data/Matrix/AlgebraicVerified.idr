@@ -11,6 +11,34 @@ import Data.Vect.Structural
 
 
 {-
+Diamond instances
+explicitly referenced for using in treating diamond inheritance problems
+* VerifiedRingWithUnity a -> Ring a
+-}
+
+
+
+vrwuVerifiedRing : VerifiedRingWithUnity a -> VerifiedRing a
+vrwuVerifiedRing a = %instance
+
+vrwuRingWithUnity : VerifiedRingWithUnity a -> RingWithUnity a
+vrwuRingWithUnity a = %instance
+
+vrRing : VerifiedRing a -> Ring a
+vrRing a = %instance
+
+rwuRing : RingWithUnity a -> Ring a
+rwuRing a = %instance
+
+vrwuRingByVR : VerifiedRingWithUnity a -> Ring a
+vrwuRingByVR = vrRing . vrwuVerifiedRing
+
+vrwuRingByRWU : VerifiedRingWithUnity a -> Ring a
+vrwuRingByRWU = rwuRing . vrwuRingWithUnity
+
+
+
+{-
 Definitions:
 * Verified module
 * Verified vector space
@@ -71,9 +99,33 @@ moduleScalarMultiplyComposition_Vect : (VerifiedRingWithUnity a) => ( x, y : a )
 moduleScalarMultiplyComposition_Vect x y [] = Refl
 moduleScalarMultiplyComposition_Vect x y (v::vs) ?= vecHeadtailsEq (ringOpIsAssociative x y v) $ moduleScalarMultiplyComposition_Vect x y vs
 
+{-
+This doesn't exist because of a diamond inheritance problem.
+-}
+
 moduleScalarUnityIsUnity_Vect : (VerifiedRingWithUnity a) => ( v : Vect n a ) -> (Algebra.unity {a=a}) <#> v = v
 moduleScalarUnityIsUnity_Vect [] = Refl
-moduleScalarUnityIsUnity_Vect (v::vs) ?= vecHeadtailsEq (ringWithUnityIsUnityR v) $ moduleScalarUnityIsUnity_Vect vs
+moduleScalarUnityIsUnity_Vect (v::vs) = ?moduleScalarUnityIsUnity_Vect'
+
+{-
+So we use this instead,
+where the equality between (<.>)s coming from different instances is
+an automatically solved assumption.
+-}
+
+moduleScalarUnityIsUnity_Vect2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( v : Vect n a )
+	-> (Algebra.unity {a=a}) <#> v = v
+moduleScalarUnityIsUnity_Vect2 [] = Refl
+moduleScalarUnityIsUnity_Vect2 {ok} (v::vs) =
+	vecHeadtailsEq (
+		trans (cong {f=\t => t Algebra.unity v} ok)
+		$ ringWithUnityIsUnityR v)
+	$ moduleScalarUnityIsUnity_Vect2 vs
 
 moduleScalarMultDistributiveWRTVectorAddition_Vect : (VerifiedRingWithUnity a) => (s : a) -> (v, w : Vect n a) -> s <#> v <+> w = (s <#> v) <+> (s <#> w)
 moduleScalarMultDistributiveWRTVectorAddition_Vect s [] [] = Refl
@@ -142,6 +194,19 @@ moduleScalarMultiplyComposition_Mat x y (v::vs) = vecHeadtailsEq (moduleScalarMu
 moduleScalarUnityIsUnity_Mat : (VerifiedRingWithUnity a) => ( v : Matrix n m a ) -> (Algebra.unity {a=a}) <#> v = v
 moduleScalarUnityIsUnity_Mat [] = Refl
 moduleScalarUnityIsUnity_Mat (v::vs) = vecHeadtailsEq (moduleScalarUnityIsUnity_Vect _) $ moduleScalarUnityIsUnity_Mat _
+
+{- Solves same diamond inheritance problem as in (moduleScalarUnityIsUnity_Vect2) -}
+
+moduleScalarUnityIsUnity_Mat2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( v : Matrix n m a )
+	-> (Algebra.unity {a=a}) <#> v = v
+moduleScalarUnityIsUnity_Mat2 [] = Refl
+moduleScalarUnityIsUnity_Mat2 (v::vs) = vecHeadtailsEq (moduleScalarUnityIsUnity_Vect2 _)
+	$ moduleScalarUnityIsUnity_Mat2 _
 
 moduleScalarMultDistributiveWRTVectorAddition_Mat : (VerifiedRingWithUnity a) => (s : a) -> (v, w : Matrix n m a) -> s <#> v <+> w = (s <#> v) <+> (s <#> w)
 moduleScalarMultDistributiveWRTVectorAddition_Mat s [] [] = Refl
