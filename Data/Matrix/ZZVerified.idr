@@ -78,7 +78,12 @@ ZZVerified.zzVecNeutralIsVecPtwiseProdZeroL' = proof
 
 zzVecNeutralIsVecPtwiseProdZeroR : (xs : Vect n ZZ) -> Algebra.neutral <:> xs = Algebra.neutral
 zzVecNeutralIsVecPtwiseProdZeroR [] = Refl
--- zzVecNeutralIsVecPtwiseProdZeroR (x::xs) = vecHeadtailsEq (ringNeutralIsMultZeroL x) $ zzVecNeutralIsVecPtwiseProdZeroR xs
+zzVecNeutralIsVecPtwiseProdZeroR (x::xs) =
+	trans ( foldrImplRec (<+>) (Pos 0) id
+		(Algebra.neutral <.> x)
+		(zipWith (<.>) Algebra.neutral xs) )
+	$ trans ( rewrite ringNeutralIsMultZeroL x in monoidNeutralIsNeutralR _ )
+	$ zzVecNeutralIsVecPtwiseProdZeroR xs
 
 zzVecNeutralIsVecMatMultZero : (xs : Matrix n m ZZ) -> Algebra.neutral <\> xs = Algebra.neutral
 zzVecNeutralIsVecMatMultZero xs {m=Z} = zeroVecEq
