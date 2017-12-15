@@ -104,9 +104,35 @@ moduleScalarMultDistributiveWRTVectorAddition_Vect : (VerifiedRingWithUnity a) =
 moduleScalarMultDistributiveWRTVectorAddition_Vect s [] [] = Refl
 moduleScalarMultDistributiveWRTVectorAddition_Vect s (v::vs) (w::ws) ?= vecHeadtailsEq (ringOpIsDistributiveL s v w) $ moduleScalarMultDistributiveWRTVectorAddition_Vect s vs ws
 
+moduleScalarMultDistributiveWRTVectorAddition_Vect2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s : a) -> (v, w : Vect n a)
+	-> s <#> v <+> w = (s <#> v) <+> (s <#> w)
+moduleScalarMultDistributiveWRTVectorAddition_Vect2 s [] [] = Refl
+moduleScalarMultDistributiveWRTVectorAddition_Vect2 {ok} s (v::vs) (w::ws) =
+	vecHeadtailsEq
+		(rewrite ok in ringOpIsDistributiveL s v w)
+	$ moduleScalarMultDistributiveWRTVectorAddition_Vect2 s vs ws
+
 moduleScalarMultDistributiveWRTModuleAddition_Vect : (VerifiedRingWithUnity a) => (s, t : a) -> (v : Vect n a) -> s <+> t <#> v = (s <#> v) <+> (t <#> v)
 moduleScalarMultDistributiveWRTModuleAddition_Vect s t [] = Refl
 moduleScalarMultDistributiveWRTModuleAddition_Vect s t (v::vs) ?= vecHeadtailsEq (ringOpIsDistributiveR s t v) $ moduleScalarMultDistributiveWRTModuleAddition_Vect s t vs
+
+moduleScalarMultDistributiveWRTModuleAddition_Vect2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s, t : a) -> (v : Vect n a)
+	-> s <+> t <#> v = (s <#> v) <+> (t <#> v)
+moduleScalarMultDistributiveWRTModuleAddition_Vect2 s t [] = Refl
+moduleScalarMultDistributiveWRTModuleAddition_Vect2 {ok} s t (v::vs) =
+	vecHeadtailsEq
+		(rewrite ok in ringOpIsDistributiveR s t v)
+	$ moduleScalarMultDistributiveWRTModuleAddition_Vect2 s t vs
 
 {-
 instance (VerifiedRingWithUnity a) => VerifiedSemigroup (Vect n a) where
@@ -185,9 +211,29 @@ moduleScalarMultDistributiveWRTVectorAddition_Mat : (VerifiedRingWithUnity a) =>
 moduleScalarMultDistributiveWRTVectorAddition_Mat s [] [] = Refl
 moduleScalarMultDistributiveWRTVectorAddition_Mat s (v::vs) (w::ws) = vecHeadtailsEq (moduleScalarMultDistributiveWRTVectorAddition_Vect _ _ _) $ moduleScalarMultDistributiveWRTVectorAddition_Mat _ _ _
 
+moduleScalarMultDistributiveWRTVectorAddition_Mat2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s : a) -> (v, w : Matrix n m a)
+	-> s <#> v <+> w = (s <#> v) <+> (s <#> w)
+moduleScalarMultDistributiveWRTVectorAddition_Mat2 s [] [] = Refl
+moduleScalarMultDistributiveWRTVectorAddition_Mat2 s (v::vs) (w::ws) = vecHeadtailsEq (moduleScalarMultDistributiveWRTVectorAddition_Vect2 _ _ _) $ moduleScalarMultDistributiveWRTVectorAddition_Mat2 _ _ _
+
 moduleScalarMultDistributiveWRTModuleAddition_Mat : (VerifiedRingWithUnity a) => (s, t : a) -> (v : Matrix n m a) -> s <+> t <#> v = (s <#> v) <+> (t <#> v)
 moduleScalarMultDistributiveWRTModuleAddition_Mat s t [] = Refl
 moduleScalarMultDistributiveWRTModuleAddition_Mat s t (v::vs) = vecHeadtailsEq (moduleScalarMultDistributiveWRTModuleAddition_Vect _ _ _) $ moduleScalarMultDistributiveWRTModuleAddition_Mat _ _ _
+
+moduleScalarMultDistributiveWRTModuleAddition_Mat2 : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s, t : a) -> (v : Matrix n m a)
+	-> s <+> t <#> v = (s <#> v) <+> (t <#> v)
+moduleScalarMultDistributiveWRTModuleAddition_Mat2 s t [] = Refl
+moduleScalarMultDistributiveWRTModuleAddition_Mat2 s t (v::vs) = vecHeadtailsEq (moduleScalarMultDistributiveWRTModuleAddition_Vect2 _ _ _) $ moduleScalarMultDistributiveWRTModuleAddition_Mat2 _ _ _
 
 
 instance (VerifiedRingWithUnity a) => VerifiedSemigroup (Matrix n m a) where
