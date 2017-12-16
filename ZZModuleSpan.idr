@@ -2214,7 +2214,7 @@ spanSub' = proof
   let spanAdd' = spanAdd {xs=xs} {ys=ys} {zs = inverse zs}
   refine spanAdd'
   exact prxy
-  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( negScalarToScaledNegMat_zz (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity_Mat2 {a=ZZ} (inverse zs) )) spanslzrefl
+  exact spanslztrans (spanScalelz (inverse unity) prxz) $ replace {P=\t => spanslz ((<#>) (inverse $ unity {a=ZZ}) zs) t} (trans ( negScalarToScaledNegMat_zz (unity {a=ZZ}) zs ) ( moduleScalarUnityIsUnity_Mat {a=ZZ} (inverse zs) )) spanslzrefl
 
 {-
 -- Works in REPL only

@@ -884,8 +884,8 @@ vectTimesNegOneIsNeg_zz : (xs : Vect n ZZ)
 	-> (Algebra.inverse $ the ZZ $ Algebra.unity) <#> xs = Algebra.inverse xs
 vectTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR_Vect _ _ xs
 	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
-		$ sym $ moduleScalarUnityIsUnity_Vect2 {ok=Refl} xs)
-	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Vect2 {ok=Refl}
+		$ sym $ moduleScalarUnityIsUnity_Vect {ok=Refl} xs)
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Vect {ok=Refl}
 		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
 	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
 	$ trans (neutralScalarIsScalarMultNeutral_zzVect xs)
@@ -895,8 +895,8 @@ matTimesNegOneIsNeg_zz : (xs : Matrix n m ZZ)
 	-> (Algebra.inverse $ the ZZ $ Algebra.unity) <#> xs = Algebra.inverse xs
 matTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR _ _ xs
 	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
-		$ sym $ moduleScalarUnityIsUnity_Mat2 {a=ZZ} xs)
-	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Mat2
+		$ sym $ moduleScalarUnityIsUnity_Mat {a=ZZ} xs)
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Mat
 		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
 	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
 	$ trans (neutralScalarIsScalarMultNeutral_zzMat xs)
@@ -934,7 +934,7 @@ negScalarToScaledNegVect_zz : (s : ZZ)
 negScalarToScaledNegVect_zz s x =
 	trans (cong {f=(<#>x)}
 		$ trans (negativeIsNegOneTimesRight s) $ ringOpIsCommutative_ZZ _ s)
-	$ trans (sym $ moduleScalarMultiplyComposition_Vect2 s _ x)
+	$ trans (sym $ moduleScalarMultiplyComposition_Vect s _ x)
 	$ cong {f=(s<#>)} $ vectTimesNegOneIsNeg_zz x
 
 negScalarToScaledNegMat_zz : (s : ZZ)
@@ -943,5 +943,5 @@ negScalarToScaledNegMat_zz : (s : ZZ)
 negScalarToScaledNegMat_zz s x =
 	trans (cong {f=(<#>x)}
 		$ trans (negativeIsNegOneTimesRight s) $ ringOpIsCommutative_ZZ _ s)
-	$ trans (sym $ moduleScalarMultiplyComposition_Mat2 s _ x)
+	$ trans (sym $ moduleScalarMultiplyComposition_Mat s _ x)
 	$ cong {f=(s<#>)} $ matTimesNegOneIsNeg_zz x

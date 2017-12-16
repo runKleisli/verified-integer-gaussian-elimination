@@ -68,18 +68,18 @@ abelianGroupOpIsCommutative_Vect : (VerifiedRingWithUnity a) => (l, r : Vect n a
 abelianGroupOpIsCommutative_Vect [] [] = Refl
 abelianGroupOpIsCommutative_Vect (l::ls) (r::rs) = vecHeadtailsEq (abelianGroupOpIsCommutative _ _) $ abelianGroupOpIsCommutative_Vect _ _
 
-moduleScalarMultiplyComposition_Vect2 : (VerifiedRingWithUnity a)
+moduleScalarMultiplyComposition_Vect : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> ( x, y : a ) -> ( v : Vect n a )
 	-> x <#> (y <#> v) = x <.> y <#> v
-moduleScalarMultiplyComposition_Vect2 x y [] = Refl
-moduleScalarMultiplyComposition_Vect2 {ok} x y (v::vs) =
+moduleScalarMultiplyComposition_Vect x y [] = Refl
+moduleScalarMultiplyComposition_Vect {ok} x y (v::vs) =
 	vecHeadtailsEq
 		(rewrite ok in ringOpIsAssociative x y v)
-	$ moduleScalarMultiplyComposition_Vect2 x y vs
+	$ moduleScalarMultiplyComposition_Vect x y vs
 
 {-
 This doesn't exist because of a diamond inheritance problem.
@@ -95,45 +95,45 @@ where the equality between (<.>)s coming from different instances is
 an automatically solved assumption.
 -}
 
-moduleScalarUnityIsUnity_Vect2 : (VerifiedRingWithUnity a)
+moduleScalarUnityIsUnity_Vect : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> ( v : Vect n a )
 	-> (Algebra.unity {a=a}) <#> v = v
-moduleScalarUnityIsUnity_Vect2 [] = Refl
-moduleScalarUnityIsUnity_Vect2 {ok} (v::vs) =
+moduleScalarUnityIsUnity_Vect [] = Refl
+moduleScalarUnityIsUnity_Vect {ok} (v::vs) =
 	vecHeadtailsEq (
 		trans (cong {f=\t => t Algebra.unity v} ok)
 		$ ringWithUnityIsUnityR v)
-	$ moduleScalarUnityIsUnity_Vect2 vs
+	$ moduleScalarUnityIsUnity_Vect vs
 
-moduleScalarMultDistributiveWRTVectorAddition_Vect2 : (VerifiedRingWithUnity a)
+moduleScalarMultDistributiveWRTVectorAddition_Vect : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> (s : a) -> (v, w : Vect n a)
 	-> s <#> v <+> w = (s <#> v) <+> (s <#> w)
-moduleScalarMultDistributiveWRTVectorAddition_Vect2 s [] [] = Refl
-moduleScalarMultDistributiveWRTVectorAddition_Vect2 {ok} s (v::vs) (w::ws) =
+moduleScalarMultDistributiveWRTVectorAddition_Vect s [] [] = Refl
+moduleScalarMultDistributiveWRTVectorAddition_Vect {ok} s (v::vs) (w::ws) =
 	vecHeadtailsEq
 		(rewrite ok in ringOpIsDistributiveL s v w)
-	$ moduleScalarMultDistributiveWRTVectorAddition_Vect2 s vs ws
+	$ moduleScalarMultDistributiveWRTVectorAddition_Vect s vs ws
 
-moduleScalarMultDistributiveWRTModuleAddition_Vect2 : (VerifiedRingWithUnity a)
+moduleScalarMultDistributiveWRTModuleAddition_Vect : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> (s, t : a) -> (v : Vect n a)
 	-> s <+> t <#> v = (s <#> v) <+> (t <#> v)
-moduleScalarMultDistributiveWRTModuleAddition_Vect2 s t [] = Refl
-moduleScalarMultDistributiveWRTModuleAddition_Vect2 {ok} s t (v::vs) =
+moduleScalarMultDistributiveWRTModuleAddition_Vect s t [] = Refl
+moduleScalarMultDistributiveWRTModuleAddition_Vect {ok} s t (v::vs) =
 	vecHeadtailsEq
 		(rewrite ok in ringOpIsDistributiveR s t v)
-	$ moduleScalarMultDistributiveWRTModuleAddition_Vect2 s t vs
+	$ moduleScalarMultDistributiveWRTModuleAddition_Vect s t vs
 
 {-
 instance (VerifiedRingWithUnity a) => VerifiedSemigroup (Vect n a) where
@@ -187,46 +187,46 @@ abelianGroupOpIsCommutative_Mat : (VerifiedRingWithUnity a) => (l, r : Matrix n 
 abelianGroupOpIsCommutative_Mat [] [] = Refl
 abelianGroupOpIsCommutative_Mat (l::ls) (r::rs) = vecHeadtailsEq (abelianGroupOpIsCommutative_Vect _ _) $ abelianGroupOpIsCommutative_Mat _ _
 
-moduleScalarMultiplyComposition_Mat2 : (VerifiedRingWithUnity a)
+moduleScalarMultiplyComposition_Mat : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> ( x, y : a ) -> ( v : Matrix n m a )
 	-> x <#> (y <#> v) = x <.> y <#> v
-moduleScalarMultiplyComposition_Mat2 x y [] = Refl
-moduleScalarMultiplyComposition_Mat2 x y (v::vs) = vecHeadtailsEq (moduleScalarMultiplyComposition_Vect2 _ _ _) $ moduleScalarMultiplyComposition_Mat2 _ _ _
+moduleScalarMultiplyComposition_Mat x y [] = Refl
+moduleScalarMultiplyComposition_Mat x y (v::vs) = vecHeadtailsEq (moduleScalarMultiplyComposition_Vect _ _ _) $ moduleScalarMultiplyComposition_Mat _ _ _
 
-moduleScalarUnityIsUnity_Mat2 : (VerifiedRingWithUnity a)
+moduleScalarUnityIsUnity_Mat : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> ( v : Matrix n m a )
 	-> (Algebra.unity {a=a}) <#> v = v
-moduleScalarUnityIsUnity_Mat2 [] = Refl
-moduleScalarUnityIsUnity_Mat2 (v::vs) = vecHeadtailsEq (moduleScalarUnityIsUnity_Vect2 _)
-	$ moduleScalarUnityIsUnity_Mat2 _
+moduleScalarUnityIsUnity_Mat [] = Refl
+moduleScalarUnityIsUnity_Mat (v::vs) = vecHeadtailsEq (moduleScalarUnityIsUnity_Vect _)
+	$ moduleScalarUnityIsUnity_Mat _
 
-moduleScalarMultDistributiveWRTVectorAddition_Mat2 : (VerifiedRingWithUnity a)
+moduleScalarMultDistributiveWRTVectorAddition_Mat : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> (s : a) -> (v, w : Matrix n m a)
 	-> s <#> v <+> w = (s <#> v) <+> (s <#> w)
-moduleScalarMultDistributiveWRTVectorAddition_Mat2 s [] [] = Refl
-moduleScalarMultDistributiveWRTVectorAddition_Mat2 s (v::vs) (w::ws) = vecHeadtailsEq (moduleScalarMultDistributiveWRTVectorAddition_Vect2 _ _ _) $ moduleScalarMultDistributiveWRTVectorAddition_Mat2 _ _ _
+moduleScalarMultDistributiveWRTVectorAddition_Mat s [] [] = Refl
+moduleScalarMultDistributiveWRTVectorAddition_Mat s (v::vs) (w::ws) = vecHeadtailsEq (moduleScalarMultDistributiveWRTVectorAddition_Vect _ _ _) $ moduleScalarMultDistributiveWRTVectorAddition_Mat _ _ _
 
-moduleScalarMultDistributiveWRTModuleAddition_Mat2 : (VerifiedRingWithUnity a)
+moduleScalarMultDistributiveWRTModuleAddition_Mat : (VerifiedRingWithUnity a)
 	=> {auto ok :
 		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
 		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> (s, t : a) -> (v : Matrix n m a)
 	-> s <+> t <#> v = (s <#> v) <+> (t <#> v)
-moduleScalarMultDistributiveWRTModuleAddition_Mat2 s t [] = Refl
-moduleScalarMultDistributiveWRTModuleAddition_Mat2 s t (v::vs) = vecHeadtailsEq (moduleScalarMultDistributiveWRTModuleAddition_Vect2 _ _ _) $ moduleScalarMultDistributiveWRTModuleAddition_Mat2 _ _ _
+moduleScalarMultDistributiveWRTModuleAddition_Mat s t [] = Refl
+moduleScalarMultDistributiveWRTModuleAddition_Mat s t (v::vs) = vecHeadtailsEq (moduleScalarMultDistributiveWRTModuleAddition_Vect _ _ _) $ moduleScalarMultDistributiveWRTModuleAddition_Mat _ _ _
 
 
 instance (VerifiedRingWithUnity a) => VerifiedSemigroup (Matrix n m a) where

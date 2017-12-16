@@ -100,4 +100,4 @@ zzVecNeutralIsNeutralR : (r : Vect n ZZ) -> Algebra.neutral<+>r=r
 zzVecNeutralIsNeutralR = monoidNeutralIsNeutralR_Vect
 
 zzVecScalarUnityIsUnity : (v : Vect n ZZ) -> (Algebra.unity {a=ZZ}) <#> v = v
-zzVecScalarUnityIsUnity = moduleScalarUnityIsUnity_Vect2
+zzVecScalarUnityIsUnity = moduleScalarUnityIsUnity_Vect
