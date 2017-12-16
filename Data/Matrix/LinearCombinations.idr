@@ -934,7 +934,7 @@ negScalarToScaledNegVect_zz : (s : ZZ)
 negScalarToScaledNegVect_zz s x =
 	trans (cong {f=(<#>x)}
 		$ trans (negativeIsNegOneTimesRight s) $ ringOpIsCommutative_ZZ _ s)
-	$ trans (sym $ moduleScalarMultiplyComposition_Vect s _ x)
+	$ trans (sym $ moduleScalarMultiplyComposition_Vect2 s _ x)
 	$ cong {f=(s<#>)} $ vectTimesNegOneIsNeg_zz x
 
 negScalarToScaledNegMat_zz : (s : ZZ)
@@ -943,5 +943,5 @@ negScalarToScaledNegMat_zz : (s : ZZ)
 negScalarToScaledNegMat_zz s x =
 	trans (cong {f=(<#>x)}
 		$ trans (negativeIsNegOneTimesRight s) $ ringOpIsCommutative_ZZ _ s)
-	$ trans (sym $ moduleScalarMultiplyComposition_Mat s _ x)
+	$ trans (sym $ moduleScalarMultiplyComposition_Mat2 s _ x)
 	$ cong {f=(s<#>)} $ matTimesNegOneIsNeg_zz x
