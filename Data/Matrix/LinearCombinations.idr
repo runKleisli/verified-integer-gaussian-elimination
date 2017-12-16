@@ -278,27 +278,12 @@ timesVectMatAsLinearCombo_EntryCharizRight (vv::vvs) (xx::xxs) = sym $ reductCom
 -}
 
 reduceMultUnderHeadTo1D : {xxs : Matrix n (S m) ZZ} -> map Data.Vect.head (zipWith (<#>) (vv::vvs) (xx::xxs)) = zipWith (the (ZZ -> ZZ -> ZZ) (*)) (vv::vvs) (map Data.Vect.head (xx::xxs))
-reduceMultUnderHeadTo1D {n=Z} {vv} {xx} = ?reduceMultUnderHeadTo1D_triv
-reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} = ?reduceMultUnderHeadTo1D'
--- reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} = trans (cong $ headMapChariz {xs=xx}) $ (cong {f=(Data.Vect.(::) $ multZ vv (head xx))} reduceMultUnderHeadTo1D)
-
-reduceMultUnderHeadTo1D_triv = proof
-  intros
-  rewrite sym (the (xxs = []) zeroVecEq)
-  rewrite sym (the (vvs = []) zeroVecEq)
-  compute
-  exact cong {f=(::[])} _
-  exact headMapChariz {xs=xx}
-
-reduceMultUnderHeadTo1D' = proof
-  intros
-  -- Not required in the REPL: {f=multZ vv}
-  exact trans (cong {f=(::(map head $ zipWith (<#>) vvs xxs))} $ headMapChariz {f=multZ vv} {xs=xx}) _
-  compute
-  exact cong {f=(::) (multZ vv (head xx))} _
-  rewrite sym $ headtails vvs
-  rewrite sym $ headtails xxs
-  exact reduceMultUnderHeadTo1D {vv=head vvs} {vvs=tail vvs} {xx=head xxs} {xxs=tail xxs}
+reduceMultUnderHeadTo1D {n=Z} {vv} {xx}
+	= vecHeadtailsEq (headMapChariz {xs=xx}) zeroVecEq
+reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} {vvs} {xxs}
+	= vecHeadtailsEq (headMapChariz {f=multZ vv} {xs=xx})
+	$ rewrite headtails vvs in rewrite headtails xxs in
+	reduceMultUnderHeadTo1D {vv=head vvs} {vvs=tail vvs} {xx=head xxs} {xxs=tail xxs}
 
 timesVectMatAsLinearCombo_EntryCharizRight' = proof
   intros
