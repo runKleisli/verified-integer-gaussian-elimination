@@ -278,27 +278,12 @@ timesVectMatAsLinearCombo_EntryCharizRight (vv::vvs) (xx::xxs) = sym $ reductCom
 -}
 
 reduceMultUnderHeadTo1D : {xxs : Matrix n (S m) ZZ} -> map Data.Vect.head (zipWith (<#>) (vv::vvs) (xx::xxs)) = zipWith (the (ZZ -> ZZ -> ZZ) (*)) (vv::vvs) (map Data.Vect.head (xx::xxs))
-reduceMultUnderHeadTo1D {n=Z} {vv} {xx} = ?reduceMultUnderHeadTo1D_triv
-reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} = ?reduceMultUnderHeadTo1D'
--- reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} = trans (cong $ headMapChariz {xs=xx}) $ (cong {f=(Data.Vect.(::) $ multZ vv (head xx))} reduceMultUnderHeadTo1D)
-
-reduceMultUnderHeadTo1D_triv = proof
-  intros
-  rewrite sym (the (xxs = []) zeroVecEq)
-  rewrite sym (the (vvs = []) zeroVecEq)
-  compute
-  exact cong {f=(::[])} _
-  exact headMapChariz {xs=xx}
-
-reduceMultUnderHeadTo1D' = proof
-  intros
-  -- Not required in the REPL: {f=multZ vv}
-  exact trans (cong {f=(::(map head $ zipWith (<#>) vvs xxs))} $ headMapChariz {f=multZ vv} {xs=xx}) _
-  compute
-  exact cong {f=(::) (multZ vv (head xx))} _
-  rewrite sym $ headtails vvs
-  rewrite sym $ headtails xxs
-  exact reduceMultUnderHeadTo1D {vv=head vvs} {vvs=tail vvs} {xx=head xxs} {xxs=tail xxs}
+reduceMultUnderHeadTo1D {n=Z} {vv} {xx}
+	= vecHeadtailsEq (headMapChariz {xs=xx}) zeroVecEq
+reduceMultUnderHeadTo1D {n=S predn} {vv} {xx} {vvs} {xxs}
+	= vecHeadtailsEq (headMapChariz {f=multZ vv} {xs=xx})
+	$ rewrite headtails vvs in rewrite headtails xxs in
+	reduceMultUnderHeadTo1D {vv=head vvs} {vvs=tail vvs} {xx=head xxs} {xxs=tail xxs}
 
 timesVectMatAsLinearCombo_EntryCharizRight' = proof
   intros
@@ -355,20 +340,10 @@ compressMonoidsum_lem2 = ?compressMonoidsum_lem2'
 
 rewriteZipWithUnderTail : {scals : Vect n ZZ} -> {vects : Matrix n (S predw) ZZ} -> map Data.Vect.tail $ Data.Vect.zipWith (<#>) scals vects = Data.Vect.zipWith (<#>) scals (map Data.Vect.tail vects)
 rewriteZipWithUnderTail {scals=[]} {vects=[]} = Refl
-rewriteZipWithUnderTail {scals=z::zs} {vects=v::vs} = ?rewriteZipWithUnderTail'
-
-rewriteZipWithUnderTail' = proof
-  intros
-  let headv = map (z <.>) (tail v)
-  exact trans _ (cong {f=(headv::)} $ rewriteZipWithUnderTail {scals=zs} {vects=vs})
-  claim headeq tail (map (z<.>) v) = headv
-  compute -- reduce the headv in the proposition to its value for prepping substitution
-  unfocus
-  rewrite sym headeq
-  compute -- apply the (\x => headv::x) from the earlier cong
-  exact Refl
-  rewrite sym $ headtails v
-  exact Refl
+rewriteZipWithUnderTail {scals=z::zs} {vects=v::vs}
+	= vecHeadtailsEq
+		(rewrite headtails v in Refl)
+	$ rewriteZipWithUnderTail {scals=zs} {vects=vs}
 
 compressMonoidsum_lem3 : {n : Nat} -> {scals : Vect n ZZ} -> {predw : Nat} -> {vects : Vect n (Vect (S predw) ZZ)} -> monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) ) = tail $ monoidsum ( zipWith (<#>) scals vects )
 compressMonoidsum_lem3 {predw=Z} {n} = zeroVecEq
@@ -401,33 +376,16 @@ timesVectMatAsLinearCombo_EntryCharizLeft' = proof
 
 
 
-timesVectMatAsLinearCombo : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
+timesVectMatAsLinearCombo :
+	(v : Vect n ZZ) -> (xs : Matrix n w ZZ)
+	-> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 timesVectMatAsLinearCombo [] [] = trans zippyLemA zippyLemB
-timesVectMatAsLinearCombo (z::zs) ([] :: xs) = zeroVecEq
-timesVectMatAsLinearCombo (z::zs) ((xx::xxs)::xs) = ?timesVectMatAsLinearCombo'
-
-timesVectMatAsLinearCombo_analysis0 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum (zipWith (<#>) scals vects)
-timesVectMatAsLinearCombo_analysis0 = ?timesVectMatAsLinearCombo_analysis0'
-
-timesVectMatAsLinearCombo_analysis1 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
-timesVectMatAsLinearCombo_analysis1 = ?timesVectMatAsLinearCombo_analysis1'
-
-timesVectMatAsLinearCombo_analysis1' = proof
-  intros
-  claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
-  unfocus
-  exact trans (cong {f=(flip Data.Vect.(::)) _} headequality) _
-  exact dotproductRewrite
-  compute
-  exact (vectConsCong (monoidsum (zipWith (<.>) scals (map head vects))) _ _ (timesVectMatAsLinearCombo scals (map Data.Vect.tail vects)))
-
-timesVectMatAsLinearCombo_analysis0' = proof
-  intros
-  exact trans timesVectMatAsLinearCombo_analysis1 (compressMonoidsum {scals=scals} {vects=vects})
-
-timesVectMatAsLinearCombo' = proof
-  intros
-  exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (timesVectMatAsLinearCombo_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
+timesVectMatAsLinearCombo zs xs {n=S predn} {w=Z} = zeroVecEq
+timesVectMatAsLinearCombo zs xs {n=S predn} {w=S predw}
+	= flip trans (compressMonoidsum {scals=zs} {vects=xs})
+	$ trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=zs} {vects=xs})
+	$ vecHeadtailsEq dotproductRewrite
+	$ timesVectMatAsLinearCombo zs (map Data.Vect.tail xs)
 
 
 
@@ -435,14 +393,11 @@ timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs
 timesMatMatAsMultipleLinearCombos_EntryChariz vs xs = rewrite sym (timesVectMatAsLinearCombo (head vs) xs) in (timesMatMatAsTVecMat_EntryChariz vs xs)
 
 timesMatMatAsMultipleLinearCombos : (vs : Matrix n' n ZZ) -> (xs : Matrix n w ZZ) -> vs <> xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
-timesMatMatAsMultipleLinearCombos {n'=Z} [] xs = Refl
-timesMatMatAsMultipleLinearCombos {n'=S predn'} (v::vs) xs = ?timesMatMatAsMultipleLinearCombos'
-
-timesMatMatAsMultipleLinearCombos' = proof
-	intros
-	rewrite sym $ headtails ((v::vs)<>xs)
-	rewrite sym $ timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs
-	exact cong {f=(( monoidsum $ zipWith (<#>) v xs )::)} $ timesMatMatAsMultipleLinearCombos vs xs
+timesMatMatAsMultipleLinearCombos [] xs = Refl
+timesMatMatAsMultipleLinearCombos (v::vs) xs
+	= trans ( headtails $ (v::vs)<>xs )
+	$ vecHeadtailsEq ( timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs )
+	$ timesMatMatAsMultipleLinearCombos vs xs
 
 
 
