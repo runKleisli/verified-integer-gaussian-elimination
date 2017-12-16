@@ -14,17 +14,14 @@ Ignore these files:
 
 These show what other kind of theorems are needed, but about the wrong objects to be correct or to fit the system of linear algebra used in this package.
 
-__All proofs mentioned below are up to Issue #24 on GitHub being solved__
-
 ## ZZGaussianElimination
 
 Main elimination algorithms.
 
 Mostly complete:
-Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
-What's implemented is called (gaussElimlzIfGCD).
-Some theorems it depends on are unproved, things like Issue #24, and some Data.Matrix.ZZVerified stuff left over.
-Idris confirms totality, up to those theorems it depends on, except for there's a mutual recursion in proofs regarding the properties of linear combination.
+* Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
+* What's implemented is called (gaussElimlzIfGCD).
+* Idris confirms totality for most things declared so far, but there's a mutual recursion in proofs regarding the properties of linear combination.
 
 Index:
 * Template & usage for do notation pattern matching technique
