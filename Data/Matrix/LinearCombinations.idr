@@ -885,7 +885,7 @@ vectTimesNegOneIsNeg_zz : (xs : Vect n ZZ)
 vectTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR_Vect _ _ xs
 	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
 		$ sym $ moduleScalarUnityIsUnity_Vect2 {ok=Refl} xs)
-	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Vect
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Vect2 {ok=Refl}
 		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
 	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
 	$ trans (neutralScalarIsScalarMultNeutral_zzVect xs)
@@ -895,8 +895,8 @@ matTimesNegOneIsNeg_zz : (xs : Matrix n m ZZ)
 	-> (Algebra.inverse $ the ZZ $ Algebra.unity) <#> xs = Algebra.inverse xs
 matTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR _ _ xs
 	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
-		$ sym $ moduleScalarUnityIsUnity_Mat2 {ok=Refl} {a=ZZ} xs)
-	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition
+		$ sym $ moduleScalarUnityIsUnity_Mat2 {a=ZZ} xs)
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Mat2
 		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
 	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
 	$ trans (neutralScalarIsScalarMultNeutral_zzMat xs)
