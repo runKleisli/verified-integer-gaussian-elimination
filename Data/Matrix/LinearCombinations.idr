@@ -59,8 +59,21 @@ doubleSumInnerSwap_Vect a b c d = trans (sym $ semigroupOpIsAssociative_Vect a b
 
 
 
+total
 lemma_VectAddHead : (v, w : Vect (S n) ZZ) -> head(v<+>w) = (head v)<+>(head w)
 lemma_VectAddHead (vv::vvs) (ww::wws) = Refl
+
+total
+matrixAddHead : (x, y : Matrix (S predn) m ZZ) -> Vect.head (x<+>y) = (Vect.head x)<+>(Vect.head y)
+matrixAddHead (x::xs) (y::ys) = Refl
+
+total
+lemma_VectAddTail : (x, y : Vect (S predn) ZZ) -> Vect.tail (x<+>y) = (Vect.tail x)<+>(Vect.tail y)
+lemma_VectAddTail (x::xs) (y::ys) = Refl
+
+total
+matrixAddTail : (x, y : Matrix (S predn) m ZZ) -> Vect.tail (x<+>y) = (Vect.tail x)<+>(Vect.tail y)
+matrixAddTail (x::xs) (y::ys) = Refl
 
 lemma_VectAddEntrywise : .{n : Nat} -> (ni : Fin n) -> (v, w : Vect n ZZ) -> index ni (v<+>w) = (index ni v)<+>(index ni w)
 {-
@@ -178,50 +191,15 @@ headOfSumIsSumOfHeads_Z_pr = proof
   exact n
 -}
 
--- Note that tailOfSumIsSumOfTails and monoidsumOverTailChariz depend on each other recursively.
-mutual
-	tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
-	tailOfSumIsSumOfTails {vs=[]} = Refl
-	tailOfSumIsSumOfTails {vs=v::vs} = trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStep {v=v} {vs=vs})
-
-	{-
-	-- Works in REPL but complains on loading, as usual
-	tailOfSumIsSumOfTails {vs=v::vs} = ?tailOfSumIsSumOfTails'
-	tailOfSumIsSumOfTails' = proof
-	  intros
-	  exact trans (cong {f=Data.Vect.tail} monoidrec2D) _
-	  rewrite sym (headtails v)
-	  rewrite sym (headtails $ monoidsum vs)
-	  exact monoidsumOverTailChariz
-	-}
-
-	tailsumMonrecStep : {v : Vect (S predw) ZZ}
-		-> Data.Vect.tail $ zipWith (+) v $ monoidsum vs
-			= foldrImpl (<+>) Algebra.neutral ((<+>) (tail v)) (map tail vs)
-	tailsumMonrecStep {v} {vs} = ?tailsumMonrecStep'
-	tailsumMonrecStep' = proof
-		intros
-		rewrite sym (headtails v)
-		rewrite sym (headtails $ monoidsum vs)
-		compute
-		exact monoidsumOverTailChariz {v=v} {vs=vs}
-
-	monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
-	monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} ) $
-			sym $ monoidrec2D {v=Data.Vect.tail v} {vs=map Data.Vect.tail vs}
-
-	{-
-	-- Works in REPL, but complains on loading, as usual.
-	monoidsumOverTailChariz = ?monoidsumOverTailChariz'
-	monoidsumOverTailChariz' = proof
-	  intros
-	  exact trans _ $ sym $ monoidrec2D {v=Data.Vect.tail v} {vs=map Data.Vect.tail vs}
-	  exact cong {f=zipWith (+) (tail v)} _
-	  claim newbrec tail (monoidsum vs) = monoidsum (map tail vs)
-	  unfocus
-	  exact newbrec
-	  exact ?newbrec'
-	-}
+tailOfSumIsSumOfTails :
+	{vs : Matrix n (S predw) ZZ}
+	-> tail (monoidsum vs) = monoidsum (map tail vs)
+tailOfSumIsSumOfTails {vs=[]} = Refl
+tailOfSumIsSumOfTails {vs=v::vs} =
+	trans ( cong {f=tail} monoidrec2D )
+	$ trans ( lemma_VectAddTail _ _ )
+	$ trans ( cong {f=(<+>) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} )
+	$ sym $ monoidrec2D
 
 
 
@@ -512,17 +490,18 @@ matrixAddEntrywise [] [] i j = FinZElim i
 matrixAddEntrywise (x::xs) (y::ys) FZ j = lemma_VectAddEntrywise j x y
 matrixAddEntrywise (x::xs) (y::ys) (FS preli) j = matrixAddEntrywise xs ys preli j
 
-total
-matrixAddHead : (x, y : Matrix (S predn) m ZZ) -> Vect.head (x<+>y) = (Vect.head x)<+>(Vect.head y)
-matrixAddHead (x::xs) (y::ys) = Refl
+{-
+DISPLACED TO BE DEPENDED ON SOONER:
 
-total
-lemma_VectAddTail : (x, y : Vect (S predn) ZZ) -> Vect.tail (x<+>y) = (Vect.tail x)<+>(Vect.tail y)
-lemma_VectAddTail (x::xs) (y::ys) = Refl
+* lemma_VectAddHead
+* matrixAddHead
+* lemma_VectAddTail
+* matrixAddTail
 
-total
-matrixAddTail : (x, y : Matrix (S predn) m ZZ) -> Vect.tail (x<+>y) = (Vect.tail x)<+>(Vect.tail y)
-matrixAddTail (x::xs) (y::ys) = Refl
+Related:
+* headOfSumIsSumOfHeads
+* tailOfSumIsSumOfTails
+-}
 
 matrixAddMapHead : (x, y : Matrix n (S predm) ZZ) -> map Vect.head $ x<+>y = (map Vect.head x)<+>(map Vect.head y)
 matrixAddMapHead [] [] = Refl
