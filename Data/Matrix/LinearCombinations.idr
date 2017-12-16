@@ -401,33 +401,16 @@ timesVectMatAsLinearCombo_EntryCharizLeft' = proof
 
 
 
-timesVectMatAsLinearCombo : (v : Vect n ZZ) -> (xs : Matrix n w ZZ) -> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
+timesVectMatAsLinearCombo :
+	(v : Vect n ZZ) -> (xs : Matrix n w ZZ)
+	-> ( v <\> xs = monoidsum (zipWith (<#>) v xs) )
 timesVectMatAsLinearCombo [] [] = trans zippyLemA zippyLemB
-timesVectMatAsLinearCombo (z::zs) ([] :: xs) = zeroVecEq
-timesVectMatAsLinearCombo (z::zs) ((xx::xxs)::xs) = ?timesVectMatAsLinearCombo'
-
-timesVectMatAsLinearCombo_analysis0 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum (zipWith (<#>) scals vects)
-timesVectMatAsLinearCombo_analysis0 = ?timesVectMatAsLinearCombo_analysis0'
-
-timesVectMatAsLinearCombo_analysis1 : {scals : Vect (S predn) ZZ} -> {vects : Matrix (S predn) (S predw) ZZ} -> (scals <:> map Data.Vect.head vects) :: ( scals <\> map Data.Vect.tail vects ) = monoidsum ( zipWith (<.>) scals (map Data.Vect.head vects) ) :: monoidsum ( zipWith (<#>) scals (map Data.Vect.tail vects) )
-timesVectMatAsLinearCombo_analysis1 = ?timesVectMatAsLinearCombo_analysis1'
-
-timesVectMatAsLinearCombo_analysis1' = proof
-  intros
-  claim headequality ( (scals <:> map Data.Vect.head vects) = monoidsum (zipWith (<.>) scals (map Data.Vect.head vects)) )
-  unfocus
-  exact trans (cong {f=(flip Data.Vect.(::)) _} headequality) _
-  exact dotproductRewrite
-  compute
-  exact (vectConsCong (monoidsum (zipWith (<.>) scals (map head vects))) _ _ (timesVectMatAsLinearCombo scals (map Data.Vect.tail vects)))
-
-timesVectMatAsLinearCombo_analysis0' = proof
-  intros
-  exact trans timesVectMatAsLinearCombo_analysis1 (compressMonoidsum {scals=scals} {vects=vects})
-
-timesVectMatAsLinearCombo' = proof
-  intros
-  exact ( trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=(z::zs)} {vects=((xx::xxs)::xs)}) (timesVectMatAsLinearCombo_analysis0 {scals=(z::zs)} {vects=((xx::xxs)::xs)}) )
+timesVectMatAsLinearCombo zs xs {n=S predn} {w=Z} = zeroVecEq
+timesVectMatAsLinearCombo zs xs {n=S predn} {w=S predw}
+	= flip trans (compressMonoidsum {scals=zs} {vects=xs})
+	$ trans (timesVectMatAsHeadTail_ByTransposeElimination {scals=zs} {vects=xs})
+	$ vecHeadtailsEq dotproductRewrite
+	$ timesVectMatAsLinearCombo zs (map Data.Vect.tail xs)
 
 
 
