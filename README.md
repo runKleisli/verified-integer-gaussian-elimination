@@ -21,7 +21,7 @@ Main elimination algorithms.
 Mostly complete:
 * Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
 * What's implemented is called (gaussElimlzIfGCD).
-* Idris confirms totality for most things declared so far, but there's a mutual recursion in proofs regarding the properties of linear combination.
+* Idris confirms it's total.
 
 Index:
 * Template & usage for do notation pattern matching technique
