@@ -393,14 +393,11 @@ timesMatMatAsMultipleLinearCombos_EntryChariz : (vs : Matrix (S n') n ZZ) -> (xs
 timesMatMatAsMultipleLinearCombos_EntryChariz vs xs = rewrite sym (timesVectMatAsLinearCombo (head vs) xs) in (timesMatMatAsTVecMat_EntryChariz vs xs)
 
 timesMatMatAsMultipleLinearCombos : (vs : Matrix n' n ZZ) -> (xs : Matrix n w ZZ) -> vs <> xs = map (\zs => monoidsum $ zipWith (<#>) zs xs) vs
-timesMatMatAsMultipleLinearCombos {n'=Z} [] xs = Refl
-timesMatMatAsMultipleLinearCombos {n'=S predn'} (v::vs) xs = ?timesMatMatAsMultipleLinearCombos'
-
-timesMatMatAsMultipleLinearCombos' = proof
-	intros
-	rewrite sym $ headtails ((v::vs)<>xs)
-	rewrite sym $ timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs
-	exact cong {f=(( monoidsum $ zipWith (<#>) v xs )::)} $ timesMatMatAsMultipleLinearCombos vs xs
+timesMatMatAsMultipleLinearCombos [] xs = Refl
+timesMatMatAsMultipleLinearCombos (v::vs) xs
+	= trans ( headtails $ (v::vs)<>xs )
+	$ vecHeadtailsEq ( timesMatMatAsMultipleLinearCombos_EntryChariz (v::vs) xs )
+	$ timesMatMatAsMultipleLinearCombos vs xs
 
 
 
