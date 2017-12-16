@@ -3,6 +3,7 @@ module Data.Matrix.LinearCombinations
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
+import Control.Algebra.DiamondInstances
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
@@ -883,8 +884,8 @@ vectTimesNegOneIsNeg_zz : (xs : Vect n ZZ)
 	-> (Algebra.inverse $ the ZZ $ Algebra.unity) <#> xs = Algebra.inverse xs
 vectTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR_Vect _ _ xs
 	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
-		$ sym $ moduleScalarUnityIsUnity_Vect xs)
-	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Vect
+		$ sym $ moduleScalarUnityIsUnity_Vect {ok=Refl} xs)
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Vect {ok=Refl}
 		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
 	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
 	$ trans (neutralScalarIsScalarMultNeutral_zzVect xs)
@@ -894,8 +895,8 @@ matTimesNegOneIsNeg_zz : (xs : Matrix n m ZZ)
 	-> (Algebra.inverse $ the ZZ $ Algebra.unity) <#> xs = Algebra.inverse xs
 matTimesNegOneIsNeg_zz xs = groupOpIsCancellativeR _ _ xs
 	$ trans (cong {f=(((Algebra.inverse $ Algebra.unity {a=ZZ}) <#> xs)<+>)}
-		$ sym $ moduleScalarUnityIsUnity {a=ZZ} xs)
-	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition
+		$ sym $ moduleScalarUnityIsUnity_Mat {a=ZZ} xs)
+	$ trans (sym $ moduleScalarMultDistributiveWRTModuleAddition_Mat
 		(Algebra.inverse $ Algebra.unity {a=ZZ}) (Algebra.unity {a=ZZ}) xs)
 	$ trans (cong {f=(<#>xs)} $ groupInverseIsInverseR $ Algebra.unity {a=ZZ})
 	$ trans (neutralScalarIsScalarMultNeutral_zzMat xs)

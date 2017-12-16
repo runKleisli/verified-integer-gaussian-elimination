@@ -2,6 +2,7 @@ module ZZGaussianEliminationLemmas
 
 import Control.Algebra
 import Classes.Verified
+import Control.Algebra.DiamondInstances
 import Control.Algebra.VectorSpace -- definition of module
 
 import Data.Matrix

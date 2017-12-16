@@ -3,6 +3,7 @@ module Data.Matrix.AlgebraicVerified
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
+import Control.Algebra.DiamondInstances
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
@@ -67,21 +68,72 @@ abelianGroupOpIsCommutative_Vect : (VerifiedRingWithUnity a) => (l, r : Vect n a
 abelianGroupOpIsCommutative_Vect [] [] = Refl
 abelianGroupOpIsCommutative_Vect (l::ls) (r::rs) = vecHeadtailsEq (abelianGroupOpIsCommutative _ _) $ abelianGroupOpIsCommutative_Vect _ _
 
-moduleScalarMultiplyComposition_Vect : (VerifiedRingWithUnity a) => ( x, y : a ) -> ( v : Vect n a ) -> x <#> (y <#> v) = x <.> y <#> v
+moduleScalarMultiplyComposition_Vect : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( x, y : a ) -> ( v : Vect n a )
+	-> x <#> (y <#> v) = x <.> y <#> v
 moduleScalarMultiplyComposition_Vect x y [] = Refl
-moduleScalarMultiplyComposition_Vect x y (v::vs) ?= vecHeadtailsEq (ringOpIsAssociative x y v) $ moduleScalarMultiplyComposition_Vect x y vs
+moduleScalarMultiplyComposition_Vect {ok} x y (v::vs) =
+	vecHeadtailsEq
+		(rewrite ok in ringOpIsAssociative x y v)
+	$ moduleScalarMultiplyComposition_Vect x y vs
+
+{-
+This doesn't exist because of a diamond inheritance problem.
 
 moduleScalarUnityIsUnity_Vect : (VerifiedRingWithUnity a) => ( v : Vect n a ) -> (Algebra.unity {a=a}) <#> v = v
 moduleScalarUnityIsUnity_Vect [] = Refl
-moduleScalarUnityIsUnity_Vect (v::vs) ?= vecHeadtailsEq (ringWithUnityIsUnityR v) $ moduleScalarUnityIsUnity_Vect vs
+moduleScalarUnityIsUnity_Vect (v::vs) = ?moduleScalarUnityIsUnity_Vect'
 
-moduleScalarMultDistributiveWRTVectorAddition_Vect : (VerifiedRingWithUnity a) => (s : a) -> (v, w : Vect n a) -> s <#> v <+> w = (s <#> v) <+> (s <#> w)
+---
+
+So we use this instead,
+where the equality between (<.>)s coming from different instances is
+an automatically solved assumption.
+-}
+
+moduleScalarUnityIsUnity_Vect : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( v : Vect n a )
+	-> (Algebra.unity {a=a}) <#> v = v
+moduleScalarUnityIsUnity_Vect [] = Refl
+moduleScalarUnityIsUnity_Vect {ok} (v::vs) =
+	vecHeadtailsEq (
+		trans (cong {f=\t => t Algebra.unity v} ok)
+		$ ringWithUnityIsUnityR v)
+	$ moduleScalarUnityIsUnity_Vect vs
+
+moduleScalarMultDistributiveWRTVectorAddition_Vect : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s : a) -> (v, w : Vect n a)
+	-> s <#> v <+> w = (s <#> v) <+> (s <#> w)
 moduleScalarMultDistributiveWRTVectorAddition_Vect s [] [] = Refl
-moduleScalarMultDistributiveWRTVectorAddition_Vect s (v::vs) (w::ws) ?= vecHeadtailsEq (ringOpIsDistributiveL s v w) $ moduleScalarMultDistributiveWRTVectorAddition_Vect s vs ws
+moduleScalarMultDistributiveWRTVectorAddition_Vect {ok} s (v::vs) (w::ws) =
+	vecHeadtailsEq
+		(rewrite ok in ringOpIsDistributiveL s v w)
+	$ moduleScalarMultDistributiveWRTVectorAddition_Vect s vs ws
 
-moduleScalarMultDistributiveWRTModuleAddition_Vect : (VerifiedRingWithUnity a) => (s, t : a) -> (v : Vect n a) -> s <+> t <#> v = (s <#> v) <+> (t <#> v)
+moduleScalarMultDistributiveWRTModuleAddition_Vect : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s, t : a) -> (v : Vect n a)
+	-> s <+> t <#> v = (s <#> v) <+> (t <#> v)
 moduleScalarMultDistributiveWRTModuleAddition_Vect s t [] = Refl
-moduleScalarMultDistributiveWRTModuleAddition_Vect s t (v::vs) ?= vecHeadtailsEq (ringOpIsDistributiveR s t v) $ moduleScalarMultDistributiveWRTModuleAddition_Vect s t vs
+moduleScalarMultDistributiveWRTModuleAddition_Vect {ok} s t (v::vs) =
+	vecHeadtailsEq
+		(rewrite ok in ringOpIsDistributiveR s t v)
+	$ moduleScalarMultDistributiveWRTModuleAddition_Vect s t vs
 
 {-
 instance (VerifiedRingWithUnity a) => VerifiedSemigroup (Vect n a) where
@@ -135,19 +187,44 @@ abelianGroupOpIsCommutative_Mat : (VerifiedRingWithUnity a) => (l, r : Matrix n 
 abelianGroupOpIsCommutative_Mat [] [] = Refl
 abelianGroupOpIsCommutative_Mat (l::ls) (r::rs) = vecHeadtailsEq (abelianGroupOpIsCommutative_Vect _ _) $ abelianGroupOpIsCommutative_Mat _ _
 
-moduleScalarMultiplyComposition_Mat : (VerifiedRingWithUnity a) => ( x, y : a ) -> ( v : Matrix n m a ) -> x <#> (y <#> v) = x <.> y <#> v
+moduleScalarMultiplyComposition_Mat : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( x, y : a ) -> ( v : Matrix n m a )
+	-> x <#> (y <#> v) = x <.> y <#> v
 moduleScalarMultiplyComposition_Mat x y [] = Refl
 moduleScalarMultiplyComposition_Mat x y (v::vs) = vecHeadtailsEq (moduleScalarMultiplyComposition_Vect _ _ _) $ moduleScalarMultiplyComposition_Mat _ _ _
 
-moduleScalarUnityIsUnity_Mat : (VerifiedRingWithUnity a) => ( v : Matrix n m a ) -> (Algebra.unity {a=a}) <#> v = v
+moduleScalarUnityIsUnity_Mat : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> ( v : Matrix n m a )
+	-> (Algebra.unity {a=a}) <#> v = v
 moduleScalarUnityIsUnity_Mat [] = Refl
-moduleScalarUnityIsUnity_Mat (v::vs) = vecHeadtailsEq (moduleScalarUnityIsUnity_Vect _) $ moduleScalarUnityIsUnity_Mat _
+moduleScalarUnityIsUnity_Mat (v::vs) = vecHeadtailsEq (moduleScalarUnityIsUnity_Vect _)
+	$ moduleScalarUnityIsUnity_Mat _
 
-moduleScalarMultDistributiveWRTVectorAddition_Mat : (VerifiedRingWithUnity a) => (s : a) -> (v, w : Matrix n m a) -> s <#> v <+> w = (s <#> v) <+> (s <#> w)
+moduleScalarMultDistributiveWRTVectorAddition_Mat : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s : a) -> (v, w : Matrix n m a)
+	-> s <#> v <+> w = (s <#> v) <+> (s <#> w)
 moduleScalarMultDistributiveWRTVectorAddition_Mat s [] [] = Refl
 moduleScalarMultDistributiveWRTVectorAddition_Mat s (v::vs) (w::ws) = vecHeadtailsEq (moduleScalarMultDistributiveWRTVectorAddition_Vect _ _ _) $ moduleScalarMultDistributiveWRTVectorAddition_Mat _ _ _
 
-moduleScalarMultDistributiveWRTModuleAddition_Mat : (VerifiedRingWithUnity a) => (s, t : a) -> (v : Matrix n m a) -> s <+> t <#> v = (s <#> v) <+> (t <#> v)
+moduleScalarMultDistributiveWRTModuleAddition_Mat : (VerifiedRingWithUnity a)
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (s, t : a) -> (v : Matrix n m a)
+	-> s <+> t <#> v = (s <#> v) <+> (t <#> v)
 moduleScalarMultDistributiveWRTModuleAddition_Mat s t [] = Refl
 moduleScalarMultDistributiveWRTModuleAddition_Mat s t (v::vs) = vecHeadtailsEq (moduleScalarMultDistributiveWRTModuleAddition_Vect _ _ _) $ moduleScalarMultDistributiveWRTModuleAddition_Mat _ _ _
 
@@ -167,13 +244,6 @@ instance (VerifiedRingWithUnity a) => VerifiedGroup (Matrix n m a) where {
 
 instance (VerifiedRingWithUnity a) => VerifiedAbelianGroup (Matrix n m a) where {
 	abelianGroupOpIsCommutative = abelianGroupOpIsCommutative_Mat
-}
-
-instance (VerifiedRingWithUnity a) => VerifiedModule a (Matrix n m a) where {
-	moduleScalarMultiplyComposition = moduleScalarMultiplyComposition_Mat
-	moduleScalarUnityIsUnity = moduleScalarUnityIsUnity_Mat
-	moduleScalarMultDistributiveWRTVectorAddition = moduleScalarMultDistributiveWRTVectorAddition_Mat
-	moduleScalarMultDistributiveWRTModuleAddition = moduleScalarMultDistributiveWRTModuleAddition_Mat
 }
 
 

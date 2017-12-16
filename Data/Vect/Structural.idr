@@ -4,6 +4,7 @@ module Data.Vect.Structural
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
+import Control.Algebra.DiamondInstances
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
@@ -242,21 +243,28 @@ indexCompatInverse (x::xs) (FS preli) = indexCompatInverse xs preli
 indexCompatAdd : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <+> ys = index i xs <+> index i ys
 indexCompatAdd xs ys i = zipWithEntryChariz {x=xs} {y=ys} {i=i} {m=(<+>)}
 
-{-
-Proof obstruction seems to be that the meaning of "inverse" depends on whether the class hierarchy is treated as
+indexCompatSub : VerifiedRingWithUnity a
+	=> {auto ok :
+		((<+>) @{vrwuSemigroupByGrp $ the (VerifiedRingWithUnity a) %instance})
+		= ((<+>) @{vrwuSemigroupByVMon $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (xs, ys : Vect n a)
+	-> (i : Fin n)
+	-> index i $ xs <-> ys = index i xs <-> index i ys
+indexCompatSub {ok} xs ys i = rewrite ok in
+	trans (indexCompatAdd xs (inverse ys) i)
+	$ cong {f=((index i xs)<+>)}
+	$ indexCompatInverse ys i
 
-	VerifiedGroup < Group < Monoid < Semigroup
-
-or as
-
-	VerifiedGroup < VerifiedMonoid < VerifiedSemigroup < Semigroup
--}
-indexCompatSub : VerifiedRingWithUnity a => (xs, ys : Vect n a) -> (i : Fin n) -> index i $ xs <-> ys = index i xs <-> index i ys
-indexCompatSub xs ys i ?= trans (indexCompatAdd xs (inverse ys) i) $ cong {f=((index i xs)<+>)} $ indexCompatInverse ys i
-
-indexCompatScaling : VerifiedRingWithUnity a => (r : a) -> (xs : Vect n a) -> (i : Fin n) -> index i $ r <#> xs = r <.> index i xs
+indexCompatScaling : VerifiedRingWithUnity a
+	=> {auto ok :
+		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		}
+	-> (r : a) -> (xs : Vect n a) -> (i : Fin n)
+	-> index i $ r <#> xs = r <.> index i xs
 indexCompatScaling r [] i = FinZElim i
-indexCompatScaling r (x::xs) FZ = ?indexCompatScaling_lemma_1 -- Should be Refl
+indexCompatScaling r (x::xs) FZ {ok} = cong {f=\t => t r x} ok
 indexCompatScaling r (x::xs) (FS preli) = indexCompatScaling r xs preli
 
 
