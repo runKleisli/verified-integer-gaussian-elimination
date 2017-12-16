@@ -42,33 +42,6 @@ Basic theorems regarding
 
 
 
--- Eta conversion: https://github.com/idris-lang/Idris-dev/issues/2071
-eta : (f : a -> b) -> f = (\c => f c)
-eta f = sym Refl
-
-flipIsInvolutionExtensional : flip (flip f) = f
-flipIsInvolutionExtensional {f} = ?flipIsInvolutionExtensional'
-
-flipBetaReduction : (f : a -> b -> c) -> (\d => flip (\c => f c) d) = (\e => flip (\c => \d => f c d) e)
--- exact Refl works in the REPL. What's going on?
--- flipBetaReduction f = sym Refl
-flipBetaReduction = ?flipBetaReduction'
-
-etaBinary : (f : a -> b -> c) -> f = (\c => \d => f c d)
-etaBinary f = trans (eta f) $ trans baz1 $ trans bar baz2
-	where
-		etaConv_flipBetaRed : flip (\c => f c) = flip (\c => \d => f c d)
-		etaConv_flipBetaRed = trans (eta _) (trans (flipBetaReduction f) (sym $ eta _))
-		-- bar : (flip . flip) (\c => f c) = (flip . flip) (\c => \d => f c d)
-		bar : flip ( flip (\c => f c) ) = flip ( flip (\c => \d => f c d) )
-		bar = cong {f=flip} etaConv_flipBetaRed
-		baz1 : (\c => f c) = flip ( flip (\c => f c) )
-		baz1 = sym flipIsInvolutionExtensional
-		baz2 : flip ( flip (\c => \d => f c d) ) = (\c => \d => f c d)
-		baz2 = flipIsInvolutionExtensional
-
-
-
 doubleSumInnerSwap : VerifiedAbelianGroup t => (a, b, c, d : t) -> (a<+>b)<+>(c<+>d) = (a<+>c)<+>(b<+>d)
 doubleSumInnerSwap a b c d = trans (sym $ semigroupOpIsAssociative a b (c<+>d))
 	$ trans ( cong {f=(a<+>)} $ trans (semigroupOpIsAssociative b c d)
@@ -209,7 +182,6 @@ headOfSumIsSumOfHeads_Z_pr = proof
 mutual
 	tailOfSumIsSumOfTails : {vs : Matrix n (S predw) ZZ} -> tail (monoidsum vs) = monoidsum (map tail vs)
 	tailOfSumIsSumOfTails {vs=[]} = Refl
-	-- tailOfSumIsSumOfTails {vs=v::vs} ?= trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStepHuman {v=v} {vs=vs})
 	tailOfSumIsSumOfTails {vs=v::vs} = trans (cong {f=Data.Vect.tail} $ monoidrec2D {v=v} {vs=vs}) (tailsumMonrecStep {v=v} {vs=vs})
 
 	{-
@@ -223,25 +195,9 @@ mutual
 	  exact monoidsumOverTailChariz
 	-}
 
-	-- Junk from eta reductions done in REPL but not in normal type checking.
-	etaCon_tailsumMonrecStepExpr : {vs : Matrix n (S predw) ZZ} -> monoidsum (map tail (v :: vs)) = foldrImpl (Data.Vect.zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	etaCon_tailsumMonrecStepExpr {v} {vs} {predw} = trans lem2 lem3
-		where
-			f0 : (Vect predw ZZ -> Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
-			f0 x = foldrImpl x (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
-			f1 : (Vect predw ZZ -> Vect predw ZZ) -> Vect predw ZZ
-			f1 x = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) x (map tail vs)
-			lem0 : (\meth1 => \meth2 => Data.Vect.zipWith {n=predw} (\meth3 => \meth4 => plusZ meth3 meth4) meth1 meth2) = Data.Vect.zipWith plusZ
-			lem0 = trans ( trans ( cong {f=\x => \meth1 => \meth2 => Data.Vect.zipWith {n=predw} x meth1 meth2} (sym $ etaBinary plusZ) ) (eta _) ) ( sym $ etaBinary (Data.Vect.zipWith {n=predw} plusZ) )
-			lem1 : (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) = Data.Vect.zipWith {n=predw} plusZ (tail v)
-			lem1 = trans ( sym $ eta $ Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) ) ( trans ( eta _ ) ( cong {f=\x => Data.Vect.zipWith {n=predw} x (tail v)} (sym $ etaBinary plusZ) ) )
-			lem2 : foldrImpl (\meth1 => \meth2 => Data.Vect.zipWith {n=predw} (\meth3 => \meth4 => plusZ meth3 meth4) meth1 meth2) (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs) = foldrImpl (Data.Vect.zipWith plusZ) (replicate predw (Pos 0)) (\y => zipWith (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) y) (map tail vs)
-			lem2 ?= cong {f=f0} lem0
-			lem3 : foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (\x => Data.Vect.zipWith {n=predw} (\meth1 => \meth2 => plusZ meth1 meth2) (tail v) x) (map tail vs) = foldrImpl (zipWith plusZ) (replicate predw (Pos 0)) (Data.Vect.zipWith {n=predw} plusZ (tail v)) (map tail vs)
-			lem3 ?= cong {f=f1} lem1
-
-	-- see tailsumMonrecStepHuman for human-readable version of this proposition
-	tailsumMonrecStep : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (\meth3 => \meth4 => zipWith (\meth1 => \meth2 => Data.ZZ.plusZ meth1 meth2) meth3 meth4) (replicate predw (Pos 0)) (\x => zipWith (\meth1 => \meth2 => Data.ZZ.plusZ meth1 meth2) (tail v) x) (map tail vs)
+	tailsumMonrecStep : {v : Vect (S predw) ZZ}
+		-> Data.Vect.tail $ zipWith (+) v $ monoidsum vs
+			= foldrImpl (<+>) Algebra.neutral ((<+>) (tail v)) (map tail vs)
 	tailsumMonrecStep {v} {vs} = ?tailsumMonrecStep'
 	tailsumMonrecStep' = proof
 		intros
@@ -249,17 +205,6 @@ mutual
 		rewrite sym (headtails $ monoidsum vs)
 		compute
 		exact monoidsumOverTailChariz {v=v} {vs=vs}
-
-	-- human-readable version of tailsumMonrecStep
-	tailsumMonrecStepHuman : {v : Vect (S predw) ZZ} -> Data.Vect.tail $ zipWith (+) v $ monoidsum vs = foldrImpl (zipWith Data.ZZ.plusZ) (replicate predw (Pos 0)) (zipWith Data.ZZ.plusZ (tail v)) (map tail vs)
-	tailsumMonrecStepHuman {v} {vs} = ?tailsumMonrecStepHuman'
-	tailsumMonrecStepHuman' = proof
-		intros
-		rewrite sym (headtails v)
-		rewrite sym (headtails $ monoidsum vs)
-		compute
-		-- This plus eta reductions: exact monoidsumOverTailChariz {v=v} {vs=vs}
-		exact trans (monoidsumOverTailChariz {v=v} {vs=vs}) (etaCon_tailsumMonrecStepExpr {v=v} {vs=vs})
 
 	monoidsumOverTailChariz : {vs : Matrix predn (S predw) ZZ} -> zipWith (+) (tail v) (tail $ monoidsum vs) = monoidsum (map tail (v::vs))
 	monoidsumOverTailChariz {v} {vs} = trans ( cong {f=zipWith (+) (tail v)} $ tailOfSumIsSumOfTails {vs=vs} ) $
@@ -277,22 +222,6 @@ mutual
 	  exact newbrec
 	  exact ?newbrec'
 	-}
-
-lem2_lemma_1 = proof
-	intro
-	intro
-	intro
-	intro
-	compute
-	exact id
-
-lem3_lemma_1 = proof
-	intro
-	intro
-	intro
-	intro
-	compute
-	exact id
 
 
 
