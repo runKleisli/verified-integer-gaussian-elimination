@@ -108,15 +108,6 @@ modZ : ZZ -> ZZ -> ZZ
 
 quotientPartZ : (x, m : ZZ) -> (x <-> modZ x m) `quotientOverZZ` m
 
-divZ : ZZ -> ZZ -> ZZ
-divZ a b = getWitness $ quotientPartZ a b
-
-reverifyDivZ : divZ a b <.> b <+> modZ a b = a
-reverifyDivZ {a} {b}
-	= trans (cong {f=(<+> (a `modZ` b))}
-		$ getProof $ quotientPartZ a b)
-	$ groupSubtractionIsRDivision a $ a `modZ` b
-
 bezoutsIdentityLincombEqZZ :
 	(a, b, c, d, q, r : ZZ)
 	-> q<.>d = c <-> r
@@ -232,6 +223,15 @@ bezoutsIdentityZZ c d with (bezoutsIdentityZZ d (c `modZ` d))
 {-
 Goal: Separation of algorithm from verification.
 Obstructions: (Problem 1), (Problem 2).
+
+divZ : ZZ -> ZZ -> ZZ
+divZ a b = getWitness $ quotientPartZ a b
+
+reverifyDivZ : divZ a b <.> b <+> modZ a b = a
+reverifyDivZ {a} {b}
+	= trans (cong {f=(<+> (a `modZ` b))}
+		$ getProof $ quotientPartZ a b)
+	$ groupSubtractionIsRDivision a $ a `modZ` b
 
 ||| Greatest Common Denominator (GCD) linear combination factors
 euclideanAlgPar : ZZ -> ZZ -> (ZZ, ZZ)
