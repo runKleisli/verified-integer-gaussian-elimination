@@ -14,14 +14,22 @@ Ignore these files:
 
 These show what other kind of theorems are needed, but about the wrong objects to be correct or to fit the system of linear algebra used in this package.
 
+Mostly complete:
+* What's implemented is called (gaussElimlzIfGCD), a verified elimination algorithm producer.
+	* Idris confirms it's total.
+* We also have (bezoutsIdentityZZIfModulo), a verified GCD algorithm producer.
+	* Idris does not confirm it's total - this uses the euclidean algorithm, for which proof of termination is nontrivial, & out of Idris's depth.
+* We're missing:
+	* A verified modulo operator
+	* A verified GCD -> "GCD of vector" algorithm.
+* Which fit the verified things together:
+	* (gaussElimlzIfGCD) takes a "GCD of vector" algorithm as an argument, and produced a verified gaussian elimination algorithm.
+	* (bezoutsIdentityZZIfModulo) takes a modulo operator as an argument, and produces a GCD algorithm.
+* ... to form a verified gaussian elimination algorithm.
+
 ## ZZGaussianElimination
 
 Main elimination algorithms.
-
-Mostly complete:
-* Expressed in terms of an unimplemented "GCD of vector" algorithm to be implemented in terms of a verified GCD.
-* What's implemented is called (gaussElimlzIfGCD).
-* Idris confirms it's total.
 
 Index:
 * Template & usage for do notation pattern matching technique
@@ -69,6 +77,17 @@ Table of contents:
 
 * An integer divisibility relation `quotientOverZZ` & its properties
 * Interactions between integer divisibility and linear combinations
+
+## ZZBezoutsIdentity
+
+Bezout's identity / GCD (Greatest Common Denominator) algorithms / the euclidean algorithm.
+
+Table of contents:
+* Some algebra about groups
+* About rings
+* Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
+* (bezoutsIdentityZZIfModulo) implementation
+* (Commentary) "Goal: Separation of algorithm from verification."
 
 ## ZZModuleSpan
 
