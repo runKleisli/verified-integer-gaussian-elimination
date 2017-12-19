@@ -33,6 +33,12 @@ vgrpSemigroupByVMon = vmonSemigrp . vgrpVerifiedMonoid
 vgrpSemigroupByGrp : VerifiedGroup a -> Semigroup a
 vgrpSemigroupByGrp = grpSemigrp . vgrpGroup
 
+vrSemigroupByVMon : VerifiedRing a -> Semigroup a
+vrSemigroupByVMon a = vgrpSemigroupByVMon %instance
+
+vrSemigroupByGrp : VerifiedRing a -> Semigroup a
+vrSemigroupByGrp a = vgrpSemigroupByGrp %instance
+
 vrwuSemigroupByVMon : VerifiedRingWithUnity a -> Semigroup a
 vrwuSemigroupByVMon a = vgrpSemigroupByVMon %instance
 
