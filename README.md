@@ -6,14 +6,6 @@ Written in Idris 0.9.20
 
 Idris package looking to define, implement, and verify naiive Gaussian elimination over the integers in some system of linear algebra.
 
-Ignore these files:
-* BezoutsIdentity.idr
-* IntegerArith.idr
-* IntegerGroupTheory.idr
-* IntegerOrdering.idr
-
-These show what other kind of theorems are needed, but about the wrong objects to be correct or to fit the system of linear algebra used in this package.
-
 Mostly complete:
 * What's implemented is called (gaussElimlzIfGCD), a verified elimination algorithm producer.
 	* Idris confirms it's total.
