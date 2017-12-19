@@ -30,7 +30,6 @@ monoidsum = sum'
 
 {-
 Basic theorems regarding
-* Functions
 * Abelian groups
 * Vect _ _
 * Matrix _ _ _

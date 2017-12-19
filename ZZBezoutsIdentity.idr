@@ -24,8 +24,7 @@ import Control.Algebra.DiamondInstances
 
 
 {-
-Table of contents
-
+Table of contents:
 * Some algebra about groups
 * About rings
 * Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
