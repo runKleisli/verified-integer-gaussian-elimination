@@ -226,3 +226,51 @@ bezoutsIdentityZZ c d with (bezoutsIdentityZZ d (c `modZ` d))
 					$ getProof extQuotientLincombZZ)
 				, (a' ** trans (cong lincombEq) divsPrA)) )
 		}
+
+
+
+{-
+Goal: Separation of algorithm from verification.
+Obstructions: (Problem 1), (Problem 2).
+
+||| Greatest Common Denominator (GCD) linear combination factors
+euclideanAlgPar : ZZ -> ZZ -> (ZZ, ZZ)
+euclideanAlgPar c (Pos Z) = (1, 0)
+euclideanAlgPar c d = (b, a <-> b <.> q)
+	where
+		eucParReduced : (ZZ, ZZ)
+		eucParReduced = euclideanAlgPar d (c `modZ` d)
+		a : ZZ
+		a = fst eucParReduced
+		b : ZZ
+		b = snd eucParReduced
+		q : ZZ
+		q = c `divZ` d
+
+||| Greatest Common Denominator (GCD)
+euclideanAlg : ZZ -> ZZ -> ZZ
+euclideanAlg c d = let (a, b) = euclideanAlgPar c d in a<.>c <+> b<.>d
+
+bezoutsIdentity : (c, d : ZZ) -> uncurry (bezQTy c d) $ euclideanAlgPar c d
+
+---
+Problem 1)
+rewrite did not change type uncurry (bezQTy c (Pos 0)) (euclideanAlgPar c (Pos 0))
+---
+
+bezoutsIdentity c (Pos Z)
+	= rewrite ringWithUnityIsUnityR c
+	in rewrite monoidNeutralIsNeutralL c
+	in ( (Algebra.unity ** ringWithUnityIsUnityR c)
+		, (Algebra.neutral ** ringNeutralIsMultZeroL c) )
+
+---
+Problem 2)
+Proof must be repeated for positive and negative halves,
+since otherwise the case can't be determined to not be the one for 2nd argument 0.
+---
+
+bezoutsIdentity c d@(Pos $ S d') = ?bezoutsIdentity_rhs_2
+bezoutsIdentity c d@(NegS d') = ?bezoutsIdentity_rhs_3
+
+-}
