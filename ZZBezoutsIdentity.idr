@@ -25,91 +25,10 @@ import Control.Algebra.DiamondInstances
 
 {-
 Table of contents:
-* Some algebra about groups
-* About rings
 * Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
 * (bezoutsIdentityZZIfModulo) implementation
 * (Commentary) "Goal: Separation of algorithm from verification."
 -}
-
-
-
-{-
-Some algebra about groups
--}
-
-
-
-groupSubtractionIsRDivision : VerifiedGroup t
-	=> {auto ok :
-		((<+>) @{vgrpSemigroupByGrp $ the (VerifiedGroup t) %instance})
-		= ((<+>) @{vgrpSemigroupByVMon $ the (VerifiedGroup t) %instance})
-		}
-	-> (a, b : t)
-	-> (a <-> b) <+> b = a
-groupSubtractionIsRDivision {ok} a b = rewrite ok in
-	trans (sym $ semigroupOpIsAssociative a (inverse b) b)
-	$ trans (cong $ groupInverseIsInverseR b)
-	$ monoidNeutralIsNeutralL a
-
-groupDivisionAddLToSubR : VerifiedGroup t
-	=> {auto ok :
-		((<+>) @{vgrpSemigroupByGrp $ the (VerifiedGroup t) %instance})
-		= ((<+>) @{vgrpSemigroupByVMon $ the (VerifiedGroup t) %instance})
-		}
-	-> (x, y, z : t)
-	-> x <+> y = z
-	-> x = z <-> y
-groupDivisionAddLToSubR {ok} x y z pr
-	= groupOpIsCancellativeR x (z <-> y) y
-	$ trans pr
-	$ sym $ groupSubtractionIsRDivision {ok=ok} z y
-
-inverseIsInvolution : VerifiedGroup t
-	=> (r : t)
-	-> inverse $ inverse r = r
-inverseIsInvolution r = groupOpIsCancellativeR (inverse $ inverse r) r (inverse r)
-	$ trans (groupInverseIsInverseR _)
-	$ sym $ groupInverseIsInverseL _
-
-
-
-{-
-About rings
--}
-
-
-
-ringOpIsDistributiveSubR : VerifiedRing a
-	=> {auto ok :
-		((<+>) @{vrSemigroupByGrp $ the (VerifiedRing a) %instance})
-		= ((<+>) @{vrSemigroupByVMon $ the (VerifiedRing a) %instance})
-		}
-	-> (l, c, r : a)
-	-> (l <-> c) <.> r = l <.> r <-> c <.> r
-ringOpIsDistributiveSubR {ok} l c r =
-	( (l <-> c) <.> r )
-		={ rewrite ok in Refl }=
-	( (l <+> inverse c) <.> r )
-		={ ringOpIsDistributiveR l (inverse c) r }=
-	( l <.> r <+> (inverse c) <.> r )
-		={ rewrite sym ok
-			in cong $ ringNegationCommutesWithRightMult c r }=
-	( l <.> r <-> c <.> r )
-		QED
--- (but true by divisibility of addition even without associativity)
-
-ringOpIsDistributiveSubL : VerifiedRing a
-	=> {auto ok :
-		((<+>) @{vrSemigroupByGrp $ the (VerifiedRing a) %instance})
-		= ((<+>) @{vrSemigroupByVMon $ the (VerifiedRing a) %instance})
-		}
-	-> (l, c, r : a)
-	-> l <.> (c <-> r) = l <.> c <-> l <.> r
-ringOpIsDistributiveSubL {ok} l c r =
-	trans (rewrite ok in ringOpIsDistributiveL l c (inverse r))
-	$ rewrite sym ok in cong $ ringNegationCommutesWithLeftMult l r
--- (but true by divisibility of addition even without associativity)
 
 
 

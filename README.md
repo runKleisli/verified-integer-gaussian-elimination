@@ -11,12 +11,13 @@ Mostly complete:
 	* Idris confirms it's total.
 * We also have (bezoutsIdentityZZIfModulo), a verified GCD algorithm producer.
 	* Idris does not confirm it's total - this uses the euclidean algorithm, for which proof of termination is nontrivial, & out of Idris's depth.
-* We're missing:
-	* A verified modulo operator
-	* A verified GCD -> "GCD of vector" algorithm.
-* Which fit the verified things together:
-	* (gaussElimlzIfGCD) takes a "GCD of vector" algorithm as an argument, and produced a verified gaussian elimination algorithm.
+* We're missing a verified modulo operator.
+* These then fit together:
+	* (gaussElimlzIfGCD) takes a GCD algorithm as an argument, and produces a gaussian elimination algorithm.
 	* (bezoutsIdentityZZIfModulo) takes a modulo operator as an argument, and produces a GCD algorithm.
+	* In particular,
+	`\mfn => \mpr => gaussElimlzIfGCD {m=5} {n=3} $ bezoutsIdentityZZIfModulo mfn mpr`
+	typechecks.
 * ... to form a verified gaussian elimination algorithm.
 
 ## ZZGaussianElimination
@@ -26,8 +27,8 @@ Main elimination algorithms.
 Index:
 * Template & usage for do notation pattern matching technique
 * elimFirstCol
-* gaussElimlzIfGCD3
-* gaussElimlzIfGCD2
+* gaussElimlzIfVectGCD2
+* gaussElimlzIfVectGCD
 * gaussElimlzIfGCD
 * Appendix Elim.General.Meta
 
@@ -35,6 +36,7 @@ Satellite modules:
 * ZZGaussianEliminationLemmas
 * ZZGaussianEliminationNoMonad
   Implementation of (elimFirstCol) without using the do notation dependent pattern matching technique.
+* ZZGCDOfVectAlg
 
 ## ZZGaussianEliminationLemmas
 
@@ -80,6 +82,10 @@ Table of contents:
 * Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
 * (bezoutsIdentityZZIfModulo) implementation
 * (Commentary) "Goal: Separation of algorithm from verification."
+
+## ZZGCDOfVectAlg
+
+The extension of a GCD of 2 numbers to that of a Vect of numbers.
 
 ## ZZModuleSpan
 
