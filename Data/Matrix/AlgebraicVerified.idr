@@ -9,6 +9,12 @@ import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
 import Data.Vect.Structural
 
+-- Style & syntax
+import Syntax.PreorderReasoning
+
+-- Support
+import Control.Algebra.DiamondInstances
+
 
 
 {-
@@ -292,6 +298,52 @@ neutralSelfInverse = groupOpIsCancellativeL _ _ _ $ trans (groupInverseIsInverse
 groupElemOwnDoubleImpliesNeut : VerifiedGroup a => (x : a) -> x<+>x=x -> x = Algebra.neutral
 groupElemOwnDoubleImpliesNeut x pr = groupOpIsCancellativeL x x Algebra.neutral $ trans pr $ sym $ monoidNeutralIsNeutralL x
 
+groupSubtractionIsRDivision : VerifiedGroup t
+	=> {auto ok :
+		((<+>) @{vgrpSemigroupByGrp $ the (VerifiedGroup t) %instance})
+		= ((<+>) @{vgrpSemigroupByVMon $ the (VerifiedGroup t) %instance})
+		}
+	-> (a, b : t)
+	-> (a <-> b) <+> b = a
+groupSubtractionIsRDivision {ok} a b = rewrite ok in
+	trans (sym $ semigroupOpIsAssociative a (inverse b) b)
+	$ trans (cong $ groupInverseIsInverseR b)
+	$ monoidNeutralIsNeutralL a
+
+groupSubtractionIsRDivision_Vect : VerifiedGroup t
+	=> {auto ok :
+		((<+>) @{vgrpSemigroupByGrp $ the (VerifiedGroup t) %instance})
+		= ((<+>) @{vgrpSemigroupByVMon $ the (VerifiedGroup t) %instance})
+		}
+	-> (a, b : Vect n t)
+	-> (a <-> b) <+> b = a
+groupSubtractionIsRDivision_Vect [] [] = Refl
+groupSubtractionIsRDivision_Vect (a::as) (b::bs)
+	= vecHeadtailsEq (groupSubtractionIsRDivision a b)
+	$ groupSubtractionIsRDivision_Vect as bs
+
+groupDivisionAddLToSubR : VerifiedGroup t
+	=> {auto ok :
+		((<+>) @{vgrpSemigroupByGrp $ the (VerifiedGroup t) %instance})
+		= ((<+>) @{vgrpSemigroupByVMon $ the (VerifiedGroup t) %instance})
+		}
+	-> (x, y, z : t)
+	-> x <+> y = z
+	-> x = z <-> y
+groupDivisionAddLToSubR {ok} x y z pr
+	= groupOpIsCancellativeR x (z <-> y) y
+	$ trans pr
+	$ sym $ groupSubtractionIsRDivision {ok=ok} z y
+
+inverseIsInvolution : VerifiedGroup t
+	=> (r : t)
+	-> inverse $ inverse r = r
+inverseIsInvolution r = groupOpIsCancellativeR (inverse $ inverse r) r (inverse r)
+	$ trans (groupInverseIsInverseR _)
+	$ sym $ groupInverseIsInverseL _
+
+
+
 ringNeutralIsMultZeroL : VerifiedRing a => (x : a) -> Algebra.neutral <.> x = Algebra.neutral
 ringNeutralIsMultZeroL x = groupElemOwnDoubleImpliesNeut (Algebra.neutral <.> x) $ trans (sym $ ringOpIsDistributiveR Algebra.neutral Algebra.neutral x) $ cong {f=(<.>x)} $ monoidNeutralIsNeutralL Algebra.neutral
 
@@ -303,3 +355,34 @@ ringNegationCommutesWithLeftMult left right = groupOpIsCancellativeR (left<.>(in
 
 ringNegationCommutesWithRightMult : VerifiedRing a => (left, right : a) -> (inverse left)<.>right = inverse $ left<.>right
 ringNegationCommutesWithRightMult left right = groupOpIsCancellativeR ((inverse left)<.>right) (inverse $ left<.>right) (left<.>right) $ trans (trans (sym $ ringOpIsDistributiveR (inverse left) left right) $ trans (cong {f=(<.>right)} $ groupInverseIsInverseR left) $ ringNeutralIsMultZeroL right) $ sym $ groupInverseIsInverseR $ left<.>right
+
+ringOpIsDistributiveSubR : VerifiedRing a
+	=> {auto ok :
+		((<+>) @{vrSemigroupByGrp $ the (VerifiedRing a) %instance})
+		= ((<+>) @{vrSemigroupByVMon $ the (VerifiedRing a) %instance})
+		}
+	-> (l, c, r : a)
+	-> (l <-> c) <.> r = l <.> r <-> c <.> r
+ringOpIsDistributiveSubR {ok} l c r =
+	( (l <-> c) <.> r )
+		={ rewrite ok in Refl }=
+	( (l <+> inverse c) <.> r )
+		={ ringOpIsDistributiveR l (inverse c) r }=
+	( l <.> r <+> (inverse c) <.> r )
+		={ rewrite sym ok
+			in cong $ ringNegationCommutesWithRightMult c r }=
+	( l <.> r <-> c <.> r )
+		QED
+-- (but true by divisibility of addition even without associativity)
+
+ringOpIsDistributiveSubL : VerifiedRing a
+	=> {auto ok :
+		((<+>) @{vrSemigroupByGrp $ the (VerifiedRing a) %instance})
+		= ((<+>) @{vrSemigroupByVMon $ the (VerifiedRing a) %instance})
+		}
+	-> (l, c, r : a)
+	-> l <.> (c <-> r) = l <.> c <-> l <.> r
+ringOpIsDistributiveSubL {ok} l c r =
+	trans (rewrite ok in ringOpIsDistributiveL l c (inverse r))
+	$ rewrite sym ok in cong $ ringNegationCommutesWithLeftMult l r
+-- (but true by divisibility of addition even without associativity)

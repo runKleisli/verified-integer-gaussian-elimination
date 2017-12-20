@@ -32,30 +32,9 @@ import Control.Algebra.DiamondInstances
 
 {-
 Table of contents:
-* Some algebra about Vect groups
 * Lemmas about extending a GCD to more than 2 numbers
 * The extension of a GCD of 2 numbers to that of a Vect of numbers
 -}
-
-
-
-{-
-Some algebra about groups
--}
-
-
-
-groupSubtractionIsRDivision_Vect : VerifiedGroup t
-	=> {auto ok :
-		((<+>) @{vgrpSemigroupByGrp $ the (VerifiedGroup t) %instance})
-		= ((<+>) @{vgrpSemigroupByVMon $ the (VerifiedGroup t) %instance})
-		}
-	-> (a, b : Vect n t)
-	-> (a <-> b) <+> b = a
-groupSubtractionIsRDivision_Vect [] [] = Refl
-groupSubtractionIsRDivision_Vect (a::as) (b::bs)
-	= vecHeadtailsEq (groupSubtractionIsRDivision a b)
-	$ groupSubtractionIsRDivision_Vect as bs
 
 
 
