@@ -20,6 +20,10 @@ import ZZDivisors
 import FinOrdering
 import FinStructural
 
+{-
+(bezQTy) is the only thing actually used from here,
+something req.d to potentially generalize to other Bezout domains.
+-}
 import ZZBezoutsIdentity
 
 -- Dependent pattern matching using (do) notation binds improves clarity

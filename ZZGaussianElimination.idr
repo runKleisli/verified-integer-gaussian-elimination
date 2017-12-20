@@ -27,6 +27,15 @@ import FinOrdering
 
 import Control.Isomorphism
 
+{-
+(bezQTy) is the only thing actually used from here,
+something req.d to potentially generalize to other Bezout domains.
+-}
+import ZZBezoutsIdentity
+
+-- Extension of a GCD operation to any number of arguments arguments
+import ZZGCDOfVectAlg
+
 -- Dependent pattern matching using (do) notation binds improves clarity
 import Control.Monad.Identity
 
@@ -39,8 +48,8 @@ Index:
 
 * Template & usage for do notation pattern matching technique
 * elimFirstCol
-* gaussElimlzIfGCD3
-* gaussElimlzIfGCD2
+* gaussElimlzIfVectGCD2
+* gaussElimlzIfVectGCD
 * gaussElimlzIfGCD
 * Appendix Elim.General.Meta
 -}
@@ -175,7 +184,7 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 
 {- Gaussian elimination for width > 0 -}
 
-gaussElimlzIfGCD3 :
+gaussElimlzIfVectGCD2 :
 	(xs : Matrix n (S predm) ZZ)
 	-> ( n' : Nat
 		** (gexs : Matrix n' (S predm) ZZ
@@ -186,7 +195,7 @@ Suppose case width = 1.
 
 If desired:
 
-gaussElimlzIfGCD3 xs {predm=Z} with (elimFirstCol xs)
+gaussElimlzIfVectGCD2 xs {predm=Z} with (elimFirstCol xs)
 	| (gexs ** (danrz, bis)) = (_ ** ( gexs ** (echelonPreFromDanrzLast danrz, bis) ))
 
 can't be done, because the typechecker thinks it's a (Vect 1 ZZ = ZZ) situation.
@@ -195,7 +204,7 @@ Not fixed if the (danrz, bis) is matched as (danrzAndBis).
 Not fixed by passing (S n) into the hole.
 -}
 
-gaussElimlzIfGCD3 xs {predm=Z} = runIdentity $ do {
+gaussElimlzIfVectGCD2 xs {predm=Z} = runIdentity $ do {
 		(gexs ** (danrz, bis)) <- Id $ elimFirstCol xs
 		return $ (_ ** ( gexs ** (echelonPreFromDanrzLast danrz, bis) ))
 	}
@@ -213,10 +222,10 @@ proof, and this is retained as an artifact to retain compatibility this implemen
 tool used.
 -}
 
-gaussElimlzIfGCD3 xs {predm = S prededm}
-	= gaussElimlzIfGCD3_gen $ decEq (getCol FZ xs) Algebra.neutral
+gaussElimlzIfVectGCD2 xs {predm = S prededm}
+	= gaussElimlzIfVectGCD2_gen $ decEq (getCol FZ xs) Algebra.neutral
 	where
-		gaussElimlzIfGCD3_gen :
+		gaussElimlzIfVectGCD2_gen :
 			Dec (getCol FZ xs = Algebra.neutral)
 			-> ( n' : Nat
 				** (gexs : Matrix n' (S $ S prededm) ZZ
@@ -227,9 +236,9 @@ gaussElimlzIfGCD3 xs {predm = S prededm}
 		to that on the value of (map tail).
 		-}
 
-		gaussElimlzIfGCD3_gen (Yes prNeut) = runIdentity $ do {
+		gaussElimlzIfVectGCD2_gen (Yes prNeut) = runIdentity $ do {
 			( nold ** (matold ** (echold, bisold)) )
-				<- Id $ gaussElimlzIfGCD3 $ map tail xs
+				<- Id $ gaussElimlzIfVectGCD2 $ map tail xs
 			return ( nold **
 					(map ((Pos 0)::) matold
 					** (echelonPreNullcolExtension echold
@@ -245,13 +254,13 @@ gaussElimlzIfGCD3 xs {predm = S prededm}
 		For a proof, compare with "Appendix Elim.General.Meta"
 		-}
 
-		gaussElimlzIfGCD3_gen (No prNonneut) = runIdentity $ do {
+		gaussElimlzIfVectGCD2_gen (No prNonneut) = runIdentity $ do {
 			-- Perform elimination on the first column.
 			(xFCE::xsFCE ** (xnxsFCEdanrz, fceBisxs))
 					<- Id $ elimFirstCol xs
 			-- Recurse, eliminating the tail.
 			(elimLen ** (xselim ** (xselimEch, coltailxsFCEBisElim)))
-				<- Id $ gaussElimlzIfGCD3 $ map tail xsFCE
+				<- Id $ gaussElimlzIfVectGCD2 $ map tail xsFCE
 
 			{-
 			Add the head of the first-column elimination
@@ -302,14 +311,36 @@ gaussElimlzIfGCD3 xs {predm = S prededm}
 
 {- Gaussian elimination in general -}
 
+gaussElimlzIfVectGCD :
+	(xs : Matrix n m ZZ)
+	-> ( n' : Nat
+		** (gexs : Matrix n' m ZZ
+			** (rowEchelonPre gexs, gexs `bispanslz` xs)) )
+gaussElimlzIfVectGCD {m=Z} xs = (_ ** (Algebra.neutral
+	** (rowEchelonPreZeroWidth, bispanslzreflFromEq $ sym $ zeroVecVecId xs)))
+gaussElimlzIfVectGCD {m=S predm} xs = gaussElimlzIfVectGCD2 xs
+
+}
+
+
+
+{-
+Gaussian elimination from a GCD algorithm.
+The premise of (gaussElimlzIfVect)s is equivalent to having a GCD.
+-}
+
+{- (gaussElimlzIfGCD) parameters -}
+parameters (
+	gcdAlg : (c, d : ZZ)
+		-> ( zpar : (ZZ, ZZ) ** uncurry (bezQTy c d) zpar )
+	) {
+
 gaussElimlzIfGCD2 :
 	(xs : Matrix n m ZZ)
 	-> ( n' : Nat
 		** (gexs : Matrix n' m ZZ
 			** (rowEchelonPre gexs, gexs `bispanslz` xs)) )
-gaussElimlzIfGCD2 {m=Z} xs = (_ ** (Algebra.neutral
-	** (rowEchelonPreZeroWidth, bispanslzreflFromEq $ sym $ zeroVecVecId xs)))
-gaussElimlzIfGCD2 {m=S predm} xs = gaussElimlzIfGCD3 xs
+gaussElimlzIfGCD2 = gaussElimlzIfVectGCD $ gcdToVectGCD gcdAlg
 
 {- Render proper row echelon property -}
 
@@ -323,7 +354,7 @@ gaussElimlzIfGCD xs = runIdentity $ do {
 		return $ (n' ** (gexs ** (toRowEchelon echPre, bis)))
 	}
 
-}
+} {- (gaussElimlzIfGCD) parameters -}
 
 
 
