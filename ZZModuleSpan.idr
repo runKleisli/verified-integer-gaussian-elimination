@@ -1903,57 +1903,7 @@ timesMatMatIsAssociative = vecIndexwiseEq
 
 
 {-
-When checking right hand side of ZZModuleSpan.spans, scaleBy:
-Can't resolve type class Module ZZ a
-
-> spans : VerifiedModule ZZ a => (a : Type) -> (P : a -> Type) -> (Q : a -> Type) -> Type
-> spans a pprop qprop = (x : a) -> qprop x -> ( scal : List (Subset a pprop,ZZ) ** (Control.Algebra.sum (map scaleBy scal) = x) )
-> 	where
-> 		scaleBy : (Subset a pprop,ZZ) -> a
-> 		scaleBy (Element v _, r) = r <#> v
-
-----------              Other goals:              ----------
-{hole4},{hole3},{hole2},{hole1},{hole0}
-----------              Assumptions:              ----------
- a : Type
- constrarg : VerifiedModule ZZ a
- a2 : Type
- P : a2 -> Type
- Q : a2 -> Type
-----------                 Goal:                  ----------
-{hole5} : Type
-
-> spans : VerifiedModule ZZ a => (a : Type) -> (P : a -> Type) -> (Q : a -> Type) -> Type
-> spans = ?pr_spans
-
-So it's the term splitting problem encountered in ClassDataExpers. Solution should be to make class constraint argument a normal argument.
--}
-
-spans : {auto a : Type} -> {auto p : VerifiedModule ZZ a} -> (P : a -> Type) -> (Q : a -> Type) -> Type
-spans {a} pprop qprop = (x : a) -> qprop x -> ( scal : List (Subset a pprop,ZZ) ** (monoidsum (map scaleBy scal) = x) )
-	where
-		scaleBy : (Subset a pprop,ZZ) -> a
-		scaleBy (Element v _, r) = r <#> v
-
-
-
-{-
-Same as above, but for lists of vectors
--}
-
-
-
-spansl : VerifiedModule ZZ a => Vect n a -> Vect n' a -> Type
-spansl = ?spanslpr
-{-
-spansl xs ys = (vs : [[ZZ]] ** zipWithShort (<:> xs) vs = ys)
-	where zipWithShort f as bs = let len = minimum (length as length bs) in Data.VectType.Vect.zipWith f (take len as) (take len bs)
--}
-
-
-
-{-
-Same as above, but for lists of ZZ vectors specifically.
+For lists of ZZ vectors specifically.
 -}
 
 

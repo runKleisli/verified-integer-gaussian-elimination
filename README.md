@@ -94,7 +94,6 @@ Contents:
 * Definition of the *linearly spans* relation `spanslz` between two `Vect`s of `Vect`s of integers (where integers means inhabitants of Data.ZZ).
 	* Its maximal symmetric subrelation `bispanslz xs ys = (spanslz xs ys, spanslz ys xs)`.
 * Def. `zippyScale`, shorthand for a form of linear combination of the rows of a matrix over multiple vectors, as proved extensionally equal to matrix multiplication by `timesMatMatAsMultipleLinearCombos` in Data.Matrix.LinearCombinations.
-* `spans` and `spansl`, which reflect that the original scope of the project was to cover Gaussian elimination (or a similar basis-normalization procedure) for more general ZZ-modules, but will be deleted.
 
 Proofs of relational properties of span:
 * Proof of transitivity and reflexivity of `spanslz`: `spanslzrefl`, `spanslzreflFromEq : (xs=ys) -> xs `spanslz` ys`, `spanslztrans`.
