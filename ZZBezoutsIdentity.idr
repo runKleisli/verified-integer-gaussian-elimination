@@ -21,6 +21,9 @@ import Syntax.PreorderReasoning
 
 import Control.Algebra.DiamondInstances
 
+-- For example
+import ZZModulo
+
 
 
 {-
@@ -28,6 +31,7 @@ Table of contents:
 * Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
 * (bezoutsIdentityZZIfModulo) implementation
 * (Commentary) "Goal: Separation of algorithm from verification."
+* The GCD derived from (modZT), itself derived from (modNatT).
 -}
 
 
@@ -232,3 +236,16 @@ bezoutsIdentity c d@(Pos $ S d') = ?bezoutsIdentity_rhs_2
 bezoutsIdentity c d@(NegS d') = ?bezoutsIdentity_rhs_3
 
 -}
+
+
+
+{-
+The GCD derived from (modZT), itself derived from (modNatT).
+-}
+
+
+
+bezoutZT :
+	( c, d : ZZ )
+	-> ( zpar : (ZZ, ZZ) ** uncurry (bezQTy c d) zpar )
+bezoutZT = bezoutsIdentityZZIfModulo modZT quotientPartModZT
