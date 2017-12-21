@@ -9,11 +9,10 @@ Idris package looking to define, implement, and verify naiive Gaussian eliminati
 * (gaussElimlz) gives an instantiation of the algorithm.
 * It is formally verified.
 * It is not verified as total.
-* It is implemented in terms of (gaussElimlzIfGCD), which is total.
+* It is implemented in terms of (gaussElimlzIfGCD), a verified elimination algorithm producer, which is total.
 * The lack of verified totality arises from
 	* The GCD algorithm's lack of verified totality (it's total by looking at the fixed points of recursion compared to the cases matched on).
 	* The choice of modulo operator implementation's lack of verified totality.
-* What's implemented is called (gaussElimlzIfGCD), a verified elimination algorithm producer.
 
 ## ZZGaussianElimination
 
