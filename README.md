@@ -4,7 +4,7 @@
 
 Written in Idris 0.9.20
 
-Idris package looking to define, implement, and verify naiive Gaussian elimination over the integers in some system of linear algebra.
+Idris package defining, implementing, and verifying naiive Gaussian elimination over the integers in some system of linear algebra.
 
 * (gaussElimlz) gives an instantiation of the algorithm.
 * It is formally verified.
