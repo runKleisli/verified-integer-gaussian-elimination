@@ -14,6 +14,11 @@ Structure of (Fin)s
 
 
 
+ltePredLeft : LTE (S n) m -> LTE n m
+ltePredLeft = fromLteSucc . lteSuccRight
+
+
+
 gtnatFZImpliesIsFinSucc :
 	(nel : Fin (S nu))
 	-> (LTRel Z $ finToNat nel)
@@ -31,6 +36,18 @@ trichotomy (S predn) (S predm)
 	= either ( Left . LTESucc )
 		( Right . either (Left . cong) (Right . LTESucc) )
 	$ trichotomy predn predm
+
+||| See (trichotomy)
+eqOrGTToLT :
+	Either (n = m) (LT m n)
+	-> LTE m n
+eqOrGTToLT = lteRelToLTE . either (Right . sym) Left
+
+||| Allows: under decEq : (-) {smaller=notLTToGTE notlt}
+notLTToGTE : Not (LT a b) -> LTE b a
+notLTToGTE {a} {b} nonpr = eqOrGTToLT
+	$ either (void . nonpr) id
+	$ trichotomy a b
 
 
 
@@ -140,3 +157,64 @@ ltenatLastIsTrue = MkIso
 			where
 				sameLTEPr : ltenatLastIsTrue2 nel = ltepr
 				sameLTEPr = lteUnique (ltenatLastIsTrue2 nel) ltepr
+
+
+
+{-
+Nat algebraic theorems
+-}
+
+
+
+lteUnsumLeftSummandRight : (x `plus` y) `LT` z -> y `LT` z
+lteUnsumLeftSummandRight {x=Z} = id
+lteUnsumLeftSummandRight {x=S predx} = lteUnsumLeftSummandRight . ltePredLeft
+
+lteUnsumLeftSummandLeft : (x `plus` y) `LT` z -> x `LT` z
+lteUnsumLeftSummandLeft {x} {y} = rewrite (plusCommutative x y)
+	in lteUnsumLeftSummandRight
+
+ltePlus : (a, b : Nat) -> b `LTE` (a `plus` b)
+ltePlus a Z = LTEZero
+ltePlus a (S predb) = rewrite sym $ plusSuccRightSucc a predb in LTESucc $ ltePlus a predb
+
+
+
+lteImplSuccMinusPreserved : (a, b : Nat)
+	-> b `LTE` a
+	-> (S a) `minus` b = S (a `minus` b)
+lteImplSuccMinusPreserved a Z _ = cong $ sym $ minusZeroRight a
+lteImplSuccMinusPreserved Z (S predb) lteBA = void $ succNotLTEzero lteBA
+lteImplSuccMinusPreserved (S preda) (S predb) lteBA
+	= lteImplSuccMinusPreserved preda predb $ fromLteSucc lteBA
+
+natPlusInvertibleR : (a, b : Nat) -> (a `plus` b) `minus` b = a
+natPlusInvertibleR a Z = trans (cong $ plusZeroRightNeutral a) $ minusZeroRight a
+natPlusInvertibleR Z b = sym $ minusZeroN b
+natPlusInvertibleR (S preda) (S predb)
+	= trans (cong {f=\t => t `minus` predb} $ sym $ plusSuccRightSucc preda predb)
+	$ trans (lteImplSuccMinusPreserved (plus preda predb) predb
+		$ ltePlus preda predb)
+	$ cong {f=S} $ natPlusInvertibleR preda predb
+
+natPlusInvertibleL : (a, b : Nat) -> (b `plus` a) `minus` b = a
+natPlusInvertibleL a b = rewrite plusCommutative b a in natPlusInvertibleR a b
+
+
+
+lteToSumExpr :
+	(x, m : Nat)
+	-> m `LTE` x
+	-> (k : Nat ** x = m `plus` k)
+lteToSumExpr x Z lteMX = (x ** Refl)
+lteToSumExpr Z (S predm) lteMX = void $ succNotLTEzero lteMX
+lteToSumExpr (S predx) (S predm) lteMX
+	= either
+		(\ltMX =>
+			let ltPMPX = fromLteSucc ltMX
+			in let oldpr = lteToSumExpr predx (S predm) ltPMPX
+			in (S $ getWitness oldpr
+				** cong {f=S} $ trans (getProof oldpr)
+				$ plusSuccRightSucc _ _))
+		(\eqMX => (Z ** sym $ trans (cong $ plusZeroRightNeutral predm) eqMX))
+	$ lteToLTERel lteMX

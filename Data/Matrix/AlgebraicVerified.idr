@@ -356,6 +356,13 @@ ringNegationCommutesWithLeftMult left right = groupOpIsCancellativeR (left<.>(in
 ringNegationCommutesWithRightMult : VerifiedRing a => (left, right : a) -> (inverse left)<.>right = inverse $ left<.>right
 ringNegationCommutesWithRightMult left right = groupOpIsCancellativeR ((inverse left)<.>right) (inverse $ left<.>right) (left<.>right) $ trans (trans (sym $ ringOpIsDistributiveR (inverse left) left right) $ trans (cong {f=(<.>right)} $ groupInverseIsInverseR left) $ ringNeutralIsMultZeroL right) $ sym $ groupInverseIsInverseR $ left<.>right
 
+ringNegationCancelsWithMult : VerifiedRing t
+	=> (x, y : t) -> inverse x <.> inverse y = x <.> y
+ringNegationCancelsWithMult x y =
+	trans (ringNegationCommutesWithRightMult x (inverse y))
+	$ trans (cong {f=inverse} $ ringNegationCommutesWithLeftMult x y)
+	$ inverseIsInvolution (x <.> y)
+
 ringOpIsDistributiveSubR : VerifiedRing a
 	=> {auto ok :
 		((<+>) @{vrSemigroupByGrp $ the (VerifiedRing a) %instance})

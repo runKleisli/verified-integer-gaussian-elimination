@@ -28,8 +28,10 @@ import FinOrdering
 import Control.Isomorphism
 
 {-
-(bezQTy) is the only thing actually used from here,
+(bezQTy) is the only thing actually used from here in the proof,
 something req.d to potentially generalize to other Bezout domains.
+
+However, the example (bezoutZT) is applied here to give a specific algorithm.
 -}
 import ZZBezoutsIdentity
 
@@ -51,6 +53,7 @@ Index:
 * gaussElimlzIfVectGCD2
 * gaussElimlzIfVectGCD
 * gaussElimlzIfGCD
+* The gaussian elimination instantiation derived from (bezoutZT)
 * Appendix Elim.General.Meta
 -}
 
@@ -355,6 +358,21 @@ gaussElimlzIfGCD xs = runIdentity $ do {
 	}
 
 } {- (gaussElimlzIfGCD) parameters -}
+
+
+
+{-
+The gaussian elimination instantiation derived from (bezoutZT)
+-}
+
+
+
+gaussElimlz :
+	(xs : Matrix n m ZZ)
+	-> ( n' : Nat
+		** (gexs : Matrix n' m ZZ
+			** (rowEchelon gexs, gexs `bispanslz` xs)) )
+gaussElimlz = gaussElimlzIfGCD bezoutZT
 
 
 
