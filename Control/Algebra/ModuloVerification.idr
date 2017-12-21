@@ -199,30 +199,6 @@ modNatFnIsRemainder x m
 
 
 
-{-
-
-modZGen - generate a verified ZZ modulo from a verified Nat modulo.
-
-Issue:
-
-Must turn on reflection for the witness (modZGenFn _ _) for the proof (modZGenQuot _ _)
-to typecheck when defined separately.
-Specifically, for (modZGenFn modNatFn modNatFnIsRemainder).
-Is that modZGen's fault or (modNatFn)'s? Parameter blocks look the culprit.
-Not solved by taking a dependent pairing of them instead.
-
-However, this is still allowed:
-
-bezoutsIdentityZZIfModulo
-	(modZGenFn modNatFn modNatFnIsRemainder)
-	(modZGenQuot modNatFn modNatFnIsRemainder)
-
-(without reflecting the witness)
-
--}
-
-
-
 {- modZGen parameters -}
 parameters (
 	modN : Nat -> Nat -> Nat
