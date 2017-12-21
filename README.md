@@ -6,19 +6,14 @@ Written in Idris 0.9.20
 
 Idris package looking to define, implement, and verify naiive Gaussian elimination over the integers in some system of linear algebra.
 
-Mostly complete:
+* (gaussElimlz) gives an instantiation of the algorithm.
+* It is formally verified.
+* It is not verified as total.
+* It is implemented in terms of (gaussElimlzIfGCD), which is total.
+* The lack of verified totality arises from
+	* The GCD algorithm's lack of verified totality (it's total by looking at the fixed points of recursion compared to the cases matched on).
+	* The choice of modulo operator implementation's lack of verified totality.
 * What's implemented is called (gaussElimlzIfGCD), a verified elimination algorithm producer.
-	* Idris confirms it's total.
-* We also have (bezoutsIdentityZZIfModulo), a verified GCD algorithm producer.
-	* Idris does not confirm it's total - this uses the euclidean algorithm, for which proof of termination is nontrivial, & out of Idris's depth.
-* We're missing a verified modulo operator.
-* These then fit together:
-	* (gaussElimlzIfGCD) takes a GCD algorithm as an argument, and produces a gaussian elimination algorithm.
-	* (bezoutsIdentityZZIfModulo) takes a modulo operator as an argument, and produces a GCD algorithm.
-	* In particular,
-	`\mfn => \mpr => gaussElimlzIfGCD {m=5} {n=3} $ bezoutsIdentityZZIfModulo mfn mpr`
-	typechecks.
-* ... to form a verified gaussian elimination algorithm.
 
 ## ZZGaussianElimination
 
@@ -30,7 +25,12 @@ Index:
 * gaussElimlzIfVectGCD2
 * gaussElimlzIfVectGCD
 * gaussElimlzIfGCD
+* The gaussian elimination instantiation derived from (bezoutZT)
 * Appendix Elim.General.Meta
+
+(gaussElimlz) is a complete algorithm for verified integer gaussian elimination.
+
+(gaussElimlzIfGCD) takes a GCD algorithm as an argument, and produces a gaussian elimination algorithm.
 
 Satellite modules:
 * ZZGaussianEliminationLemmas
@@ -67,21 +67,22 @@ Table of contents:
 * Corollary bispannability property
 * Row echelon properties
 
-## ZZDivisors
-
-* An integer divisibility relation `quotientOverZZ` & its properties
-* Interactions between integer divisibility and linear combinations
-
 ## ZZBezoutsIdentity
 
 Bezout's identity / GCD (Greatest Common Denominator) algorithms / the euclidean algorithm.
 
 Table of contents:
-* Some algebra about groups
-* About rings
 * Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
 * (bezoutsIdentityZZIfModulo) implementation
 * (Commentary) "Goal: Separation of algorithm from verification."
+* The GCD derived from (modZT), itself derived from (modNatT).
+
+(bezoutsIdentityZZIfModulo) takes a modulo operator as an argument, and produces a GCD algorithm.
+
+Satellite modules:
+* ZZDivisors
+* Control.Algebra.ModuloVerification
+* ZZModulo
 
 ## ZZGCDOfVectAlg
 
@@ -278,6 +279,30 @@ Of independent interest are (trichotomy) & (ltenatLastIsTrue), which state
 ## Control.Algebra.ZZVerifiedInstances
 
 Contents: Typeclass instance `instance VerifiedRingWithUnity ZZ`
+
+## ZZDivisors
+
+* An integer divisibility relation `quotientOverZZ` & its properties
+* Interactions between integer divisibility and linear combinations
+
+## Control.Algebra.ModuloVerification
+
+Table of contents
+
+* ZZ algebraic theorems
+* Lemmas for (modNatFnIsRemainder)
+* (modNatFnIsRemainder)
+	Generate proofs of the quotient-remainder relation for binary
+	modulo operations on naturals from simpler properties.
+* modZGen - generate a verified ZZ modulo from a verified Nat modulo.
+
+## ZZModulo
+
+Table of contents
+
+* Modulo for naturals
+* Lemmas for applying (modNatFnIsRemainder)
+* Derived modulo for ZZ
 
 ## Data.Matrix.AlgebraicVerified
 
