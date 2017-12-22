@@ -6,8 +6,8 @@ import Classes.Verified
 import Data.ZZ
 import Control.Algebra.NumericInstances
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 import ZZDivisors
 import Control.Algebra.ModuloVerification

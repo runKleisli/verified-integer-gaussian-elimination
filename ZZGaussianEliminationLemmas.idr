@@ -23,8 +23,8 @@ import Data.Matrix.LinearCombinations
 import RowEchelon
 import ZZDivisors
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 import Control.Isomorphism
 

@@ -23,7 +23,7 @@ import RowEchelon
 import ZZDivisors
 import ZZGaussianEliminationLemmas
 
-import FinOrdering
+import Data.Fin.FinOrdering
 
 import Control.Isomorphism
 

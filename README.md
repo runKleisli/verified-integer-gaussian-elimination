@@ -254,7 +254,7 @@ Structural:
 
 Misc foundational
 
-## FinOrdering
+## Data.Fin.FinOrdering
 
 Contents:
 * A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
@@ -263,7 +263,7 @@ Contents:
 * `zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)`
 * `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
 
-## FinStructural
+## Data.Fin.Structural
 
 Structure of (Fin)s
 * in general

@@ -19,8 +19,8 @@ import Data.Matrix.ZZVerified
 import ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 -- For style. ((Reader r a) equivalent to (r -> a))
 import Control.Monad.Identity

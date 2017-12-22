@@ -10,8 +10,8 @@ import Data.Matrix.AlgebraicVerified	-- For (groupDivisionAddLToSubR)
 
 import ZZDivisors
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 -- For (groupDivisionAddLToSubR)
 import Control.Algebra.DiamondInstances

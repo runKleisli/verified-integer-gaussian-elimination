@@ -17,8 +17,8 @@ import Data.Vect.Structural
 
 import ZZDivisors
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 {-
 (bezQTy) is the only thing actually used from here,
