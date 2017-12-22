@@ -24,6 +24,7 @@ Copy the repo's contents (minus the `.git` folder) into a folder called `zzgauss
 `cd` to this folder, then run
 
 `idris --build zzgauss.ipkg`
+`idris --install zzgauss.ipkg`
 
 Then, to use the library from the REPL, you run:
 
