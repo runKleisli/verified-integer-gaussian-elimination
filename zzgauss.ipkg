@@ -1,13 +1,6 @@
 package zzgauss
 
 opts = "--nobasepkgs -i ../prelude -i ../base -i ../contrib"
-libs =
-	Control.Algebra
-	, Control.Algebra.VectorSpace
-	, Control.Algebra.NumericInstances
-	, Classes.Verified
-	, Data.Matrix, Data.Matrix.Algebraic
-	, Data.ZZ
 modules =
 	Data.Matrix.ZZGaussianElimination
 	, Data.Matrix.ZZGaussianEliminationLemmas

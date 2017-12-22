@@ -21,6 +21,10 @@ Idris package defining, implementing, and verifying naiive Gaussian elimination 
 
 Copy the repo's contents (minus the `.git` folder) into a folder called `zzgauss` in the `libs` folder located in the Idris distribution directory.
 
+`cd` to this folder, then run
+
+`idris --build zzgauss.ipkg`
+
 Then, to use the library from the REPL, you run:
 
 `idris -p contrib -p zzgauss`
