@@ -33,10 +33,10 @@ something req.d to potentially generalize to other Bezout domains.
 
 However, the example (bezoutZT) is applied here to give a specific algorithm.
 -}
-import ZZBezoutsIdentity
+import Control.Algebra.ZZBezoutsIdentity
 
 -- Extension of a GCD operation to any number of arguments arguments
-import ZZGCDOfVectAlg
+import Control.Algebra.ZZGCDOfVectAlg
 
 -- Dependent pattern matching using (do) notation binds improves clarity
 import Control.Monad.Identity

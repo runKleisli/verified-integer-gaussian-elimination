@@ -1,4 +1,4 @@
-module ZZGCDOfVectAlg
+module Control.Algebra.ZZGCDOfVectAlg
 
 import Control.Algebra
 import Classes.Verified
@@ -24,7 +24,7 @@ import Data.Fin.Structural
 (bezQTy) is the only thing actually used from here,
 something req.d to potentially generalize to other Bezout domains.
 -}
-import ZZBezoutsIdentity
+import Control.Algebra.ZZBezoutsIdentity
 
 -- Dependent pattern matching using (do) notation binds improves clarity
 import Control.Monad.Identity

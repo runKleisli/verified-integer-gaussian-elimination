@@ -35,7 +35,7 @@ Satellite modules:
 * ZZGaussianEliminationLemmas
 * ZZGaussianEliminationNoMonad
   Implementation of (elimFirstCol) without using the do notation dependent pattern matching technique.
-* ZZGCDOfVectAlg
+* Control.Algebra.ZZGCDOfVectAlg
 
 ## ZZGaussianEliminationLemmas
 
@@ -66,7 +66,7 @@ Table of contents:
 * Corollary bispannability property
 * Row echelon properties
 
-## ZZBezoutsIdentity
+## Control.Algebra.ZZBezoutsIdentity
 
 Bezout's identity / GCD (Greatest Common Denominator) algorithms / the euclidean algorithm.
 
@@ -83,7 +83,7 @@ Satellite modules:
 * Data.ZZ.ModuloVerification
 * Data.ZZ.ZZModulo
 
-## ZZGCDOfVectAlg
+## Control.Algebra.ZZGCDOfVectAlg
 
 The extension of a GCD of 2 numbers to that of a Vect of numbers.
 

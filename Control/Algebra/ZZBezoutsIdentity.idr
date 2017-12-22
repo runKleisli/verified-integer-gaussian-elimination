@@ -1,4 +1,4 @@
-module ZZBezoutsIdentity
+module Control.Algebra.ZZBezoutsIdentity
 
 import Control.Algebra
 import Classes.Verified
