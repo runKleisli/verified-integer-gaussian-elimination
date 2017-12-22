@@ -104,7 +104,7 @@ If we take these points
 [0, 0, 1]
 ```
 
-and we order everything so that the leading 0s never move to the left
+and we order everything so that the trailing 0s never move to the left
 
 ```
 [2, 3, 4]
