@@ -6,7 +6,8 @@ Written in Idris 0.9.20
 
 Idris package defining, implementing, and verifying naiive Gaussian elimination over the integers in some system of linear algebra.
 
-* (gaussElimlz) gives an instantiation of the algorithm.
+* `gaussElimlz` gives an instantiation of the algorithm.
+	* It is found in Data.Matrix.ZZGaussianElimination.
 * It is formally verified.
 * It is not verified as total.
 * It is implemented in terms of (gaussElimlzIfGCD), a verified elimination algorithm producer, which is total.
@@ -14,7 +15,7 @@ Idris package defining, implementing, and verifying naiive Gaussian elimination 
 	* The GCD algorithm's lack of verified totality (it's total by looking at the fixed points of recursion compared to the cases matched on).
 	* The choice of modulo operator implementation's lack of verified totality.
 
-## ZZGaussianElimination
+## Data.Matrix.ZZGaussianElimination
 
 Main elimination algorithms.
 
@@ -32,12 +33,12 @@ Index:
 (gaussElimlzIfGCD) takes a GCD algorithm as an argument, and produces a gaussian elimination algorithm.
 
 Satellite modules:
-* ZZGaussianEliminationLemmas
-* ZZGaussianEliminationNoMonad
+* Data.Matrix.ZZGaussianEliminationLemmas
+* Data.Matrix.ZZGaussianEliminationNoMonad
   Implementation of (elimFirstCol) without using the do notation dependent pattern matching technique.
 * Control.Algebra.ZZGCDOfVectAlg
 
-## ZZGaussianEliminationLemmas
+## Data.Matrix.ZZGaussianEliminationLemmas
 
 Table of Contents:
 * The induction algorithm used to verify first-column elimination

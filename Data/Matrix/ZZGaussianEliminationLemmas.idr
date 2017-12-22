@@ -1,4 +1,4 @@
-module ZZGaussianEliminationLemmas
+module Data.Matrix.ZZGaussianEliminationLemmas
 
 import Control.Algebra
 import Classes.Verified
