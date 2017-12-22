@@ -2,6 +2,8 @@
 
 [![bountysource](https://img.shields.io/bountysource/team/verified-integer-gaussian-elimination/activity.svg "bountysource (salt)")](https://www.bountysource.com/teams/verified-integer-gaussian-elimination) Funded through [Bountysource (salt)](https://salt.bountysource.com/teams/verified-integer-gaussian-elimination) by [viewers like you](../master/Backers.md).
 
+This: Version v1.0.0
+
 Written in Idris 0.9.20
 
 Idris package defining, implementing, and verifying naiive Gaussian elimination over the integers in some system of linear algebra.
@@ -14,6 +16,18 @@ Idris package defining, implementing, and verifying naiive Gaussian elimination 
 * The lack of verified totality arises from
 	* The GCD algorithm's lack of verified totality (it's total by looking at the fixed points of recursion compared to the cases matched on).
 	* The choice of modulo operator implementation's lack of verified totality.
+
+## Installation & use
+
+Copy the repo's contents (minus the `.git` folder) into a folder called `zzgauss` in the `libs` folder located in the Idris distribution directory.
+
+Then, to use the library from the REPL, you run:
+
+`idris -p contrib -p zzgauss`
+`Idris> :module Data.Matrix.ZZGaussianElimination`
+`Idris> :browse Data.Matrix.ZZGaussianElimination`
+
+where the `:module` call is unnecessary once imported into an Idris module that's loaded.
 
 ## Data.Matrix.ZZGaussianElimination
 

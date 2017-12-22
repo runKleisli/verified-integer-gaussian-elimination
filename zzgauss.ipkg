@@ -1,0 +1,37 @@
+package zzgauss
+
+opts = "--nobasepkgs -i ../prelude -i ../base -i ../contrib"
+libs =
+	Control.Algebra
+	, Control.Algebra.VectorSpace
+	, Control.Algebra.NumericInstances
+	, Classes.Verified
+	, Data.Matrix, Data.Matrix.Algebraic
+	, Data.ZZ
+modules =
+	Data.Matrix.ZZGaussianElimination
+	, Data.Matrix.ZZGaussianEliminationLemmas
+	, Data.Matrix.RowEchelon
+
+	, Control.Algebra.ZZBezoutsIdentity
+	, Control.Algebra.ZZGCDOfVectAlg
+
+	, Data.Matrix.ZZModuleSpan
+	, Data.Matrix.LinearCombinations
+
+	, Data.Fin.FinOrdering
+	, Data.Fin.Structural
+
+	, Control.Algebra.ZZVerifiedInstances
+	, Control.Algebra.DiamondInstances
+
+	, Control.Algebra.ZZDivisors
+
+	, Data.ZZ.ModuloVerification
+	, Data.ZZ.ZZModulo
+
+	, Data.Matrix.AlgebraicVerified
+	, Data.Matrix.ZZVerified
+
+	, Data.Vect.Structural
+	, Data.Matrix.Structural
