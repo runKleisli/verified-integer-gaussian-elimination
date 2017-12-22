@@ -1,7 +1,7 @@
 > module LinCombHeadtailsEq
 
 > import Data.Matrix.LinearCombinations
-> import ZZModuleSpan
+> import Data.Matrix.ZZModuleSpan
 
 > import Control.Algebra
 > import Control.Algebra.VectorSpace -- definition of module

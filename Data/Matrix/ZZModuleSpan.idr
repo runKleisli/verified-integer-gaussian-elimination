@@ -1,4 +1,4 @@
-module ZZModuleSpan
+module Data.Matrix.ZZModuleSpan
 
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module

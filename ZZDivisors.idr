@@ -16,7 +16,7 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.ZZVerified
 
-import ZZModuleSpan
+import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
 

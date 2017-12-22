@@ -87,7 +87,7 @@ Satellite modules:
 
 The extension of a GCD of 2 numbers to that of a Vect of numbers.
 
-## ZZModuleSpan
+## Data.Matrix.ZZModuleSpan
 
 Contents:
 
@@ -232,7 +232,7 @@ Most significant contents:
 * Algebraic identities proved about matrices and vectors.
 	* The dot product is a bilinear map from (ZZ)-(Vect)s to (ZZ) (or at least, proof up to left-right symmetry).
 		* Scalar multiplication of the left factor in a vector- or matrix-matrix product is the same as multiplying the product by the same scalar. (Note rel. to bilinearity)
-	* ZZ matrices form an algebra. Uses `moduleScalarUnityIsUnity`. See also: `multIdLeftNeutral`, `multIdRightNeutral`, `timesMatMatIsAssociative` in ZZModuleSpan.
+	* ZZ matrices form an algebra. Uses `moduleScalarUnityIsUnity`. See also: `multIdLeftNeutral`, `multIdRightNeutral`, `timesMatMatIsAssociative` in Data.Matrix.ZZModuleSpan.
 	* Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
 	* Transposition is an antiendomorphism of multiplication for a commutative ground ring and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
 	* Some Algebra.neutral is a zero element / scalar zero proofs.
