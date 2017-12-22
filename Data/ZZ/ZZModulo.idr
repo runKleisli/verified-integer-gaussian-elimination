@@ -1,4 +1,4 @@
-module ZZModulo
+module Data.ZZ.ZZModulo
 
 import Control.Algebra
 import Classes.Verified
@@ -10,7 +10,7 @@ import Data.Fin.FinOrdering
 import Data.Fin.Structural
 
 import Control.Algebra.ZZDivisors
-import Control.Algebra.ModuloVerification
+import Data.ZZ.ModuloVerification
 
 
 

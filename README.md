@@ -80,8 +80,8 @@ Table of contents:
 
 Satellite modules:
 * Control.Algebra.ZZDivisors
-* Control.Algebra.ModuloVerification
-* ZZModulo
+* Data.ZZ.ModuloVerification
+* Data.ZZ.ZZModulo
 
 ## ZZGCDOfVectAlg
 
@@ -283,7 +283,7 @@ Contents: Typeclass instance `instance VerifiedRingWithUnity ZZ`
 * An integer divisibility relation `quotientOverZZ` & its properties
 * Interactions between integer divisibility and linear combinations
 
-## Control.Algebra.ModuloVerification
+## Data.ZZ.ModuloVerification
 
 Table of contents
 
@@ -294,7 +294,7 @@ Table of contents
 	modulo operations on naturals from simpler properties.
 * modZGen - generate a verified ZZ modulo from a verified Nat modulo.
 
-## ZZModulo
+## Data.ZZ.ZZModulo
 
 Table of contents
 

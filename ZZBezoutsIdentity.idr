@@ -22,7 +22,7 @@ import Syntax.PreorderReasoning
 import Control.Algebra.DiamondInstances
 
 -- For example
-import ZZModulo
+import Data.ZZ.ZZModulo
 
 
 

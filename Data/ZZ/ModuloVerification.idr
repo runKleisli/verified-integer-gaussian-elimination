@@ -1,4 +1,4 @@
-module Control.Algebra.ModuloVerification
+module Data.ZZ.ModuloVerification
 
 import Control.Algebra
 import Classes.Verified
