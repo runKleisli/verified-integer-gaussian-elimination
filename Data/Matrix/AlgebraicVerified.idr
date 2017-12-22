@@ -15,6 +15,8 @@ import Syntax.PreorderReasoning
 -- Support
 import Control.Algebra.DiamondInstances
 
+%default total
+
 
 
 {-

@@ -1,10 +1,12 @@
-module FinStructural
+module Data.Fin.Structural
 
 import Data.Fin
 import Data.ZZ
 import Control.Isomorphism
 
-import FinOrdering
+import Data.Fin.FinOrdering
+
+%default total
 
 {-
 Structure of (Fin)s

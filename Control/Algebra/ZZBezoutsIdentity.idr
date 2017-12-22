@@ -1,4 +1,4 @@
-module ZZBezoutsIdentity
+module Control.Algebra.ZZBezoutsIdentity
 
 import Control.Algebra
 import Classes.Verified
@@ -8,10 +8,10 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.AlgebraicVerified 	-- for (ringNeutralIsMultZeroL)
 
-import ZZDivisors
+import Control.Algebra.ZZDivisors
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 import Control.Isomorphism
 
@@ -22,7 +22,7 @@ import Syntax.PreorderReasoning
 import Control.Algebra.DiamondInstances
 
 -- For example
-import ZZModulo
+import Data.ZZ.ZZModulo
 
 
 
@@ -42,6 +42,7 @@ Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
 
 
 
+total
 bezoutsIdentityLincombEqZZ :
 	(a, b, c, d, q, r : ZZ)
 	-> q<.>d = c <-> r
@@ -96,6 +97,7 @@ bezoutsIdentityLincombEqZZ a b c d q r pr =
 	a<.>d <+> b<.>r
 	) QED
 
+total
 bezoutsIdentityExtQuotientLincombZZ :
 	(c, d, q, r, x : ZZ)
 	-> (q<.>d <+> r = c)
@@ -111,6 +113,7 @@ bezoutsIdentityExtQuotientLincombZZ c d q r x eqpr (dq ** dqPr) (rq ** rqPr)
 		$ cong {f=(q<.>)} $ dqPr )
 	$ eqpr)
 
+total
 bezQTy : (c, d, a, b : ZZ) -> Type
 bezQTy c d a b =
 	( c `quotientOverZZ` (a<.>c <+> b<.>d)

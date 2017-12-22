@@ -3,6 +3,8 @@ module Control.Algebra.DiamondInstances
 import Control.Algebra
 import Classes.Verified -- definition of verified algebras other than modules
 
+%default total
+
 
 
 {-

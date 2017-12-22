@@ -2,11 +2,14 @@
 
 [![bountysource](https://img.shields.io/bountysource/team/verified-integer-gaussian-elimination/activity.svg "bountysource (salt)")](https://www.bountysource.com/teams/verified-integer-gaussian-elimination) Funded through [Bountysource (salt)](https://salt.bountysource.com/teams/verified-integer-gaussian-elimination) by [viewers like you](../master/Backers.md).
 
+This: Version v1.0.0
+
 Written in Idris 0.9.20
 
 Idris package defining, implementing, and verifying naiive Gaussian elimination over the integers in some system of linear algebra.
 
-* (gaussElimlz) gives an instantiation of the algorithm.
+* `gaussElimlz` gives an instantiation of the algorithm.
+	* It is found in Data.Matrix.ZZGaussianElimination.
 * It is formally verified.
 * It is not verified as total.
 * It is implemented in terms of (gaussElimlzIfGCD), a verified elimination algorithm producer, which is total.
@@ -14,7 +17,24 @@ Idris package defining, implementing, and verifying naiive Gaussian elimination 
 	* The GCD algorithm's lack of verified totality (it's total by looking at the fixed points of recursion compared to the cases matched on).
 	* The choice of modulo operator implementation's lack of verified totality.
 
-## ZZGaussianElimination
+## Installation & use
+
+Copy the repo's contents (minus the `.git` folder) into a folder called `zzgauss` in the `libs` folder located in the Idris distribution directory.
+
+`cd` to this folder, then run
+
+`idris --build zzgauss.ipkg`
+`idris --install zzgauss.ipkg`
+
+Then, to use the library from the REPL, you run:
+
+`idris -p contrib -p zzgauss`
+`Idris> :module Data.Matrix.ZZGaussianElimination`
+`Idris> :browse Data.Matrix.ZZGaussianElimination`
+
+where the `:module` call is unnecessary once imported into an Idris module that's loaded.
+
+## Data.Matrix.ZZGaussianElimination
 
 Main elimination algorithms.
 
@@ -32,12 +52,12 @@ Index:
 (gaussElimlzIfGCD) takes a GCD algorithm as an argument, and produces a gaussian elimination algorithm.
 
 Satellite modules:
-* ZZGaussianEliminationLemmas
-* ZZGaussianEliminationNoMonad
+* Data.Matrix.ZZGaussianEliminationLemmas
+* Data.Matrix.ZZGaussianEliminationNoMonad
   Implementation of (elimFirstCol) without using the do notation dependent pattern matching technique.
-* ZZGCDOfVectAlg
+* Control.Algebra.ZZGCDOfVectAlg
 
-## ZZGaussianEliminationLemmas
+## Data.Matrix.ZZGaussianEliminationLemmas
 
 Table of Contents:
 * The induction algorithm used to verify first-column elimination
@@ -52,7 +72,7 @@ succImplWknStep_Qfunclemma => succImplWknStep_stepQfunc => succImplWknStep_unplu
 
 (mkQfunc, foldedFully) => elimFirstCol (after some work)
 
-## RowEchelon
+## Data.Matrix.RowEchelon
 
 A library for making inferences about when the row echelon property holds for a matrix.
 
@@ -66,7 +86,7 @@ Table of contents:
 * Corollary bispannability property
 * Row echelon properties
 
-## ZZBezoutsIdentity
+## Control.Algebra.ZZBezoutsIdentity
 
 Bezout's identity / GCD (Greatest Common Denominator) algorithms / the euclidean algorithm.
 
@@ -79,15 +99,15 @@ Table of contents:
 (bezoutsIdentityZZIfModulo) takes a modulo operator as an argument, and produces a GCD algorithm.
 
 Satellite modules:
-* ZZDivisors
-* Control.Algebra.ModuloVerification
-* ZZModulo
+* Control.Algebra.ZZDivisors
+* Data.ZZ.ModuloVerification
+* Data.ZZ.ZZModulo
 
-## ZZGCDOfVectAlg
+## Control.Algebra.ZZGCDOfVectAlg
 
 The extension of a GCD of 2 numbers to that of a Vect of numbers.
 
-## ZZModuleSpan
+## Data.Matrix.ZZModuleSpan
 
 Contents:
 
@@ -232,7 +252,7 @@ Most significant contents:
 * Algebraic identities proved about matrices and vectors.
 	* The dot product is a bilinear map from (ZZ)-(Vect)s to (ZZ) (or at least, proof up to left-right symmetry).
 		* Scalar multiplication of the left factor in a vector- or matrix-matrix product is the same as multiplying the product by the same scalar. (Note rel. to bilinearity)
-	* ZZ matrices form an algebra. Uses `moduleScalarUnityIsUnity`. See also: `multIdLeftNeutral`, `multIdRightNeutral`, `timesMatMatIsAssociative` in ZZModuleSpan.
+	* ZZ matrices form an algebra. Uses `moduleScalarUnityIsUnity`. See also: `multIdLeftNeutral`, `multIdRightNeutral`, `timesMatMatIsAssociative` in Data.Matrix.ZZModuleSpan.
 	* Distributivities of matrix-matrix, vector-matrix, and matrix-vector multiplication over matrix addition and vector addition.
 	* Transposition is an antiendomorphism of multiplication for a commutative ground ring and an endomorphism of addition, hence an antiendomorphism of the matrix ring.
 	* Some Algebra.neutral is a zero element / scalar zero proofs.
@@ -254,7 +274,7 @@ Structural:
 
 Misc foundational
 
-## FinOrdering
+## Data.Fin.FinOrdering
 
 Contents:
 * A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
@@ -263,7 +283,7 @@ Contents:
 * `zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)`
 * `natGtAnyImpliesGtZ` — For all natural _m_ and _n_, _m_ < _n_ implies 0 < _n_.
 
-## FinStructural
+## Data.Fin.Structural
 
 Structure of (Fin)s
 * in general
@@ -278,12 +298,12 @@ Of independent interest are (trichotomy) & (ltenatLastIsTrue), which state
 
 Contents: Typeclass instance `instance VerifiedRingWithUnity ZZ`
 
-## ZZDivisors
+## Control.Algebra.ZZDivisors
 
 * An integer divisibility relation `quotientOverZZ` & its properties
 * Interactions between integer divisibility and linear combinations
 
-## Control.Algebra.ModuloVerification
+## Data.ZZ.ModuloVerification
 
 Table of contents
 
@@ -294,7 +314,7 @@ Table of contents
 	modulo operations on naturals from simpler properties.
 * modZGen - generate a verified ZZ modulo from a verified Nat modulo.
 
-## ZZModulo
+## Data.ZZ.ZZModulo
 
 Table of contents
 

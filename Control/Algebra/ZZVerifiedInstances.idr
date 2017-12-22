@@ -6,6 +6,8 @@ import Control.Algebra
 import Classes.Verified
 import Control.Algebra.NumericInstances
 
+%default total
+
 -- These can be proven through an isomorphism with the free ring on the empty type.
 
 monoidNeutralIsNeutralL_ZZ : (l : ZZ) -> l <+> Algebra.neutral = l

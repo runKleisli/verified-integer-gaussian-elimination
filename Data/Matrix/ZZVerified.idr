@@ -17,6 +17,8 @@ import Control.Algebra.ZZVerifiedInstances
 -- import Data.Matrix.LinearCombinations ( timesVectMatAsHeadTail_ByTransposeElimination )
 import Data.Matrix.LinearCombinations
 
+%default total
+
 
 
 {-

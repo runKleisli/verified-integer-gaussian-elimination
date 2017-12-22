@@ -1,4 +1,4 @@
-module ZZModuleSpan
+module Data.Matrix.ZZModuleSpan
 
 import Control.Algebra
 import Control.Algebra.VectorSpace -- definition of module
@@ -17,6 +17,8 @@ import Data.Vect.Structural
 import Data.Matrix.Structural
 
 import Control.Isomorphism
+
+%default total
 
 
 
@@ -2061,29 +2063,13 @@ spanslzHeadRow z zs = ( [basis FZ]
 		$ trans (sym transposeIndexChariz)
 		$ cong {f=index FZ} $ transposeIsInvolution {xs=z::zs} )
 
-spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs=neutral @{the (Monoid $ Matrix _ _ ZZ) %instance}
+spannedlzByZeroId : {xs : Matrix n m ZZ} -> spanslz [] xs -> xs = Algebra.neutral
 spannedlzByZeroId {xs=[]} (vs ** prvs) = Refl
-spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs) = ?spannedlzByZeroId'
-
-spannedlzByZeroId' = proof
-  intros
-  exact vecHeadtailsEq (trans (sym $ cong {f=head} prvs) _) (spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
-  rewrite sym $ zeroVecEq {a=v} {b=[]}
-  exact Refl
-
-{-
--- Works in REPL,
--- if this is a little clearer.
--- Difference is probably in inferring different implicit arguments to vecHeadtailsEq.
-spannedlzByZeroId' = proof
-  intros
-  exact vecHeadtailsEq _ (spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
-  exact trans (sym $ cong {f=head} prvs) _
-  -- compute
-  rewrite sym $ zeroVecEq {a=v} {b=[]}
-  -- compute
-  exact Refl
--}
+spannedlzByZeroId {xs=x::xs} ((v::vs) ** prvs)
+	= vecHeadtailsEq
+		(trans (sym $ cong {f=head} prvs)
+			$ rewrite zeroVecEq {a=v} {b=[]} in Refl)
+		(spannedlzByZeroId $ spanslzTail ((v::vs)**prvs))
 
 
 

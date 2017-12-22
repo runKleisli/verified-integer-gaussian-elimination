@@ -1,8 +1,10 @@
-module FinOrdering
+module Data.Fin.FinOrdering
 -- Classes (OrdRel, DecLT) are redundant with IntegerOrdering.idr
 
 import Data.Fin
 import Data.ZZ
+
+%default total
 
 
 

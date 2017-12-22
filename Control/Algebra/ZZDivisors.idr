@@ -1,4 +1,4 @@
-module ZZDivisors
+module Control.Algebra.ZZDivisors
 
 import Control.Algebra
 import Classes.Verified
@@ -16,8 +16,10 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.ZZVerified
 
-import ZZModuleSpan
+import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
+
+%default total
 
 
 

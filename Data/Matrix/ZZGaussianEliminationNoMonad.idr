@@ -1,4 +1,4 @@
-module ZZGaussianEliminationNoMonad
+module Data.Matrix.ZZGaussianEliminationNoMonad
 
 import Control.Algebra
 import Classes.Verified
@@ -16,16 +16,18 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.ZZVerified
 
-import ZZModuleSpan
+import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
-import RowEchelon
-import ZZDivisors
-import ZZGaussianEliminationLemmas
+import Data.Matrix.RowEchelon
+import Control.Algebra.ZZDivisors
+import Data.Matrix.ZZGaussianEliminationLemmas
 
-import FinOrdering
+import Data.Fin.FinOrdering
 
 import Control.Isomorphism
+
+%default total
 
 
 

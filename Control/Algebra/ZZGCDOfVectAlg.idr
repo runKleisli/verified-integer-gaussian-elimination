@@ -1,4 +1,4 @@
-module ZZGCDOfVectAlg
+module Control.Algebra.ZZGCDOfVectAlg
 
 import Control.Algebra
 import Classes.Verified
@@ -15,22 +15,24 @@ import Data.Matrix.LinearCombinations -- for (vectVectLScalingCompatibility)
 
 import Data.Vect.Structural
 
-import ZZDivisors
+import Control.Algebra.ZZDivisors
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 {-
 (bezQTy) is the only thing actually used from here,
 something req.d to potentially generalize to other Bezout domains.
 -}
-import ZZBezoutsIdentity
+import Control.Algebra.ZZBezoutsIdentity
 
 -- Dependent pattern matching using (do) notation binds improves clarity
 import Control.Monad.Identity
 import Syntax.PreorderReasoning
 
 import Control.Algebra.DiamondInstances
+
+%default total
 
 
 

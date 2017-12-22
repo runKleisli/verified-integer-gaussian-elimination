@@ -1,4 +1,4 @@
-module ZZGaussianElimination
+module Data.Matrix.ZZGaussianElimination
 
 import Control.Algebra
 import Classes.Verified
@@ -16,14 +16,14 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.ZZVerified
 
-import ZZModuleSpan
+import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
-import RowEchelon
-import ZZDivisors
-import ZZGaussianEliminationLemmas
+import Data.Matrix.RowEchelon
+import Control.Algebra.ZZDivisors
+import Data.Matrix.ZZGaussianEliminationLemmas
 
-import FinOrdering
+import Data.Fin.FinOrdering
 
 import Control.Isomorphism
 
@@ -33,10 +33,10 @@ something req.d to potentially generalize to other Bezout domains.
 
 However, the example (bezoutZT) is applied here to give a specific algorithm.
 -}
-import ZZBezoutsIdentity
+import Control.Algebra.ZZBezoutsIdentity
 
 -- Extension of a GCD operation to any number of arguments arguments
-import ZZGCDOfVectAlg
+import Control.Algebra.ZZGCDOfVectAlg
 
 -- Dependent pattern matching using (do) notation binds improves clarity
 import Control.Monad.Identity
@@ -141,6 +141,7 @@ Better to refine this to a type that depends on (m=S predm) so that the case (m=
 Shall start from the bottom of the matrix (last) and work up to row (FS FZ) using a traversal based on (weaken) and a binary map from index (Fin n) and oldvals to newvals.
 -}
 
+total
 elimFirstCol :
 	(xs : Matrix n (S predm) ZZ)
 	-> (gexs : Matrix (S n) (S predm) ZZ **
@@ -187,6 +188,7 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 
 {- Gaussian elimination for width > 0 -}
 
+total
 gaussElimlzIfVectGCD2 :
 	(xs : Matrix n (S predm) ZZ)
 	-> ( n' : Nat
@@ -314,6 +316,7 @@ gaussElimlzIfVectGCD2 xs {predm = S prededm}
 
 {- Gaussian elimination in general -}
 
+total
 gaussElimlzIfVectGCD :
 	(xs : Matrix n m ZZ)
 	-> ( n' : Nat
@@ -338,6 +341,7 @@ parameters (
 		-> ( zpar : (ZZ, ZZ) ** uncurry (bezQTy c d) zpar )
 	) {
 
+total
 gaussElimlzIfGCD2 :
 	(xs : Matrix n m ZZ)
 	-> ( n' : Nat
@@ -347,6 +351,7 @@ gaussElimlzIfGCD2 = gaussElimlzIfVectGCD $ gcdToVectGCD gcdAlg
 
 {- Render proper row echelon property -}
 
+total
 gaussElimlzIfGCD :
 	(xs : Matrix n m ZZ)
 	-> ( n' : Nat

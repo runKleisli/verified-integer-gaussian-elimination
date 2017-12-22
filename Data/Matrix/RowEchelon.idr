@@ -1,4 +1,4 @@
-module RowEchelon
+module Data.Matrix.RowEchelon
 
 import Control.Algebra
 import Classes.Verified
@@ -16,17 +16,19 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.ZZVerified
 
-import ZZModuleSpan
+import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 -- For style. ((Reader r a) equivalent to (r -> a))
 import Control.Monad.Identity
 import Control.Monad.Reader
 
 import Control.Isomorphism
+
+%default total
 
 
 

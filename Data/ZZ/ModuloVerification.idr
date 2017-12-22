@@ -1,4 +1,4 @@
-module Control.Algebra.ModuloVerification
+module Data.ZZ.ModuloVerification
 
 import Control.Algebra
 import Classes.Verified
@@ -8,10 +8,10 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.AlgebraicVerified	-- For (groupDivisionAddLToSubR)
 
-import ZZDivisors
+import Control.Algebra.ZZDivisors
 
-import FinOrdering
-import FinStructural
+import Data.Fin.FinOrdering
+import Data.Fin.Structural
 
 -- For (groupDivisionAddLToSubR)
 import Control.Algebra.DiamondInstances
@@ -37,10 +37,12 @@ ZZ algebraic theorems
 
 
 
+total
 invertByNegativity : ZZ -> ZZ -> ZZ
 invertByNegativity x (Pos y) = x
 invertByNegativity x (NegS y) = inverse x
 
+total
 timesToAbs :
 	(x, y : ZZ)
 	-> (x `invertByNegativity` y) <.> y = x <.> Pos (absZ y)
@@ -81,6 +83,7 @@ Lemmas for (modNatFnIsRemainder)
 
 
 
+total
 modNatFnPreservesZero :
 	(m : Nat) -> Z `modNatFn` m = Z
 modNatFnPreservesZero Z = modNatFnIdModZero Z
@@ -88,6 +91,7 @@ modNatFnPreservesZero (S predm) = modNatFnCharizLT Z (S predm) $ LTESucc LTEZero
 
 
 
+total
 modNatFnCharizModulusPlus2 :
 	(x, m, k : Nat)
 	-> x = (k `mult` m) `plus` (x `modNatFn` m)
@@ -97,6 +101,7 @@ modNatFnCharizModulusPlus2 x m k pr
 	$ plusAssociative m _ _
 
 -- by (modNatFnCharizModulusPlus2) & (modNatFnCharizGTE)
+total
 modNatFnCharizModulusPlus :
 	(x, m, k : Nat)
 	-> x = (k `mult` m) `plus` (x `modNatFn` m)
@@ -105,6 +110,7 @@ modNatFnCharizModulusPlus x m k pr
 	= trans (modNatFnCharizModulusPlus2 x m k pr)
 	$ cong $ sym $ modNatFnCharizGTE x m
 
+total
 modNatFnLTToDiffZ :
 	(x, m : Nat)
 	-> (x `LT` m)
@@ -206,9 +212,11 @@ parameters (
 		-> (d : Nat ** (d `mult` m) `plus` (x `modN` m) = x)
 	) {
 
+total
 modZGenFn2 : ZZ -> ZZ -> ZZ
 modZGenFn2 x m = Pos (absZ x `modN` absZ m)
 
+total
 modZGenFn : ZZ -> ZZ -> ZZ
 modZGenFn x@(Pos x') m = x `modZGenFn2` m
 modZGenFn x@(NegS x') m = inverse $ inverse x `modZGenFn2` m

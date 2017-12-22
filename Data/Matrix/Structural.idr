@@ -10,6 +10,8 @@ import Data.Matrix.AlgebraicVerified
 
 import Data.Vect.Structural
 
+%default total
+
 
 
 transposeIndexChariz : {xs : Matrix n m a} -> index k $ transpose xs = getCol k xs
