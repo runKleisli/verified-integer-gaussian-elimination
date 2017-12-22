@@ -19,7 +19,7 @@ import Data.Matrix.ZZVerified
 import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
-import RowEchelon
+import Data.Matrix.RowEchelon
 import Control.Algebra.ZZDivisors
 import ZZGaussianEliminationLemmas
 

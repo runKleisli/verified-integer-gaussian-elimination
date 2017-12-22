@@ -52,7 +52,7 @@ succImplWknStep_Qfunclemma => succImplWknStep_stepQfunc => succImplWknStep_unplu
 
 (mkQfunc, foldedFully) => elimFirstCol (after some work)
 
-## RowEchelon
+## Data.Matrix.RowEchelon
 
 A library for making inferences about when the row echelon property holds for a matrix.
 

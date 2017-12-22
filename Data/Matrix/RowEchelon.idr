@@ -1,4 +1,4 @@
-module RowEchelon
+module Data.Matrix.RowEchelon
 
 import Control.Algebra
 import Classes.Verified
