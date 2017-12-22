@@ -28,6 +28,8 @@ import Control.Monad.Reader
 
 import Control.Isomorphism
 
+%default total
+
 
 
 {-

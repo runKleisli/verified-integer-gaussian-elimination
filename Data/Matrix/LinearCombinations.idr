@@ -15,6 +15,8 @@ import Data.ZZ
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.AlgebraicVerified
 
+%default total
+
 
 
 monoidsum : (Foldable t, Monoid a) => t a -> a

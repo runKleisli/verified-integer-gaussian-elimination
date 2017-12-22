@@ -1,0 +1,18 @@
+Data.ZZ.ModuloVerification.modZGenQuot is possibly not total due to recursive path Data.ZZ.ModuloVerification.modZGenQuot --> Data.ZZ.ModuloVerification.modZGenQuot
+	* fixed markings
+	* I believe this is a bug
+
+Data.ZZ.ZZModulo.quotientPartModZT is possibly not total due to: Data.ZZ.ModuloVerification.modZGenQuot
+	* fixed markings
+
+Control.Algebra.ZZBezoutsIdentity.bezoutsIdentityZZIfModulo is possibly not total due to recursive path Control.Algebra.ZZBezoutsIdentity.bezoutsIdentityZZIfModulo --> Control.Algebra.ZZBezoutsIdentity.bezoutsIdentityZZIfModulo
+	* fixed markings
+
+Control.Algebra.ZZBezoutsIdentity.bezoutZT is possibly not total due to: Control.Algebra.ZZBezoutsIdentity.bezoutsIdentityZZIfModulo
+	* fixed markings
+
+Data.Matrix.ZZGaussianElimination.gaussElimlz is possibly not total due to: Control.Algebra.ZZBezoutsIdentity.bezoutZT
+	* fixed markings
+
+Other:
+Things marked w/ %reflection

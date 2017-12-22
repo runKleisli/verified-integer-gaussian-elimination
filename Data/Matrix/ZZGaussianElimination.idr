@@ -141,6 +141,7 @@ Better to refine this to a type that depends on (m=S predm) so that the case (m=
 Shall start from the bottom of the matrix (last) and work up to row (FS FZ) using a traversal based on (weaken) and a binary map from index (Fin n) and oldvals to newvals.
 -}
 
+total
 elimFirstCol :
 	(xs : Matrix n (S predm) ZZ)
 	-> (gexs : Matrix (S n) (S predm) ZZ **
@@ -187,6 +188,7 @@ elimFirstCol mat {n=S predn} {predm} = runIdentity $ do {
 
 {- Gaussian elimination for width > 0 -}
 
+total
 gaussElimlzIfVectGCD2 :
 	(xs : Matrix n (S predm) ZZ)
 	-> ( n' : Nat
@@ -314,6 +316,7 @@ gaussElimlzIfVectGCD2 xs {predm = S prededm}
 
 {- Gaussian elimination in general -}
 
+total
 gaussElimlzIfVectGCD :
 	(xs : Matrix n m ZZ)
 	-> ( n' : Nat
@@ -338,6 +341,7 @@ parameters (
 		-> ( zpar : (ZZ, ZZ) ** uncurry (bezQTy c d) zpar )
 	) {
 
+total
 gaussElimlzIfGCD2 :
 	(xs : Matrix n m ZZ)
 	-> ( n' : Nat
@@ -347,6 +351,7 @@ gaussElimlzIfGCD2 = gaussElimlzIfVectGCD $ gcdToVectGCD gcdAlg
 
 {- Render proper row echelon property -}
 
+total
 gaussElimlzIfGCD :
 	(xs : Matrix n m ZZ)
 	-> ( n' : Nat

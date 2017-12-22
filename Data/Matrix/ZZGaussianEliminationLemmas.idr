@@ -28,6 +28,8 @@ import Data.Fin.Structural
 
 import Control.Isomorphism
 
+%default total
+
 
 
 {-

@@ -42,6 +42,7 @@ Lemmas for verifying the euclidean algorithm (bezoutsIdentityZZIfModulo)
 
 
 
+total
 bezoutsIdentityLincombEqZZ :
 	(a, b, c, d, q, r : ZZ)
 	-> q<.>d = c <-> r
@@ -96,6 +97,7 @@ bezoutsIdentityLincombEqZZ a b c d q r pr =
 	a<.>d <+> b<.>r
 	) QED
 
+total
 bezoutsIdentityExtQuotientLincombZZ :
 	(c, d, q, r, x : ZZ)
 	-> (q<.>d <+> r = c)
@@ -111,6 +113,7 @@ bezoutsIdentityExtQuotientLincombZZ c d q r x eqpr (dq ** dqPr) (rq ** rqPr)
 		$ cong {f=(q<.>)} $ dqPr )
 	$ eqpr)
 
+total
 bezQTy : (c, d, a, b : ZZ) -> Type
 bezQTy c d a b =
 	( c `quotientOverZZ` (a<.>c <+> b<.>d)

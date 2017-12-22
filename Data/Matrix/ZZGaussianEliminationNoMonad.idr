@@ -27,6 +27,8 @@ import Data.Fin.FinOrdering
 
 import Control.Isomorphism
 
+%default total
+
 
 
 {-

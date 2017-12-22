@@ -4,6 +4,8 @@ module Data.Fin.FinOrdering
 import Data.Fin
 import Data.ZZ
 
+%default total
+
 
 
 {-

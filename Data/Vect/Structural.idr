@@ -8,6 +8,8 @@ import Control.Algebra.DiamondInstances
 import Data.Matrix
 import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
 
+%default total
+
 
 
 {-

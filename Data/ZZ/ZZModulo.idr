@@ -55,11 +55,13 @@ Lemmas for applying (modNatFnIsRemainder)
 
 
 
+total
 modNatTIdModZero : (x : Nat) -> x `modNatT` Z = x
 modNatTIdModZero Z = Refl
 modNatTIdModZero (S predx) = Refl
 
 -- The LT implies subtracting m is reversible
+total
 modNatTCharizLT :
 	(x, m : Nat)
 	-> (x `LT` m)
@@ -70,12 +72,14 @@ modNatTCharizLT (S predx) (S predm) ltpr with (decLT (S predx) (S predm))
 	| No notlt = void $ notlt ltpr
 	| Yes prlt = Refl
 
+total
 modNatTCharizEq : (m : Nat) -> m `modNatT` m = Z
 modNatTCharizEq Z = Refl
 modNatTCharizEq (S predm) with (decLT (S predm) (S predm))
 	| No notlt = rewrite sym $ minusZeroN predm in Refl
 	| Yes prlt = void $ notLTSelf prlt
 
+total
 modNatTCharizGTE :
 	(x, m : Nat)
 	-> (m `plus` x) `modNatT` m = x `modNatT` m
@@ -87,6 +91,7 @@ modNatTCharizGTE (S predx) (S predm) with (decLT (S predm `plus` S predx) (S pre
 	| No notlt = rewrite natPlusInvertibleL (S predx) predm in Refl
 	| Yes prlt = void $ notLTSelf $ lteUnsumLeftSummandLeft {y=S predx} prlt
 
+total
 modNatTIsRemainder :
 	(x, m : Nat)
 	-> (d : Nat ** (d `mult` m) `plus` (x `modNatT` m) = x)
@@ -116,6 +121,7 @@ Derived modulo for ZZ
 
 
 
+total
 modZT : ZZ -> ZZ -> ZZ
 modZT = modZGenFn modNatT modNatTIsRemainder
 

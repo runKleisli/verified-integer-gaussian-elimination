@@ -19,6 +19,8 @@ import Data.Matrix.ZZVerified
 import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
+%default total
+
 
 
 {-
