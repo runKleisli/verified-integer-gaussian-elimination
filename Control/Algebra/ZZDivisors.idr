@@ -1,4 +1,4 @@
-module ZZDivisors
+module Control.Algebra.ZZDivisors
 
 import Control.Algebra
 import Classes.Verified

@@ -8,7 +8,7 @@ import Control.Algebra.NumericInstances
 import Control.Algebra.ZZVerifiedInstances
 import Data.Matrix.AlgebraicVerified 	-- for (ringNeutralIsMultZeroL)
 
-import ZZDivisors
+import Control.Algebra.ZZDivisors
 
 import Data.Fin.FinOrdering
 import Data.Fin.Structural

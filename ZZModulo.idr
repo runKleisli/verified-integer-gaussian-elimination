@@ -9,7 +9,7 @@ import Control.Algebra.NumericInstances
 import Data.Fin.FinOrdering
 import Data.Fin.Structural
 
-import ZZDivisors
+import Control.Algebra.ZZDivisors
 import Control.Algebra.ModuloVerification
 
 

@@ -20,7 +20,7 @@ import Data.Matrix.ZZModuleSpan
 import Data.Matrix.LinearCombinations
 
 import RowEchelon
-import ZZDivisors
+import Control.Algebra.ZZDivisors
 import ZZGaussianEliminationLemmas
 
 import Data.Fin.FinOrdering

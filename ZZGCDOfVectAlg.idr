@@ -15,7 +15,7 @@ import Data.Matrix.LinearCombinations -- for (vectVectLScalingCompatibility)
 
 import Data.Vect.Structural
 
-import ZZDivisors
+import Control.Algebra.ZZDivisors
 
 import Data.Fin.FinOrdering
 import Data.Fin.Structural

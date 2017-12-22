@@ -79,7 +79,7 @@ Table of contents:
 (bezoutsIdentityZZIfModulo) takes a modulo operator as an argument, and produces a GCD algorithm.
 
 Satellite modules:
-* ZZDivisors
+* Control.Algebra.ZZDivisors
 * Control.Algebra.ModuloVerification
 * ZZModulo
 
@@ -278,7 +278,7 @@ Of independent interest are (trichotomy) & (ltenatLastIsTrue), which state
 
 Contents: Typeclass instance `instance VerifiedRingWithUnity ZZ`
 
-## ZZDivisors
+## Control.Algebra.ZZDivisors
 
 * An integer divisibility relation `quotientOverZZ` & its properties
 * Interactions between integer divisibility and linear combinations
