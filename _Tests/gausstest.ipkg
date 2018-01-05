@@ -1,0 +1,5 @@
+package gausstest
+
+opts = "-p contrib -p zzgauss"
+executable = ZZGaussTest
+main = Test
