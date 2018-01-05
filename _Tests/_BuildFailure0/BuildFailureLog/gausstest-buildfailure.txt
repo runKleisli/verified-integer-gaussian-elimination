@@ -1,0 +1,36 @@
+> /Applications/Idris-dev-0.9.20/.cabal-sandbox/bin/idris --build gausstest.ipkg
+Type checking ./Test.idr
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:18564:10: error: 
+      duplicate case value '66037'
+    case 66037:
+         ^
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:18551:10: note: 
+      previous case defined here
+    case 66037:
+         ^
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:18577:10: error: 
+      duplicate case value '66037'
+    case 66037:
+         ^
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:18564:10: note: 
+      previous case defined here
+    case 66037:
+         ^
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:21577:10: error: 
+      duplicate case value '66363'
+    case 66363:
+         ^
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:21569:10: note: 
+      previous case defined here
+    case 66363:
+         ^
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:21585:10: error: 
+      duplicate case value '66363'
+    case 66363:
+         ^
+/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c:21577:10: note: 
+      previous case defined here
+    case 66363:
+         ^
+4 errors generated.
+FAILURE: "gcc" ["-O2","-fwrapv","-fno-strict-overflow","-DHAS_PTHREAD","-DIDRIS_ENABLE_STATS","-I.","/var/folders/z8/dkw5d6xj1l5bddsz_6gvpgqm0000gn/T/idris13533.c","-L/Applications/Idris-dev-0.9.20/.cabal-sandbox/share/x86_64-osx-ghc-7.8.3/idris-0.9.20.2/rts","-lidris_rts","-lpthread","-I/Applications/Idris-dev-0.9.20/.cabal-sandbox/share/x86_64-osx-ghc-7.8.3/idris-0.9.20.2/rts","-lm","-I.","-I../zzgauss","-I../contrib","-I../prelude","-I../base","-I.","-I/Applications/Idris-dev-0.9.20/.cabal-sandbox/share/x86_64-osx-ghc-7.8.3/idris-0.9.20.2/prelude","-I/Applications/Idris-dev-0.9.20/.cabal-sandbox/share/x86_64-osx-ghc-7.8.3/idris-0.9.20.2/base","-o","/Applications/Idris-dev-0.9.20/libs/GaussTest/ZZGaussTest"]

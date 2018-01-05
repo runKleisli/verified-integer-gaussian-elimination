@@ -1,0 +1,144 @@
+1st error's location for duplicate case 66037 is given below the divider.[1]
+
+It seems like it just stopped incrementing the case names for a bit, then reset to where it was supposed to be.
+
+In the 2nd error, we see they all duplicate case 66363 and have a line of the form
+
+`allocCon(REG1, vm, 66037, _, 0);`
+
+and that the case that follows them is case 66366, which is 3 greater than the tripled 66363.
+
+There are corresponding triplicated CALLS to allocCon with 66363, all from:
+
+_idris_Data_46_Matrix_46_ZZModuleSpan_46_rotateAt_58_deleteTo_58_0
+
+in different conditions:
+1) `if (CTAG(LOC(3)) == 0) { ... }`
+2) else `if (CTAG(LOC(4)) == 1) { ... }`
+3) else
+
+I figure we can infer, by comparing the other calls in these blocks to the code for `deleteTo`, which 66363 is meant in each of these situations.
+
+Now, we may not be able to disambiguate all those calls. But we do see that inside each case definition for 66363 the first line is a call of the form
+	`PROJECT(vm, LOC(0), 2, _);`
+and the multiset of arguments to those occurrences is {4,4,5}, which matches that for the
+	`allocCon(REG1, vm, 66363, _, 0);`
+calls. So if those are to match, we only need to distinguish the 4s. And can we do that by content? If we could figure out what one of the corresponding cases of `deleteTo` mean.
+
+[1] Excerpted from idris13533.c
+[2] Note that the original case errors occurred in `_idris__123_APPLY0_125_`, which takes up ~1/5 of the file and represents, I assume, function application, or ($).
+
+-----
+
+TAILCALL(_idris_Data_46_Matrix_46_ZZGaussianEliminationLemmas_46__123_mkQFunc0_125_);
+        break;
+    case 66031:
+        PROJECT(vm, LOC(0), 2, 0);
+        RESERVE(1);
+        TOP(0) = LOC(1);
+        SLIDE(vm, 1);
+        TOPBASE(1);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZGaussianEliminationLemmas_46__123_mkQFunc1_125_);
+        break;
+    case 66032:
+        PROJECT(vm, LOC(0), 2, 1);
+        RESERVE(2);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(1);
+        SLIDE(vm, 2);
+        TOPBASE(2);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZGaussianEliminationLemmas_46__123_mkQFunc2_125_);
+        break;
+    case 66033:
+        PROJECT(vm, LOC(0), 2, 0);
+        RESERVE(1);
+        TOP(0) = LOC(1);
+        SLIDE(vm, 1);
+        TOPBASE(1);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZGaussianEliminationLemmas_46__123_mkQFunc3_125_);
+        break;
+    case 66034:
+        PROJECT(vm, LOC(0), 2, 2);
+        RESERVE(3);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(3);
+        TOP(2) = LOC(1);
+        SLIDE(vm, 3);
+        TOPBASE(3);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZGaussianEliminationLemmas_46__123_mkQFunc4_125_);
+        break;
+    case 66035:
+        PROJECT(vm, LOC(0), 2, 2);
+        RESERVE(3);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(3);
+        TOP(2) = LOC(1);
+        SLIDE(vm, 3);
+        TOPBASE(3);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZGaussianEliminationLemmas_46__123_mkQFunc5_125_);
+        break;
+    case 66036:
+        PROJECT(vm, LOC(0), 2, 6);
+        RESERVE(7);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(3);
+        TOP(2) = LOC(4);
+        TOP(3) = LOC(5);
+        TOP(4) = LOC(6);
+        TOP(5) = LOC(7);
+        TOP(6) = LOC(1);
+        SLIDE(vm, 7);
+        TOPBASE(7);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZModuleSpan_46_bispansNullcolExtension);
+        break;
+    case 66037:
+        PROJECT(vm, LOC(0), 2, 5);
+        RESERVE(6);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(3);
+        TOP(2) = LOC(4);
+        TOP(3) = LOC(5);
+        TOP(4) = LOC(6);
+        TOP(5) = LOC(1);
+        SLIDE(vm, 6);
+        TOPBASE(6);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZModuleSpan_46_rotateAt_58_deleteTo_58_0_58_prfn_58_1);
+        break;
+    case 66037:
+        PROJECT(vm, LOC(0), 2, 5);
+        RESERVE(6);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(3);
+        TOP(2) = LOC(4);
+        TOP(3) = LOC(5);
+        TOP(4) = LOC(6);
+        TOP(5) = LOC(1);
+        SLIDE(vm, 6);
+        TOPBASE(6);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZModuleSpan_46_rotateAt_58_deleteTo_58_0_58_prfn_58_2);
+        break;
+    case 66037:
+        PROJECT(vm, LOC(0), 2, 6);
+        RESERVE(7);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(3);
+        TOP(2) = LOC(4);
+        TOP(3) = LOC(5);
+        TOP(4) = LOC(6);
+        TOP(5) = LOC(7);
+        TOP(6) = LOC(1);
+        SLIDE(vm, 7);
+        TOPBASE(7);
+        TAILCALL(_idris_Data_46_Matrix_46_ZZModuleSpan_46_rotateAt_58_deleteTo_58_0_58_prfn_58_3);
+        break;
+    case 66040:
+        PROJECT(vm, LOC(0), 2, 5);
+        RESERVE(6);
+        TOP(0) = LOC(2);
+        TOP(1) = LOC(3);
+        TOP(2) = LOC(4);
+        TOP(3) = LOC(5);
+        TOP(4) = LOC(6);
+        TOP(5) = LOC(1);
+        SLIDE(vm, 6);
+        TOPBASE(6);
