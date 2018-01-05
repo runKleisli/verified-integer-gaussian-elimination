@@ -7,6 +7,8 @@ import Data.Matrix.ZZModuleSpan
 
 import Data.Matrix.ZZGaussianElimination
 
+%flag C "-O3"
+
 
 
 -- 1s & 0s only, please.
