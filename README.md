@@ -2,9 +2,9 @@
 
 [![bountysource](https://img.shields.io/bountysource/team/verified-integer-gaussian-elimination/activity.svg "bountysource (salt)")](https://www.bountysource.com/teams/verified-integer-gaussian-elimination) Funded through [Bountysource (salt)](https://salt.bountysource.com/teams/verified-integer-gaussian-elimination) by [viewers like you](../master/Backers.md).
 
-This: Version v1.0.0
+This: Version v1.1.0
 
-Written in Idris 0.9.20
+Written in Idris 0.10
 
 Idris package defining, implementing, and verifying naiive Gaussian elimination over the integers in some system of linear algebra.
 
@@ -24,12 +24,15 @@ Copy the repo's contents (minus the `.git` folder) into a folder called `zzgauss
 `cd` to this folder, then run
 
 `idris --build zzgauss.ipkg`
+
 `idris --install zzgauss.ipkg`
 
 Then, to use the library from the REPL, you run:
 
 `idris -p contrib -p zzgauss`
+
 `Idris> :module Data.Matrix.ZZGaussianElimination`
+
 `Idris> :browse Data.Matrix.ZZGaussianElimination`
 
 where the `:module` call is unnecessary once imported into an Idris module that's loaded.
