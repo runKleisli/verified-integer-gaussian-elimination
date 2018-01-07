@@ -231,7 +231,7 @@ Theorems about the module (Vect n a) over a ring (a):
 
 
 
-indexNeutralIsNeutral1D : Ring a => (k : Fin n) -> index k $ Algebra.neutral {a=Vect n a} = Algebra.neutral
+indexNeutralIsNeutral1D : Ring a => (k : Fin n) -> index k $ Algebra.neutral {ty=Vect n a} = Algebra.neutral
 indexNeutralIsNeutral1D FZ = Refl
 indexNeutralIsNeutral1D (FS k) = indexNeutralIsNeutral1D k
 

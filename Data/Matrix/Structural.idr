@@ -96,6 +96,6 @@ Theorems about the module (Matrix n m a) over a ring (a):
 
 
 
-indexNeutralIsNeutral2D : Ring a => (k : Fin n) -> index k $ Algebra.neutral {a=Matrix n m a} = Algebra.neutral
+indexNeutralIsNeutral2D : Ring a => (k : Fin n) -> index k $ Algebra.neutral {ty=Matrix n m a} = Algebra.neutral
 indexNeutralIsNeutral2D FZ = Refl
 indexNeutralIsNeutral2D (FS k) = indexNeutralIsNeutral2D k

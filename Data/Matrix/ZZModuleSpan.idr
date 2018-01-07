@@ -2187,7 +2187,7 @@ spanSub {xs} {ys} {zs} {n} {n'} {w} prxy prxz
 
 
 -- A combination of the proofs of (spanslzHeadRow) & (spanslzNeutral).
-spanslzHeadCatNeutral : x::xs `spanslz` x::Algebra.neutral {a=Matrix n m ZZ}
+spanslzHeadCatNeutral : x::xs `spanslz` x::Algebra.neutral {ty=Matrix n m ZZ}
 spanslzHeadCatNeutral {x} {xs} = ( basis FZ::Algebra.neutral
 	** trans (sym $ timesMatMatAsMultipleLinearCombos (basis FZ::Algebra.neutral) (x::xs))
 		$ vecHeadtailsEq
