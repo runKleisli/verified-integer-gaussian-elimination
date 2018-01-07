@@ -277,7 +277,7 @@ Misc foundational
 ## Data.Fin.FinOrdering
 
 Contents:
-* A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` class, and a `DecLT` class for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
+* A(n) `LTRel` relation term meant for less-than relations, in an `OrdRel` interface, and a `DecLT` interface for decidable relations, where such an `OrdRel` whose `LTRel x y` is occupied will have a `decLT x y` giving an inhabitant and where unoccupied `decLT x y` will be a proof of this (some `LTRel x y -> Void`).
 * An instance of this for `Nat`, by which `Fin n` will be ordered indirectly through `finToNat`.
 * `lteToLTERel : {a, b : Nat} -> LTE a b -> LTERel a b`, relating `FinOrdering`'s version `LTERel` of the less-than-or-equal-to relation to `LTE`, from Prelude, for `Nat`s.
 * `zLtSuccIsTrue : (k : Nat) -> LTRel Z (S k)`
@@ -296,7 +296,7 @@ Of independent interest are (trichotomy) & (ltenatLastIsTrue), which state
 
 ## Control.Algebra.ZZVerifiedInstances
 
-Contents: Typeclass instance `instance VerifiedRingWithUnity ZZ`
+Contents: Interface implementation `implementation VerifiedRingWithUnity ZZ`
 
 ## Control.Algebra.ZZDivisors
 
@@ -330,7 +330,7 @@ Definitions:
 
 Ripped from comments of Classes.Verified, commenting out there coincides with definition of module being in the separate module Control.Algebra.VectorSpace from Control.Algebra.
 
-Typeclass instances:
+Interface implementations:
 * Verified module instance for `VerifiedRingWithUnity a => Matrix n m a`.
 * No such instance for `Vect`s, but proofs of the required properties.
 

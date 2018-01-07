@@ -1,5 +1,5 @@
 module Data.Fin.FinOrdering
--- Classes (OrdRel, DecLT) are redundant with IntegerOrdering.idr
+-- Interfaces (OrdRel, DecLT) are redundant with IntegerOrdering.idr
 
 import Data.Fin
 import Data.ZZ
@@ -15,16 +15,16 @@ Definitions
 
 
 -- Note that unlike (=) the types do not inherently need to be ambiguous
-class OrdRel A where
+interface OrdRel A where
 	LTRel : A -> A -> Type
 
 LTERel : OrdRel s => s -> s -> Type
 LTERel a b = Either (LTRel a b) (a=b)
 
-class (OrdRel s) => DecLT s where
+interface (OrdRel s) => DecLT s where
 	decLT : (x1 : s) -> (x2 : s) -> Dec ( LTRel x1 x2 )
 
-class (OrdRel s) => DecLTE s where
+interface (OrdRel s) => DecLTE s where
 	decLTE : (x1 : s) -> (x2 : s) -> Dec ( LTERel x1 x2 )
 
 implDeclte : (DecLT s, DecEq s) => (a, b: s) -> Dec ( LTERel a b )
@@ -60,10 +60,10 @@ instance (OrdRel s, DecLT s, DecEq s) => DecLTE s where
 	decLTE = ?declte_from_ltNeq
 -}
 
-instance OrdRel Nat where
+implementation OrdRel Nat where
 	LTRel = LT
 
-instance DecLT Nat where
+implementation DecLT Nat where
 	decLT a b = isLTE (S a) b
 
 ||| Normalizes the notion of decidable LTE provided by Prelude.Nat.isLTE.
@@ -74,12 +74,12 @@ decLTENat a b with (decEq a b)
 		| Yes pr = Yes (Left pr)
 		| No pr = No ( either pr prneq )
 
-instance DecLTE Nat where
+implementation DecLTE Nat where
 	decLTE = decLTENat
 
 {-
 -- Just use `finToNat`.
-instance DecLT (Fin n) where
+implementation DecLT (Fin n) where
 	decLT {n} = decLTFin n
 -}
 

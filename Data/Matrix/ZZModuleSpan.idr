@@ -1926,11 +1926,11 @@ zippyScaleIsAssociative_squaremats : {l, c, r : Matrix n n ZZ} -> l `zippyScale`
 -- zippyScaleIsAssociative_squaremats = ?zippyScaleIsAssociative_squaremats'
 zippyScaleIsAssociative_squaremats {l} {c} {r} {n} = ( rewriteAssociativityUnderEquality {l=l} {c=c} {r=r} {f=(<>)} {g=\varg => \xarg => map (\zs => monoidsum (zipWith (<#>) zs xarg)) varg} (timesMatMatAsMultipleLinearCombos {n'=n} {n=n} {w=n}) ) $ timesMatMatIsAssociative {l=l} {c=c} {r=r}
 
--- Note this typechecks when (multIdLeftNeutral) has the class-generic type signature.
+-- Note this typechecks when (multIdLeftNeutral) has the interface-generic type signature.
 zippyScaleIdLeftNeutral : (a : Matrix n m ZZ) -> Id `zippyScale` a = a
 zippyScaleIdLeftNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdLeftNeutral _
 
--- Note this typechecks when (multIdLeftNeutral) has the class-generic type signature.
+-- Note this typechecks when (multIdLeftNeutral) has the interface-generic type signature.
 zippyScaleIdRightNeutral : (a : Matrix _ _ ZZ) -> a `zippyScale` Id = a
 zippyScaleIdRightNeutral _ = trans (sym $ timesMatMatAsMultipleLinearCombos _ _) $ multIdRightNeutral _
 

@@ -6,7 +6,7 @@ import Control.Algebra.VectorSpace -- definition of module
 import Classes.Verified -- definition of verified algebras other than modules
 import Control.Algebra.DiamondInstances
 import Data.Matrix
-import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
+import Data.Matrix.Algebraic -- `Module` implementations
 
 %default total
 
@@ -247,8 +247,10 @@ indexCompatAdd xs ys i = zipWithEntryChariz {x=xs} {y=ys} {i=i} {m=(<+>)}
 
 indexCompatSub : VerifiedRingWithUnity a
 	=> {auto ok :
-		((<+>) @{vrwuSemigroupByGrp $ the (VerifiedRingWithUnity a) %instance})
-		= ((<+>) @{vrwuSemigroupByVMon $ the (VerifiedRingWithUnity a) %instance})
+		((<+>) @{vrwuSemigroupByGrp
+			$ the (VerifiedRingWithUnity a) %instance})
+		= ((<+>) @{vrwuSemigroupByVMon
+			$ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> (xs, ys : Vect n a)
 	-> (i : Fin n)
@@ -260,8 +262,10 @@ indexCompatSub {ok} xs ys i = rewrite ok in
 
 indexCompatScaling : VerifiedRingWithUnity a
 	=> {auto ok :
-		((<.>) @{vrwuRingByRWU $ the (VerifiedRingWithUnity a) %instance})
-		= ((<.>) @{vrwuRingByVR $ the (VerifiedRingWithUnity a) %instance})
+		((<.>) @{vrwuRingByRWU
+			$ the (VerifiedRingWithUnity a) %instance})
+		= ((<.>) @{vrwuRingByVR
+			$ the (VerifiedRingWithUnity a) %instance})
 		}
 	-> (r : a) -> (xs : Vect n a) -> (i : Fin n)
 	-> index i $ r <#> xs = r <.> index i xs

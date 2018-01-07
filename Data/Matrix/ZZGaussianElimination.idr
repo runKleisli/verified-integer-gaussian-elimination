@@ -5,7 +5,7 @@ import Classes.Verified
 import Control.Algebra.VectorSpace -- definition of module
 
 import Data.Matrix
-import Data.Matrix.Algebraic -- module instances; from Idris 0.9.20
+import Data.Matrix.Algebraic -- `Module` implementations
 import Data.Matrix.AlgebraicVerified
 
 import Data.Vect.Structural
