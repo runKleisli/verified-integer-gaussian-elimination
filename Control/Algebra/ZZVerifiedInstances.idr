@@ -217,30 +217,30 @@ ringWithUnityIsUnityR_ZZ : ( r : ZZ ) -> Algebra.unity <.> r = r
 ringWithUnityIsUnityR_ZZ (Pos r) = cong $ multOneLeftNeutral r
 ringWithUnityIsUnityR_ZZ (NegS r) = cong $ multOneLeftNeutral r
 
-instance VerifiedSemigroup ZZ where
+implementation VerifiedSemigroup ZZ where
 	semigroupOpIsAssociative = semigroupOpIsAssociative_ZZ
 
-instance VerifiedMonoid ZZ where {
+implementation VerifiedMonoid ZZ where {
 	monoidNeutralIsNeutralL = monoidNeutralIsNeutralL_ZZ
 	monoidNeutralIsNeutralR = monoidNeutralIsNeutralR_ZZ
 }
 
-instance VerifiedGroup ZZ where {
+implementation VerifiedGroup ZZ where {
 	groupInverseIsInverseL = groupInverseIsInverseL_ZZ
 	groupInverseIsInverseR = groupInverseIsInverseR_ZZ
 }
 
-instance VerifiedAbelianGroup ZZ where {
+implementation VerifiedAbelianGroup ZZ where {
 	abelianGroupOpIsCommutative = abelianGroupOpIsCommutative_ZZ
 }
 
-instance VerifiedRing ZZ where {
+implementation VerifiedRing ZZ where {
 	ringOpIsAssociative = ringOpIsAssociative_ZZ
 	ringOpIsDistributiveL = ringOpIsDistributiveL_ZZ
 	ringOpIsDistributiveR = ringOpIsDistributiveR_ZZ
 }
 
-instance VerifiedRingWithUnity ZZ where {
+implementation VerifiedRingWithUnity ZZ where {
 	ringWithUnityIsUnityL = ringWithUnityIsUnityL_ZZ
 	ringWithUnityIsUnityR = ringWithUnityIsUnityR_ZZ
 }
